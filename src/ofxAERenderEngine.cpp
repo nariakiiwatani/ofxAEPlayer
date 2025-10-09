@@ -206,11 +206,8 @@ void RenderEngine::renderLayer(const Layer& layer, float currentTime) {
 }
 
 void RenderEngine::applyLayerTransform(const Layer& layer, float currentTime) {
-    // Use the existing TransformNode system from the layer
-    const TransformNode& transform = layer.getTransform();
-    
     // Apply the transform matrix that includes keyframe interpolation
-    transform.pushMatrix();
+	layer.pushMatrix();
 }
 
 void RenderEngine::renderFootage(const Layer& layer, float currentTime) {
@@ -234,10 +231,44 @@ void RenderEngine::renderFootage(const Layer& layer, float currentTime) {
 }
 
 void RenderEngine::renderShape(const Layer& layer, float currentTime) {
-    // Shape layer rendering - placeholder for vector graphics
-    // In a full implementation, this would render bezier paths and fills
-    ofSetColor(150, 200, 100, 180);
-    ofDrawCircle(0, 0, 50);
+    // Enhanced shape layer rendering implementation
+    try {
+        // Check if this is actually a shape layer
+        if (layer.getInfo().type != Layer::SHAPE_LAYER) {
+            ofLogWarning("RenderEngine") << "renderShape called on non-shape layer";
+            return;
+        }
+        
+        // Apply layer transform is already done in renderLayer()
+        // Apply layer opacity is already done in renderLayer()
+        
+        // For now, we'll implement basic shape rendering
+        // In full implementation, this would:
+        // 1. Cast to ShapeLayer to access shape data
+        // 2. Render each shape group with proper hierarchy
+        // 3. Apply fill and stroke properties
+        // 4. Handle shape animations
+        
+        // Basic shape rendering placeholder with enhanced visualization
+        ofPushStyle();
+        
+        // Simulate multiple shapes in a layer
+        ofSetColor(100, 150, 200, 180);
+        ofDrawRectangle(-30, -30, 60, 60);
+        
+        ofSetColor(200, 100, 150, 180);
+        ofDrawCircle(0, 0, 25);
+        
+        ofSetColor(150, 200, 100, 180);
+        ofDrawTriangle(-20, 20, 20, 20, 0, -20);
+        
+        ofPopStyle();
+        
+        ofLogVerbose("RenderEngine") << "Rendered shape layer: " << layer.getInfo().name;
+        
+    } catch (const std::exception& e) {
+        ofLogError("RenderEngine") << "Error rendering shape layer: " << e.what();
+    }
 }
 
 void RenderEngine::renderText(const Layer& layer, float currentTime) {

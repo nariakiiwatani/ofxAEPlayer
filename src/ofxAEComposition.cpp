@@ -1,5 +1,6 @@
 #include "ofxAEComposition.h"
 #include "ofxAELayer.h"
+#include "ofxAELayerFactory.h"
 #include "ofLog.h"
 #include "ofUtils.h"
 #include <fstream>
@@ -197,8 +198,8 @@ bool Composition::loadLayers() {
 			continue;
 		}
 		
-		auto layer = std::make_shared<Layer>();
-		if (layer->load(layer_file.string())) {
+		auto layer = LayerFactory::createFromJson(layer_file.string());
+		if (layer) {
 			layers_.push_back(layer);
 		} else {
 			ofLogError("ofxAEComposition") << "Failed to load layer: " << layer_file;

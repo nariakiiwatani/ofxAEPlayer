@@ -15,15 +15,9 @@ void Layer::update() {
 	if (hasKeyframes()) {
 		updateTransformFromKeyframes();
 	}
-	
-	// TransformNodeの行列を更新（dirty flag活用）
-	transform_.refreshMatrix();
-	
-	// 子レイヤーの更新（親のTransform変更を伝播）
-	for (auto& child : child_layers_) {
-		if (child) {
-			child->update();
-		}
+
+	if(isDirty()) {
+		refreshMatrix();
 	}
 }
 
@@ -31,17 +25,13 @@ void Layer::draw(float x, float y, float w, float h) const {
 	if (!visible_ || opacity_ <= 0.0f) {
 		return;
 	}
-	
-	ofPushMatrix();
-	
 	// TransformNodeの変換を適用
-	transform_.pushMatrix();
+	pushMatrix();
 	
 	// 実際の描画処理（基本実装では何も描画しない）
 	// サブクラスでオーバーライドして具体的な描画を実装
 	
-	transform_.popMatrix();
-	ofPopMatrix();
+	popMatrix();
 }
 
 float Layer::getHeight() const {
@@ -125,13 +115,6 @@ const Layer::LayerInfo& Layer::getInfo() const {
 	return layer_info_;
 }
 
-TransformNode& Layer::getTransform() {
-	return transform_;
-}
-
-const TransformNode& Layer::getTransform() const {
-	return transform_;
-}
 
 bool Layer::hasKeyframes() const {
 	return !keyframes_.empty();
@@ -225,7 +208,7 @@ void Layer::parseTransformData(const ofJson &transform_data) {
 		auto anchor = transform_data["anchor"];
 		if (anchor.is_array() && anchor.size() >= 2) {
 			float z_val = anchor.size() >= 3 ? anchor[2].get<float>() : 0.0f;
-			transform_.setAnchorPoint(anchor[0].get<float>(), anchor[1].get<float>(), z_val);
+			TransformNode::setAnchorPoint(anchor[0].get<float>(), anchor[1].get<float>(), z_val);
 		}
 	}
 	
@@ -234,7 +217,7 @@ void Layer::parseTransformData(const ofJson &transform_data) {
 		if (pos.is_array() && pos.size() >= 2) {
 			float z_val = pos.size() >= 3 ? pos[2].get<float>() : 0.0f;
 			// AE座標系からoF座標系への変換（必要に応じて座標変換を適用）
-			transform_.setTranslation(pos[0].get<float>(), pos[1].get<float>(), z_val);
+			setTranslation(pos[0].get<float>(), pos[1].get<float>(), z_val);
 		}
 	}
 	
@@ -243,24 +226,24 @@ void Layer::parseTransformData(const ofJson &transform_data) {
 		if (scale.is_array() && scale.size() >= 2) {
 			float z_scale = scale.size() >= 3 ? scale[2].get<float>() : 100.0f;
 			// AEは%なので0.01倍
-			transform_.setScale(scale[0].get<float>() * 0.01f,
-						   scale[1].get<float>() * 0.01f,
-						   z_scale * 0.01f);
+			setScale(scale[0].get<float>() * 0.01f,
+					   scale[1].get<float>() * 0.01f,
+					   z_scale * 0.01f);
 		}
 	}
 	
 	if (transform_data.contains("rotateZ")) {
 		// AEは度数法、TransformNodeも度数法対応
-		transform_.setRotationZ(transform_data["rotateZ"].get<float>());
+		setRotationZ(transform_data["rotateZ"].get<float>());
 	}
 	
 	// X, Y回転も対応（3D空間での回転）
 	if (transform_data.contains("rotateX")) {
-		transform_.setRotationX(transform_data["rotateX"].get<float>());
+		setRotationX(transform_data["rotateX"].get<float>());
 	}
 	
 	if (transform_data.contains("rotateY")) {
-		transform_.setRotationY(transform_data["rotateY"].get<float>());
+		setRotationY(transform_data["rotateY"].get<float>());
 	}
 	
 	if (transform_data.contains("opacity")) {
@@ -325,80 +308,24 @@ void Layer::applyTransformValue(const std::string &property, const ofJson &value
 	
 	if (property == "position" && value.is_array() && value.size() >= 2) {
 		float z_val = value.size() >= 3 ? value[2].get<float>() : 0.0f;
-		transform_.setTranslation(value[0].get<float>(), value[1].get<float>(), z_val);
+		setTranslation(value[0].get<float>(), value[1].get<float>(), z_val);
 	} else if (property == "scale" && value.is_array() && value.size() >= 2) {
 		float z_scale = value.size() >= 3 ? value[2].get<float>() : 100.0f;
 		// AEは%なので0.01倍
-		transform_.setScale(value[0].get<float>() * 0.01f,
-						   value[1].get<float>() * 0.01f,
-						   z_scale * 0.01f);
+		setScale(value[0].get<float>() * 0.01f,
+				   value[1].get<float>() * 0.01f,
+				   z_scale * 0.01f);
 	} else if (property == "rotateZ" && value.is_number()) {
-		transform_.setRotationZ(value.get<float>());
+		setRotationZ(value.get<float>());
 	} else if (property == "rotateX" && value.is_number()) {
-		transform_.setRotationX(value.get<float>());
+		setRotationX(value.get<float>());
 	} else if (property == "rotateY" && value.is_number()) {
-		transform_.setRotationY(value.get<float>());
+		setRotationY(value.get<float>());
 	} else if (property == "anchor" && value.is_array() && value.size() >= 2) {
 		float z_val = value.size() >= 3 ? value[2].get<float>() : 0.0f;
-		transform_.setAnchorPoint(value[0].get<float>(), value[1].get<float>(), z_val);
+		TransformNode::setAnchorPoint(value[0].get<float>(), value[1].get<float>(), z_val);
 	} else if (property == "opacity" && value.is_number()) {
 		setOpacity(value.get<float>() * 0.01f); // %から0-1に変換
-	}
-}
-
-void Layer::setParentLayer(std::shared_ptr<Layer> parent) {
-	// 現在の親から削除
-	if (auto old_parent = parent_layer_.lock()) {
-		old_parent->removeChildLayer(shared_from_this());
-	}
-	
-	parent_layer_ = parent;
-	
-	if (parent) {
-		parent->addChildLayer(shared_from_this());
-		// Pass the parent's TransformNode since TransformNode inherits from Hierarchical
-		transform_.setParent(std::shared_ptr<Hierarchical>(&parent->getTransform(), [](Hierarchical*){}));
-	} else {
-		transform_.setParent(nullptr);
-	}
-}
-
-std::shared_ptr<Layer> Layer::getParentLayer() const {
-	return parent_layer_.lock();
-}
-
-void Layer::addChildLayer(std::shared_ptr<Layer> child) {
-	if (!child) return;
-	
-	// 既に子として登録されているかチェック
-	auto it = std::find(child_layers_.begin(), child_layers_.end(), child);
-	if (it == child_layers_.end()) {
-		child_layers_.push_back(child);
-	}
-}
-
-void Layer::removeChildLayer(std::shared_ptr<Layer> child) {
-	if (!child) return;
-	
-	auto it = std::find(child_layers_.begin(), child_layers_.end(), child);
-	if (it != child_layers_.end()) {
-		child_layers_.erase(it);
-	}
-}
-
-std::vector<std::shared_ptr<Layer>> Layer::getChildLayers() const {
-	return child_layers_;
-}
-
-void Layer::updateHierarchicalTransform() {
-	// 親のTransformが変更された場合、子レイヤーも更新
-	transform_.refreshMatrix();
-	
-	// 子レイヤーの更新
-	for (auto& child : child_layers_) {
-		if (child) {
-			child->updateHierarchicalTransform();
-		}
 	}
 }
 
