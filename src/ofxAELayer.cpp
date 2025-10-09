@@ -1,0 +1,405 @@
+#include "ofxAELayer.h"
+#include "ofLog.h"
+#include "ofUtils.h"
+#include <fstream>
+#include <algorithm>
+
+namespace ofx { namespace ae {
+
+bool Layer::setup(const ofJson &json) {
+	parseTransformData(json);
+	return true;
+}
+
+void Layer::update() {
+	if (hasKeyframes()) {
+		updateTransformFromKeyframes();
+	}
+	
+	// TransformNodeの行列を更新（dirty flag活用）
+	transform_.refreshMatrix();
+	
+	// 子レイヤーの更新（親のTransform変更を伝播）
+	for (auto& child : child_layers_) {
+		if (child) {
+			child->update();
+		}
+	}
+}
+
+void Layer::draw(float x, float y, float w, float h) const {
+	if (!visible_ || opacity_ <= 0.0f) {
+		return;
+	}
+	
+	ofPushMatrix();
+	
+	// TransformNodeの変換を適用
+	transform_.pushMatrix();
+	
+	// 実際の描画処理（基本実装では何も描画しない）
+	// サブクラスでオーバーライドして具体的な描画を実装
+	
+	transform_.popMatrix();
+	ofPopMatrix();
+}
+
+float Layer::getHeight() const {
+	// 基本実装では0を返す
+	// サブクラスでオーバーライドして適切な高さを返す
+	return 0.0f;
+}
+
+float Layer::getWidth() const {
+	// 基本実装では0を返す
+	// サブクラスでオーバーライドして適切な幅を返す
+	return 0.0f;
+}
+
+bool Layer::load(const std::string &layer_path) {
+	std::ifstream file(layer_path);
+	if (!file.is_open()) {
+		ofLogError("ofxAELayer") << "Cannot open file: " << layer_path;
+		return false;
+	}
+	
+	ofJson json;
+	try {
+		file >> json;
+	} catch (const std::exception &e) {
+		ofLogError("ofxAELayer") << "JSON parse error: " << e.what();
+		return false;
+	}
+	
+	// 基本情報の解析
+	if (json.contains("name") && json["name"].is_string()) {
+		layer_info_.name = json["name"].get<std::string>();
+	}
+	
+	if (json.contains("layerType") && json["layerType"].is_string()) {
+		layer_info_.type = stringToLayerType(json["layerType"].get<std::string>());
+	}
+	
+	if (json.contains("source") && json["source"].is_string()) {
+		layer_info_.source = json["source"].get<std::string>();
+	}
+	
+	if (json.contains("in") && json["in"].is_number()) {
+		layer_info_.in_point = json["in"].get<int>();
+	}
+	
+	if (json.contains("out") && json["out"].is_number()) {
+		layer_info_.out_point = json["out"].get<int>();
+	}
+	
+	if (json.contains("parent") && json["parent"].is_string()) {
+		layer_info_.parent = json["parent"].get<std::string>();
+	}
+	
+	// マーカーの解析
+	if (json.contains("markers")) {
+		if (!Marker::parseMarkers(json["markers"], layer_info_.markers)) {
+			ofLogWarning("ofxAELayer") << "Failed to parse markers for layer: " << layer_info_.name;
+		}
+	}
+	
+	// レイヤーのTransformデータ解析
+	if (json.contains("layer") && json["layer"].contains("transform")) {
+		parseTransformData(json["layer"]["transform"]);
+	}
+	
+	// キーフレームデータの保存
+	if (json.contains("keyframes")) {
+		keyframes_ = json["keyframes"];
+	}
+	
+	// 初期化
+	current_frame_ = 0;
+	visible_ = true;
+	opacity_ = 1.0f;
+	
+	return true;
+}
+
+const Layer::LayerInfo& Layer::getInfo() const {
+	return layer_info_;
+}
+
+TransformNode& Layer::getTransform() {
+	return transform_;
+}
+
+const TransformNode& Layer::getTransform() const {
+	return transform_;
+}
+
+bool Layer::hasKeyframes() const {
+	return !keyframes_.empty();
+}
+
+const ofJson& Layer::getKeyframes() const {
+	return keyframes_;
+}
+
+void Layer::setCurrentFrame(int frame) {
+	if (current_frame_ != frame) {
+		current_frame_ = frame;
+		
+		// フレーム変更時のTransform自動更新
+		if (hasKeyframes()) {
+			updateTransformFromKeyframes();
+		}
+	}
+}
+
+bool Layer::isVisible() const {
+	return visible_;
+}
+
+void Layer::setVisible(bool visible) {
+	visible_ = visible;
+}
+
+float Layer::getOpacity() const {
+	return opacity_;
+}
+
+void Layer::setOpacity(float opacity) {
+	opacity_ = std::max(0.0f, std::min(1.0f, opacity));
+}
+
+void Layer::updateTransformFromKeyframes() {
+	if (!hasKeyframes() || !keyframes_.contains("transform")) {
+		return;
+	}
+	
+	const auto &transform_keyframes = keyframes_["transform"];
+	
+	// キーフレーム補間によるTransform値の自動更新
+	// 位置（Position）
+	if (transform_keyframes.contains("position")) {
+		ofJson interpolated_value = getInterpolatedValue("position", current_frame_);
+		applyTransformValue("position", interpolated_value);
+	}
+	
+	// スケール（Scale）
+	if (transform_keyframes.contains("scale")) {
+		ofJson interpolated_value = getInterpolatedValue("scale", current_frame_);
+		applyTransformValue("scale", interpolated_value);
+	}
+	
+	// Z軸回転（Rotation Z）
+	if (transform_keyframes.contains("rotateZ")) {
+		ofJson interpolated_value = getInterpolatedValue("rotateZ", current_frame_);
+		applyTransformValue("rotateZ", interpolated_value);
+	}
+	
+	// X軸回転（Rotation X）
+	if (transform_keyframes.contains("rotateX")) {
+		ofJson interpolated_value = getInterpolatedValue("rotateX", current_frame_);
+		applyTransformValue("rotateX", interpolated_value);
+	}
+	
+	// Y軸回転（Rotation Y）
+	if (transform_keyframes.contains("rotateY")) {
+		ofJson interpolated_value = getInterpolatedValue("rotateY", current_frame_);
+		applyTransformValue("rotateY", interpolated_value);
+	}
+	
+	// アンカーポイント（Anchor Point）
+	if (transform_keyframes.contains("anchor")) {
+		ofJson interpolated_value = getInterpolatedValue("anchor", current_frame_);
+		applyTransformValue("anchor", interpolated_value);
+	}
+	
+	// 不透明度（Opacity）
+	if (transform_keyframes.contains("opacity")) {
+		ofJson interpolated_value = getInterpolatedValue("opacity", current_frame_);
+		applyTransformValue("opacity", interpolated_value);
+	}
+}
+
+void Layer::parseTransformData(const ofJson &transform_data) {
+	// AE → TransformNode マッピング統合
+	if (transform_data.contains("anchor")) {
+		auto anchor = transform_data["anchor"];
+		if (anchor.is_array() && anchor.size() >= 2) {
+			float z_val = anchor.size() >= 3 ? anchor[2].get<float>() : 0.0f;
+			transform_.setAnchorPoint(anchor[0].get<float>(), anchor[1].get<float>(), z_val);
+		}
+	}
+	
+	if (transform_data.contains("position")) {
+		auto pos = transform_data["position"];
+		if (pos.is_array() && pos.size() >= 2) {
+			float z_val = pos.size() >= 3 ? pos[2].get<float>() : 0.0f;
+			// AE座標系からoF座標系への変換（必要に応じて座標変換を適用）
+			transform_.setTranslation(pos[0].get<float>(), pos[1].get<float>(), z_val);
+		}
+	}
+	
+	if (transform_data.contains("scale")) {
+		auto scale = transform_data["scale"];
+		if (scale.is_array() && scale.size() >= 2) {
+			float z_scale = scale.size() >= 3 ? scale[2].get<float>() : 100.0f;
+			// AEは%なので0.01倍
+			transform_.setScale(scale[0].get<float>() * 0.01f,
+						   scale[1].get<float>() * 0.01f,
+						   z_scale * 0.01f);
+		}
+	}
+	
+	if (transform_data.contains("rotateZ")) {
+		// AEは度数法、TransformNodeも度数法対応
+		transform_.setRotationZ(transform_data["rotateZ"].get<float>());
+	}
+	
+	// X, Y回転も対応（3D空間での回転）
+	if (transform_data.contains("rotateX")) {
+		transform_.setRotationX(transform_data["rotateX"].get<float>());
+	}
+	
+	if (transform_data.contains("rotateY")) {
+		transform_.setRotationY(transform_data["rotateY"].get<float>());
+	}
+	
+	if (transform_data.contains("opacity")) {
+		opacity_ = transform_data["opacity"].get<float>() * 0.01f; // %から0-1に変換
+	}
+}
+
+Layer::LayerType Layer::stringToLayerType(const std::string &type_str) {
+	if (type_str == "ADBE AV Layer") return AV_LAYER;
+	if (type_str == "ADBE Vector Layer") return VECTOR_LAYER;
+	if (type_str == "ADBE Shape Layer") return SHAPE_LAYER;
+	return AV_LAYER; // デフォルト
+}
+
+ofJson Layer::getInterpolatedValue(const std::string &property, int frame) const {
+	if (!keyframes_.contains("transform") || !keyframes_["transform"].contains(property)) {
+		return ofJson();
+	}
+	
+	const auto &keyframe_array = keyframes_["transform"][property];
+	if (!keyframe_array.is_array() || keyframe_array.empty()) {
+		return ofJson();
+	}
+	
+	// キーフレームデータをパース
+	std::vector<Keyframe::KeyframeData> keyframe_data;
+	if (!Keyframe::parseKeyframes(keyframe_array, keyframe_data)) {
+		return ofJson();
+	}
+	
+	// フレームに対応するキーフレームを見つける
+	if (keyframe_data.empty()) {
+		return ofJson();
+	}
+	
+	// 最初のキーフレーム以前の場合
+	if (frame <= keyframe_data.front().frame) {
+		return keyframe_data.front().value;
+	}
+	
+	// 最後のキーフレーム以降の場合
+	if (frame >= keyframe_data.back().frame) {
+		return keyframe_data.back().value;
+	}
+	
+	// 補間が必要な場合
+	for (std::size_t i = 0; i < keyframe_data.size() - 1; ++i) {
+		const auto &key1 = keyframe_data[i];
+		const auto &key2 = keyframe_data[i + 1];
+		
+		if (frame >= key1.frame && frame <= key2.frame) {
+			float t = static_cast<float>(frame - key1.frame) / static_cast<float>(key2.frame - key1.frame);
+			return Keyframe::interpolateValue(key1, key2, t);
+		}
+	}
+	
+	return keyframe_data.front().value;
+}
+
+void Layer::applyTransformValue(const std::string &property, const ofJson &value) {
+	if (value.empty()) return;
+	
+	if (property == "position" && value.is_array() && value.size() >= 2) {
+		float z_val = value.size() >= 3 ? value[2].get<float>() : 0.0f;
+		transform_.setTranslation(value[0].get<float>(), value[1].get<float>(), z_val);
+	} else if (property == "scale" && value.is_array() && value.size() >= 2) {
+		float z_scale = value.size() >= 3 ? value[2].get<float>() : 100.0f;
+		// AEは%なので0.01倍
+		transform_.setScale(value[0].get<float>() * 0.01f,
+						   value[1].get<float>() * 0.01f,
+						   z_scale * 0.01f);
+	} else if (property == "rotateZ" && value.is_number()) {
+		transform_.setRotationZ(value.get<float>());
+	} else if (property == "rotateX" && value.is_number()) {
+		transform_.setRotationX(value.get<float>());
+	} else if (property == "rotateY" && value.is_number()) {
+		transform_.setRotationY(value.get<float>());
+	} else if (property == "anchor" && value.is_array() && value.size() >= 2) {
+		float z_val = value.size() >= 3 ? value[2].get<float>() : 0.0f;
+		transform_.setAnchorPoint(value[0].get<float>(), value[1].get<float>(), z_val);
+	} else if (property == "opacity" && value.is_number()) {
+		setOpacity(value.get<float>() * 0.01f); // %から0-1に変換
+	}
+}
+
+void Layer::setParentLayer(std::shared_ptr<Layer> parent) {
+	// 現在の親から削除
+	if (auto old_parent = parent_layer_.lock()) {
+		old_parent->removeChildLayer(shared_from_this());
+	}
+	
+	parent_layer_ = parent;
+	
+	if (parent) {
+		parent->addChildLayer(shared_from_this());
+		// Pass the parent's TransformNode since TransformNode inherits from Hierarchical
+		transform_.setParent(std::shared_ptr<Hierarchical>(&parent->getTransform(), [](Hierarchical*){}));
+	} else {
+		transform_.setParent(nullptr);
+	}
+}
+
+std::shared_ptr<Layer> Layer::getParentLayer() const {
+	return parent_layer_.lock();
+}
+
+void Layer::addChildLayer(std::shared_ptr<Layer> child) {
+	if (!child) return;
+	
+	// 既に子として登録されているかチェック
+	auto it = std::find(child_layers_.begin(), child_layers_.end(), child);
+	if (it == child_layers_.end()) {
+		child_layers_.push_back(child);
+	}
+}
+
+void Layer::removeChildLayer(std::shared_ptr<Layer> child) {
+	if (!child) return;
+	
+	auto it = std::find(child_layers_.begin(), child_layers_.end(), child);
+	if (it != child_layers_.end()) {
+		child_layers_.erase(it);
+	}
+}
+
+std::vector<std::shared_ptr<Layer>> Layer::getChildLayers() const {
+	return child_layers_;
+}
+
+void Layer::updateHierarchicalTransform() {
+	// 親のTransformが変更された場合、子レイヤーも更新
+	transform_.refreshMatrix();
+	
+	// 子レイヤーの更新
+	for (auto& child : child_layers_) {
+		if (child) {
+			child->updateHierarchicalTransform();
+		}
+	}
+}
+
+}}
