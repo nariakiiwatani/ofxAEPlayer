@@ -178,6 +178,14 @@ bool Composition::parseCompositionJson(const ofJson &json) {
 	is_playing_ = false;
 	start_time_ = 0.0f;
 	
+	// 新しいループ制御の初期化（後方互換性のためデフォルトはLOOP）
+	playback_mode_ = PlaybackMode::LOOP;
+	max_loop_count_ = 0;
+	loop_count_ = 0;
+	reverse_direction_ = false;
+	loop_callback_ = nullptr;
+	exact_time_ = 0.0f;
+	
 	return true;
 }
 
@@ -213,15 +221,93 @@ void Composition::updateCurrentFrame() {
 	if (composition_info_.fps <= 0.0f) return;
 	
 	float elapsed_time = ofGetElapsedTimef() - start_time_;
+	exact_time_ = elapsed_time;
+	
+	int frame_range = composition_info_.end_frame - composition_info_.start_frame + 1;
 	int new_frame = composition_info_.start_frame + static_cast<int>(elapsed_time * composition_info_.fps);
 	
-	if (new_frame > composition_info_.end_frame) {
-		// ループ再生（必要に応じて停止に変更可能）
-		new_frame = composition_info_.start_frame;
-		start_time_ = ofGetElapsedTimef();
+	// 再生モード別の処理
+	switch (playback_mode_) {
+		case PlaybackMode::ONCE:
+			if (new_frame > composition_info_.end_frame) {
+				new_frame = composition_info_.end_frame;
+				is_playing_ = false;
+			}
+			break;
+			
+		case PlaybackMode::LOOP:
+			if (new_frame > composition_info_.end_frame) {
+				new_frame = composition_info_.start_frame;
+				start_time_ = ofGetElapsedTimef();
+				loop_count_++;
+				if (loop_callback_) {
+					loop_callback_(loop_count_);
+				}
+			}
+			break;
+			
+		case PlaybackMode::PING_PONG:
+			{
+				int cycle_frames = frame_range * 2 - 2; // 往復のフレーム数
+				if (cycle_frames <= 0) cycle_frames = 1;
+				
+				int cycle_frame = static_cast<int>(elapsed_time * composition_info_.fps) % cycle_frames;
+				
+				if (cycle_frame < frame_range) {
+					// 前進
+					new_frame = composition_info_.start_frame + cycle_frame;
+					if (reverse_direction_) {
+						reverse_direction_ = false;
+						loop_count_++;
+						if (loop_callback_) {
+							loop_callback_(loop_count_);
+						}
+					}
+				} else {
+					// 後退
+					new_frame = composition_info_.end_frame - (cycle_frame - frame_range + 1);
+					if (!reverse_direction_) {
+						reverse_direction_ = true;
+					}
+				}
+			}
+			break;
+			
+		case PlaybackMode::LOOP_COUNT:
+			if (new_frame > composition_info_.end_frame) {
+				loop_count_++;
+				if (loop_callback_) {
+					loop_callback_(loop_count_);
+				}
+				
+				if (max_loop_count_ > 0 && loop_count_ >= max_loop_count_) {
+					new_frame = composition_info_.end_frame;
+					is_playing_ = false;
+				} else {
+					new_frame = composition_info_.start_frame;
+					start_time_ = ofGetElapsedTimef();
+				}
+			}
+			break;
 	}
 	
 	current_frame_ = new_frame;
+}
+
+// 新しいメソッドの実装
+void Composition::setPlaybackMode(PlaybackMode mode, int count) {
+	playback_mode_ = mode;
+	max_loop_count_ = count;
+	loop_count_ = 0;
+	reverse_direction_ = false;
+}
+
+void Composition::setLoopCallback(std::function<void(int)> callback) {
+	loop_callback_ = callback;
+}
+
+float Composition::getExactCurrentTime() const {
+	return exact_time_;
 }
 
 }}

@@ -27,6 +27,7 @@ enum class RenderLayerType {
     SHAPE,       // SHAPE_LAYER - vector shapes
     TEXT,        // Text layers
     SOLID,       // Solid color layers
+    COMPOSITION, // COMPOSITION_LAYER - nested compositions
     NULL_LAYER   // Control layers (no visual output)
 };
 
@@ -102,6 +103,7 @@ private:
     void renderShape(const Layer& layer, float currentTime);
     void renderText(const Layer& layer, float currentTime);
     void renderSolid(const Layer& layer, float currentTime);
+    void renderComposition(const Layer& layer, float currentTime);
     void renderNull(const Layer& layer, float currentTime);
     
     // Blend mode implementation

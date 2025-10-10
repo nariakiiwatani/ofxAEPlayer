@@ -107,6 +107,7 @@ bool Layer::load(const std::string &layer_path) {
 	current_frame_ = 0;
 	visible_ = true;
 	opacity_ = 1.0f;
+	initialized_at_in_point_ = false;
 	
 	return true;
 }
@@ -127,6 +128,16 @@ const ofJson& Layer::getKeyframes() const {
 void Layer::setCurrentFrame(int frame) {
 	if (current_frame_ != frame) {
 		current_frame_ = frame;
+		
+		// Check if we need to initialize at inPoint
+		if (frame == layer_info_.in_point && !initialized_at_in_point_) {
+			initializeAtInPoint();
+		}
+		
+		// Handle outPoint if reached
+		if (frame == layer_info_.out_point) {
+			handleOutPoint();
+		}
 		
 		// フレーム変更時のTransform自動更新
 		if (hasKeyframes()) {
@@ -158,46 +169,54 @@ void Layer::updateTransformFromKeyframes() {
 	
 	const auto &transform_keyframes = keyframes_["transform"];
 	
+	// Use layer-relative frame for keyframe interpolation
+	// Convert global frame to layer-relative frame
+	int layerFrame = current_frame_ - layer_info_.in_point;
+	if (layerFrame < 0) {
+		// Before layer starts, use initial values
+		layerFrame = 0;
+	}
+	
 	// キーフレーム補間によるTransform値の自動更新
 	// 位置（Position）
 	if (transform_keyframes.contains("position")) {
-		ofJson interpolated_value = getInterpolatedValue("position", current_frame_);
+		ofJson interpolated_value = getInterpolatedValue("position", layerFrame);
 		applyTransformValue("position", interpolated_value);
 	}
 	
 	// スケール（Scale）
 	if (transform_keyframes.contains("scale")) {
-		ofJson interpolated_value = getInterpolatedValue("scale", current_frame_);
+		ofJson interpolated_value = getInterpolatedValue("scale", layerFrame);
 		applyTransformValue("scale", interpolated_value);
 	}
 	
 	// Z軸回転（Rotation Z）
 	if (transform_keyframes.contains("rotateZ")) {
-		ofJson interpolated_value = getInterpolatedValue("rotateZ", current_frame_);
+		ofJson interpolated_value = getInterpolatedValue("rotateZ", layerFrame);
 		applyTransformValue("rotateZ", interpolated_value);
 	}
 	
 	// X軸回転（Rotation X）
 	if (transform_keyframes.contains("rotateX")) {
-		ofJson interpolated_value = getInterpolatedValue("rotateX", current_frame_);
+		ofJson interpolated_value = getInterpolatedValue("rotateX", layerFrame);
 		applyTransformValue("rotateX", interpolated_value);
 	}
 	
 	// Y軸回転（Rotation Y）
 	if (transform_keyframes.contains("rotateY")) {
-		ofJson interpolated_value = getInterpolatedValue("rotateY", current_frame_);
+		ofJson interpolated_value = getInterpolatedValue("rotateY", layerFrame);
 		applyTransformValue("rotateY", interpolated_value);
 	}
 	
 	// アンカーポイント（Anchor Point）
 	if (transform_keyframes.contains("anchor")) {
-		ofJson interpolated_value = getInterpolatedValue("anchor", current_frame_);
+		ofJson interpolated_value = getInterpolatedValue("anchor", layerFrame);
 		applyTransformValue("anchor", interpolated_value);
 	}
 	
 	// 不透明度（Opacity）
 	if (transform_keyframes.contains("opacity")) {
-		ofJson interpolated_value = getInterpolatedValue("opacity", current_frame_);
+		ofJson interpolated_value = getInterpolatedValue("opacity", layerFrame);
 		applyTransformValue("opacity", interpolated_value);
 	}
 }
@@ -255,6 +274,7 @@ Layer::LayerType Layer::stringToLayerType(const std::string &type_str) {
 	if (type_str == "ADBE AV Layer") return AV_LAYER;
 	if (type_str == "ADBE Vector Layer") return VECTOR_LAYER;
 	if (type_str == "ADBE Shape Layer") return SHAPE_LAYER;
+	if (type_str == "ADBE Composition Layer") return COMPOSITION_LAYER;
 	return AV_LAYER; // デフォルト
 }
 
@@ -327,6 +347,57 @@ void Layer::applyTransformValue(const std::string &property, const ofJson &value
 	} else if (property == "opacity" && value.is_number()) {
 		setOpacity(value.get<float>() * 0.01f); // %から0-1に変換
 	}
+}
+
+float Layer::getLayerTime(float compositionTime) const {
+	// Convert composition time to layer-relative time
+	// compositionTime is assumed to be in frames
+	float layerTime = compositionTime - static_cast<float>(layer_info_.in_point);
+	
+	// Ensure the layer time is not negative
+	return std::max(0.0f, layerTime);
+}
+
+bool Layer::isActiveAtTime(float compositionTime) const {
+	// Check if the layer is active at the given composition time
+	int frameTime = static_cast<int>(compositionTime);
+	return frameTime >= layer_info_.in_point && frameTime <= layer_info_.out_point;
+}
+
+void Layer::initializeAtInPoint() {
+	// Initialize the layer when it starts at inPoint
+	initialized_at_in_point_ = true;
+	
+	// Set initial keyframe values if available
+	if (hasKeyframes() && keyframes_.contains("transform")) {
+		const auto &transform_keyframes = keyframes_["transform"];
+		
+		// Initialize with first keyframe values or inPoint values
+		for (const auto& [property, keyframe_data] : transform_keyframes.items()) {
+			if (keyframe_data.is_array() && !keyframe_data.empty()) {
+				// Get the value at layer frame 0 (relative to inPoint)
+				ofJson initialValue = getInterpolatedValue(property, 0);
+				if (!initialValue.empty()) {
+					applyTransformValue(property, initialValue);
+				}
+			}
+		}
+	}
+	
+	// Ensure layer is visible at start
+	if (!visible_) {
+		visible_ = true;
+	}
+}
+
+void Layer::handleOutPoint() {
+	// Handle layer when it reaches outPoint
+	// For now, we maintain the final state
+	// In future implementations, this could trigger fade-out effects
+	// or preserve the final keyframe state
+	
+	// Optionally, we could set the layer to invisible after outPoint
+	// but this depends on the desired behavior
 }
 
 }}

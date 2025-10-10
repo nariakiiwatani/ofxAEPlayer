@@ -1,4 +1,5 @@
 #include "ofxAELayerFactory.h"
+#include "ofxAECompositionLayer.h"
 #include "ofLog.h"
 #include <fstream>
 
@@ -59,6 +60,10 @@ std::shared_ptr<Layer> LayerFactory::createLayerInstance(Layer::LayerType layerT
         case Layer::SHAPE_LAYER:
             ofLogVerbose("ofxAELayerFactory") << "Creating ShapeLayer instance";
             return std::make_shared<ShapeLayer>();
+            
+        case Layer::COMPOSITION_LAYER:
+            ofLogVerbose("ofxAELayerFactory") << "Creating CompositionLayer instance";
+            return std::make_shared<CompositionLayer>();
             
         case Layer::VECTOR_LAYER:
             ofLogVerbose("ofxAELayerFactory") << "Creating VectorLayer instance (using base Layer for now)";

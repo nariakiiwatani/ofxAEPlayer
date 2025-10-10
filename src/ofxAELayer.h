@@ -17,7 +17,8 @@ public:
 	enum LayerType {
 		AV_LAYER,
 		VECTOR_LAYER,
-		SHAPE_LAYER
+		SHAPE_LAYER,
+		COMPOSITION_LAYER
 	};
 	
 	struct LayerInfo {
@@ -45,6 +46,12 @@ public:
 	void setCurrentFrame(int frame);
 	int getCurrentFrame() const { return current_frame_; }
 	
+	// New time management methods for inPoint/outPoint handling
+	float getLayerTime(float compositionTime) const;
+	bool isActiveAtTime(float compositionTime) const;
+	void initializeAtInPoint();
+	void handleOutPoint();
+	
 	bool isVisible() const;
 	void setVisible(bool visible);
 	float getOpacity() const;
@@ -58,6 +65,7 @@ private:
 	int current_frame_;
 	bool visible_;
 	float opacity_;
+	bool initialized_at_in_point_;
 	
 	void updateTransformFromKeyframes();
 	void parseTransformData(const ofJson &transform_data);

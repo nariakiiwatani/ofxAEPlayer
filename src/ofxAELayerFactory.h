@@ -2,6 +2,7 @@
 
 #include "ofxAELayer.h"
 #include "ofxAEShapeLayer.h"
+#include "ofxAECompositionLayer.h"
 #include <memory>
 #include <string>
 

@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <functional>
 #include "ofGraphicsBaseTypes.h"
 #include "ofJson.h"
 #include "ofxAEMarker.h"
@@ -12,6 +13,14 @@ namespace ofx { namespace ae {
 
 // Forward declaration
 class Layer;
+
+// PlaybackMode enum for flexible loop control
+enum class PlaybackMode {
+	ONCE,      // Play once and stop
+	LOOP,      // Continuous loop (default for backward compatibility)
+	PING_PONG, // Play forward then backward repeatedly
+	LOOP_COUNT // Loop a specific number of times
+};
 
 class Composition : public ofBaseDraws, public ofBaseUpdates {
 public:
@@ -53,6 +62,13 @@ public:
 	float getCurrentTime() const;
 	void setCurrentFrame(int frame);
 	
+	// 新しいループ制御機能
+	void setPlaybackMode(PlaybackMode mode, int count = 0);
+	PlaybackMode getPlaybackMode() const { return playback_mode_; }
+	void setLoopCallback(std::function<void(int)> callback);
+	float getExactCurrentTime() const;
+	int getLoopCount() const { return loop_count_; }
+	
 private:
 	CompositionInfo composition_info_;
 	std::vector<std::shared_ptr<Layer>> layers_;
@@ -60,6 +76,14 @@ private:
 	int current_frame_;
 	bool is_playing_;
 	float start_time_;
+	
+	// 新しいループ制御のメンバ変数
+	PlaybackMode playback_mode_;
+	int max_loop_count_;
+	int loop_count_;
+	bool reverse_direction_;
+	std::function<void(int)> loop_callback_;
+	float exact_time_;
 	
 	bool parseCompositionJson(const ofJson &json);
 	bool loadLayers();

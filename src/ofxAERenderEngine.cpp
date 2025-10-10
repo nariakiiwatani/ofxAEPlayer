@@ -1,4 +1,5 @@
 #include "ofxAERenderEngine.h"
+#include "ofxAECompositionLayer.h"
 #include <algorithm>
 
 namespace ofx {
@@ -113,34 +114,40 @@ void RenderEngine::render(const Composition& comp, float currentTime) {
     
     // Render each layer with performance optimizations
     for (const auto& layer : layers) {
-        if (layer && layer->isVisible()) {
-            // Check if layer is active at current time
-            const auto& info = layer->getInfo();
-            float layerTime = currentTime * comp.getInfo().fps; // Convert to frame time
-            
-            if (layerTime >= info.in_point && layerTime <= info.out_point) {
-                // Culling check
-                bool shouldCull = cullingEnabled && shouldCullLayer(*layer, currentTime);
-                if (shouldCull) {
-                    frameMetrics.layersCulled++;
-                    continue;
-                }
-                
-                // Cache check
-                if (cacheEnabled && isLayerCached(*layer, currentTime)) {
-                    frameMetrics.layersCached++;
-                    drawCachedLayer(*layer);
-                } else {
-                    frameMetrics.layersRendered++;
-                    renderLayer(*layer, currentTime);
-                    
-                    // Update cache if enabled
-                    if (cacheEnabled) {
-                        updateLayerCache(*layer, currentTime);
-                    }
-                }
-            }
-        }
+    	if (layer && layer->isVisible()) {
+    		// Convert time to frame time for layer calculations
+    		float compositionFrameTime = currentTime * comp.getInfo().fps;
+    		
+    		// Use the new layer time management methods
+    		if (layer->isActiveAtTime(compositionFrameTime)) {
+    			// Calculate layer-relative time for proper keyframe handling
+    			float layerRelativeTime = layer->getLayerTime(compositionFrameTime);
+    			
+    			// Update layer to the correct frame based on layer-relative time
+    			layer->setCurrentFrame(static_cast<int>(layerRelativeTime + layer->getInfo().in_point));
+    			
+    			// Culling check
+    			bool shouldCull = cullingEnabled && shouldCullLayer(*layer, currentTime);
+    			if (shouldCull) {
+    				frameMetrics.layersCulled++;
+    				continue;
+    			}
+    			
+    			// Cache check
+    			if (cacheEnabled && isLayerCached(*layer, currentTime)) {
+    				frameMetrics.layersCached++;
+    				drawCachedLayer(*layer);
+    			} else {
+    				frameMetrics.layersRendered++;
+    				renderLayer(*layer, currentTime);
+    				
+    				// Update cache if enabled
+    				if (cacheEnabled) {
+    					updateLayerCache(*layer, currentTime);
+    				}
+    			}
+    		}
+    	}
     }
     
     restoreRenderState();
@@ -195,6 +202,9 @@ void RenderEngine::renderLayer(const Layer& layer, float currentTime) {
             break;
         case RenderLayerType::SOLID:
             renderSolid(layer, currentTime);
+            break;
+        case RenderLayerType::COMPOSITION:
+            renderComposition(layer, currentTime);
             break;
         case RenderLayerType::NULL_LAYER:
             renderNull(layer, currentTime);
@@ -284,6 +294,53 @@ void RenderEngine::renderSolid(const Layer& layer, float currentTime) {
     ofDrawRectangle(-renderWidth/2, -renderHeight/2, renderWidth, renderHeight);
 }
 
+void RenderEngine::renderComposition(const Layer& layer, float currentTime) {
+    // CompositionLayer specific rendering
+    try {
+        // Check if this is actually a composition layer
+        if (layer.getInfo().type != Layer::COMPOSITION_LAYER) {
+            ofLogWarning("RenderEngine") << "renderComposition called on non-composition layer";
+            return;
+        }
+        
+        // Cast to CompositionLayer to access composition-specific methods
+        const CompositionLayer* compLayer = dynamic_cast<const CompositionLayer*>(&layer);
+        if (!compLayer) {
+            ofLogError("RenderEngine") << "Failed to cast to CompositionLayer";
+            return;
+        }
+        
+        // Get the child composition
+        auto childComposition = compLayer->getChildComposition();
+        if (!childComposition) {
+            ofLogWarning("RenderEngine") << "CompositionLayer has no child composition";
+            return;
+        }
+        
+        // Calculate nested time
+        float nestedTime = compLayer->calculateNestedTime(currentTime);
+        
+        // Check hierarchy depth to prevent infinite recursion
+        if (compLayer->getHierarchyDepth() > 8) { // Conservative limit
+            ofLogError("RenderEngine") << "Maximum hierarchy depth exceeded";
+            return;
+        }
+        
+        // CompositionLayer handles its own FBO rendering in draw()
+        // We just need to call the layer's draw method which will:
+        // 1. Calculate nested time
+        // 2. Render child composition to FBO
+        // 3. Draw the FBO texture with layer transforms
+        compLayer->draw(0, 0, compLayer->getWidth(), compLayer->getHeight());
+        
+        ofLogVerbose("RenderEngine") << "Rendered composition layer: " << layer.getInfo().name
+                                     << " at nested time: " << nestedTime;
+        
+    } catch (const std::exception& e) {
+        ofLogError("RenderEngine") << "Error rendering composition layer: " << e.what();
+    }
+}
+
 void RenderEngine::renderNull(const Layer& layer, float currentTime) {
     // Null layers don't render anything - they're for transform hierarchy only
     // No-op
@@ -314,6 +371,8 @@ RenderLayerType RenderEngine::getLayerRenderType(const Layer& layer) {
             return RenderLayerType::SHAPE;
         case Layer::SHAPE_LAYER:
             return RenderLayerType::SHAPE;
+        case Layer::COMPOSITION_LAYER:
+            return RenderLayerType::COMPOSITION;
         default:
             return RenderLayerType::FOOTAGE;
     }
