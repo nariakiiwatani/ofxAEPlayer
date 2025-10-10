@@ -25,6 +25,7 @@ public:
 		std::string name;
 		LayerType type;
 		std::string source;
+		std::string sourceType;
 		int in_point;
 		int out_point;
 		std::string parent;
@@ -59,6 +60,17 @@ public:
 	
 	const std::string& getParentName() const { return layer_info_.parent; }
 	
+	// Source type related methods
+	const std::string& getSourceType() const;
+	bool isSourceTypeNone() const;
+	bool isSourceTypeComposition() const;
+	bool isSourceTypeStill() const;
+	bool isSourceTypeVideo() const;
+	bool isSourceTypeSequence() const;
+	bool isSourceTypeFootage() const;
+	bool isSourceTypeSolid() const;
+	bool isSourceTypeUnknown() const;
+	
 private:
 	LayerInfo layer_info_;
 	ofJson keyframes_;
@@ -69,7 +81,10 @@ private:
 	
 	void updateTransformFromKeyframes();
 	void parseTransformData(const ofJson &transform_data);
+public:
 	static LayerType stringToLayerType(const std::string &type_str);
+
+private:
 	ofJson getInterpolatedValue(const std::string &property, int frame) const;
 	void applyTransformValue(const std::string &property, const ofJson &value);
 };

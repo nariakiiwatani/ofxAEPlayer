@@ -7,7 +7,7 @@
 namespace ofx { namespace ae {
 
 bool Layer::setup(const ofJson &json) {
-	parseTransformData(json);
+	parseTransformData(json["transform"]);
 	return true;
 }
 
@@ -72,6 +72,10 @@ bool Layer::load(const std::string &layer_path) {
 	
 	if (json.contains("source") && json["source"].is_string()) {
 		layer_info_.source = json["source"].get<std::string>();
+	}
+	
+	if (json.contains("sourceType") && json["sourceType"].is_string()) {
+		layer_info_.sourceType = json["sourceType"].get<std::string>();
 	}
 	
 	if (json.contains("in") && json["in"].is_number()) {
@@ -398,6 +402,42 @@ void Layer::handleOutPoint() {
 	
 	// Optionally, we could set the layer to invisible after outPoint
 	// but this depends on the desired behavior
+}
+
+const std::string& Layer::getSourceType() const {
+	return layer_info_.sourceType;
+}
+
+bool Layer::isSourceTypeNone() const {
+	return layer_info_.sourceType == "none";
+}
+
+bool Layer::isSourceTypeComposition() const {
+	return layer_info_.sourceType == "composition";
+}
+
+bool Layer::isSourceTypeStill() const {
+	return layer_info_.sourceType == "still";
+}
+
+bool Layer::isSourceTypeVideo() const {
+	return layer_info_.sourceType == "video";
+}
+
+bool Layer::isSourceTypeSequence() const {
+	return layer_info_.sourceType == "sequence";
+}
+
+bool Layer::isSourceTypeFootage() const {
+	return layer_info_.sourceType == "footage";
+}
+
+bool Layer::isSourceTypeSolid() const {
+	return layer_info_.sourceType == "solid";
+}
+
+bool Layer::isSourceTypeUnknown() const {
+	return layer_info_.sourceType == "unknown";
 }
 
 }}

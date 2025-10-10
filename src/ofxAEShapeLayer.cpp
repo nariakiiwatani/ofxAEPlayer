@@ -434,10 +434,10 @@ bool ShapeProperties::loadFromJson(const ofJson& data) {
             if (fillData.contains("color") && fillData["color"].is_array() && fillData["color"].size() >= 3) {
                 const auto& colorArray = fillData["color"];
                 fill_.color = ofColor(
-                    static_cast<int>(colorArray[0] * 255),
-                    static_cast<int>(colorArray[1] * 255),
-                    static_cast<int>(colorArray[2] * 255),
-                    colorArray.size() > 3 ? static_cast<int>(colorArray[3] * 255) : 255
+                    static_cast<int>(colorArray[0].get<float>() * 255),
+                    static_cast<int>(colorArray[1].get<float>() * 255),
+                    static_cast<int>(colorArray[2].get<float>() * 255),
+                    colorArray.size() > 3 ? static_cast<int>(colorArray[3].get<float>() * 255) : 255
                 );
             }
             
@@ -457,10 +457,10 @@ bool ShapeProperties::loadFromJson(const ofJson& data) {
             if (strokeData.contains("color") && strokeData["color"].is_array() && strokeData["color"].size() >= 3) {
                 const auto& colorArray = strokeData["color"];
                 stroke_.color = ofColor(
-                    static_cast<int>(colorArray[0] * 255),
-                    static_cast<int>(colorArray[1] * 255),
-                    static_cast<int>(colorArray[2] * 255),
-                    colorArray.size() > 3 ? static_cast<int>(colorArray[3] * 255) : 255
+                    static_cast<int>(colorArray[0].get<float>() * 255),
+                    static_cast<int>(colorArray[1].get<float>() * 255),
+                    static_cast<int>(colorArray[2].get<float>() * 255),
+                    colorArray.size() > 3 ? static_cast<int>(colorArray[3].get<float>() * 255) : 255
                 );
             }
             

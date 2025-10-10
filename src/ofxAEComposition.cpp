@@ -49,11 +49,12 @@ float Composition::getWidth() const {
 }
 
 bool Composition::load(const std::string &comp_path) {
-	base_path_ = std::filesystem::path(comp_path).parent_path();
-	
-	std::ifstream file(comp_path);
+	auto path = ofToDataPath(comp_path);
+	base_path_ = std::filesystem::path(path).parent_path();
+
+	std::ifstream file(path);
 	if (!file.is_open()) {
-		ofLogError("ofxAEComposition") << "Cannot open file: " << comp_path;
+		ofLogError("ofxAEComposition") << "Cannot open file: " << path;
 		return false;
 	}
 	

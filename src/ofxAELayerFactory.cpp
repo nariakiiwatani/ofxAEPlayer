@@ -67,7 +67,7 @@ std::shared_ptr<Layer> LayerFactory::createLayerInstance(Layer::LayerType layerT
             
         case Layer::VECTOR_LAYER:
             ofLogVerbose("ofxAELayerFactory") << "Creating VectorLayer instance (using base Layer for now)";
-            return std::make_shared<Layer>();
+            return std::make_shared<ShapeLayer>();
             
         case Layer::AV_LAYER:
         default:

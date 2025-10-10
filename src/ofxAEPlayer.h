@@ -1,14 +1,25 @@
 #pragma once
 
-#include "ofMain.h"
+// Main header file for ofxAEPlayer addon
+// Includes all necessary components for After Effects composition playback
+
 #include "ofxAEComposition.h"
 #include "ofxAELayer.h"
+#include "ofxAELayerFactory.h"
+#include "ofxAERenderEngine.h"
+#include "ofxAEShapeLayer.h"
 #include "ofxAEKeyframe.h"
 #include "ofxAEMarker.h"
-#include "ofxAERenderEngine.h"
+#include "ofxAEMask.h"
 
-// ofxAEPlayer is an alias for ofx::ae::Composition
+// Convenient alias for the main composition class
+// This allows demo code to use "ofxAEPlayer" while actually using the Composition class
+namespace ofx {
+namespace ae {
+    // Main player class - alias for Composition for backward compatibility
+    using ofxAEPlayer = Composition;
+}
+}
+
+// Global namespace alias for convenience 
 using ofxAEPlayer = ofx::ae::Composition;
-
-// Import key types into global namespace for convenience
-using BlendMode = ofx::ae::BlendMode;

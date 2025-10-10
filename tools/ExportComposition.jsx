@@ -253,6 +253,80 @@ var PROPERTY_MAPPING_CONFIG = {
         Array.isArray = function(arg){ return Object.prototype.toString.call(arg) === '[object Array]'; };
     }
 
+    function getSourceType(layer) {
+        if (!layer.source) {
+            return "none"; // ソースなし（シェイプレイヤーなど）
+        }
+        
+        // コンポジション
+        if (layer.source instanceof CompItem) {
+            return "composition";
+        }
+        
+        // フッテージ（ファイルベース）
+        if (layer.source.mainSource instanceof FileSource) {
+            var fileSource = layer.source.mainSource;
+            
+            // ExtendScript APIの確実な静止画判定を使用
+            if (fileSource.isStill) {
+                return "still";
+            }
+            
+            // FootageSourceのプロパティを使用した確実な判定
+            try {
+                var footageSource = layer.source;
+                
+                // 動画・音声の有無を確認
+                var hasVideo = false;
+                var hasAudio = false;
+                
+                try {
+                    hasVideo = footageSource.hasVideo;
+                    hasAudio = footageSource.hasAudio;
+                } catch (e) {
+                    // プロパティにアクセスできない
+                    debugLog("getSourceType", "Cannot access footage properties", null, "warning");
+                }
+                
+                var file = fileSource.file;
+                if (file) {
+                    if (hasVideo && hasAudio) {
+                        // 映像+音声は確実に動画
+                        return "video";
+                    } else if (!hasVideo && hasAudio) {
+                        // 音声のみ
+                        return "audio";
+                    } else if (hasVideo && !hasAudio) {
+                        // 映像のみの場合は拡張子で判定
+                        var fileName = file.name;
+                        var fileNameLower = fileName.toLowerCase();
+                        
+                        // 静止画拡張子の場合は画像シーケンスと判定
+                        if (fileNameLower.match(/\.(jpg|jpeg|png|tiff|tga|exr|dpx|bmp|gif|psd)$/)) {
+                            return "sequence";
+                        }
+                        
+                        // その他の場合は動画
+                        return "video";
+                    } else {
+                        debugLog("getSourceType", "Cannot access footage properties, falling back to filename analysis: " + e.toString(), null, "warning");
+                    }
+                }
+            } catch (e) {
+                debugLog("getSourceType", "Error in advanced source type detection: " + e.toString(), null, "warning");
+            }
+            
+            return "footage"; // その他のフッテージ
+        }
+        
+        // 平面
+        if (layer.source.mainSource instanceof SolidSource) {
+            return "solid";
+        }
+        
+        return "unknown";
+    }
+
     var SETTINGS_SECTION = "MyScriptSettings";
 
 
@@ -1542,16 +1616,17 @@ var PROPERTY_MAPPING_CONFIG = {
         var compName = comp.name.fsSanitized();
 
         var outputFolderPath  = options.outputFolderPath;
-        var footageFolderPath = options.footageFolderPath;
+        var outputFolder  = new Folder(outputFolderPath + "/" + compName);
+        var layerFolder   = new Folder(outputFolder.fsName + "/layers");
+        var footageFolderPath = options.footageFolderPath || (outputFolder.fsName + "/footages");
+        var footageFolder = new Folder(footageFolderPath);
+
         var procNestedComp    = options.procNestedComp;
         var DEC               = options.decimalPlaces || 4;
 
-        var outputFolder  = new Folder(outputFolderPath + "/" + compName);
-        var layerFolder   = new Folder(outputFolder.fsName + "/layers");
-        var footageFolder = new Folder(footageFolderPath || (outputFolder.fsName + "/footages"));
 
-        if (!outputFolder.exists && !outputFolder.create()){ alert("指定された出力先フォルダを作成できませんでした。"); return; }
-        if (!footageFolder.exists && !footageFolder.create()){ alert("指定されたフッテージ保存先フォルダを作成できませんでした。"); return; }
+        if (!outputFolder.exists && !outputFolder.create()){ alert("指定された出力先フォルダを作成できませんでした。" + outputFolder.fsName); return; }
+        if (!footageFolder.exists && !footageFolder.create()){ alert("指定されたフッテージ保存先フォルダを作成できませんでした。" + footageFolder.fsName); return; }
         if (!layerFolder.exists) layerFolder.create();
 
         var fps = comp.frameRate;
@@ -1581,6 +1656,7 @@ var PROPERTY_MAPPING_CONFIG = {
             resultData["name"] = layer.name;
             resultData["layerType"] = layer.matchName;
             if (layer.source) resultData["source"] = layer.source.name;
+            resultData["sourceType"] = getSourceType(layer);
 
             var inPoint  = toFrame(layer.inPoint, true);
             var outPoint = toFrame(layer.outPoint, true);
@@ -1630,26 +1706,38 @@ var PROPERTY_MAPPING_CONFIG = {
                             var destFile = new File(footageFolder.fsName + "/" + sourceFile.name);
                             try{ sourceFile.copy(destFile); }catch(e){ alert("ファイルのコピー中にエラー: " + e.message); }
                         }else{
-                            // 拡張子一致で連番を絞る
-                            var extMatch = (""+sourceFile.name).match(/(\.[^.]+)$/);
-                            var ext = extMatch ? extMatch[1].toLowerCase() : "";
-                            var sequenceFolder = new Folder(footageFolder.fsName + "/" + layer.source.name);
-                            if (!sequenceFolder.exists) sequenceFolder.create();
-                            var sequenceFiles = sourceFile.parent.getFiles(function(f){
-                                return f instanceof File && ((""+f.name).toLowerCase().indexOf(ext)>=0);
-                            });
-                            for (var s=0; s<sequenceFiles.length; s++){
-                                var sequenceFile = sequenceFiles[s];
-                                var dest = new File(sequenceFolder.fsName + "/" + sequenceFile.name);
-                                try{ sequenceFile.copy(dest); }catch(e){ alert("ファイルのコピー中にエラー: " + e.message); }
+                            var sourceType = getSourceType(layer);
+                            
+                            if (sourceType === "sequence") {
+                                // 画像シーケンスの場合：連番ファイルをすべてコピー
+                                var extMatch = (""+sourceFile.name).match(/(\.[^.]+)$/);
+                                var ext = extMatch ? extMatch[1].toLowerCase() : "";
+                                var sequenceFolder = new Folder(footageFolder.fsName + "/" + layer.source.name);
+                                if (!sequenceFolder.exists) sequenceFolder.create();
+                                var sequenceFiles = sourceFile.parent.getFiles(function(f){
+                                    return f instanceof File && ((""+f.name).toLowerCase().indexOf(ext)>=0);
+                                });
+                                for (var s=0; s<sequenceFiles.length; s++){
+                                    var sequenceFile = sequenceFiles[s];
+                                    var dest = new File(sequenceFolder.fsName + "/" + sequenceFile.name);
+                                    try{ sequenceFile.copy(dest); }catch(e){ alert("ファイルのコピー中にエラー: " + e.message); }
+                                }
+                            } else {
+                                // 単一動画・音声ファイルの場合：そのファイルのみをコピー
+                                var destFile = new File(footageFolder.fsName + "/" + sourceFile.name);
+                                try{
+                                    sourceFile.copy(destFile);
+                                }catch(e){
+                                    alert("ファイルのコピー中にエラー: " + e.message);
+                                }
                             }
                         }
                     }
                 }
                 if (procNestedComp && layer.source instanceof CompItem){
                     var nestedOptions = {
-                        outputFolderPath: outputFolderPath,   // 親と同じルート配下へ
-                        footageFolderPath: footageFolderPath,
+                        outputFolderPath: footageFolderPath,
+                        footageFolderPath: options.footageFolderPath,
                         procNestedComp: true,
                         decimalPlaces: DEC
                     };
