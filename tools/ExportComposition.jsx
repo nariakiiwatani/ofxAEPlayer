@@ -59,14 +59,13 @@ var PROPERTY_MAPPING_CONFIG = {
 
     // Vector Layer系
     "ADBE Root Vectors Group": {
-        type: "shape",
-        assignTo: "properties",
-        outputAsArray: true
+        asArray: true,
+        asSourceFile: true
     },
     "ADBE Vector Group": {
         type: "group",
         assignTo: "properties",
-        outputAsArray: true
+        asArray: true
     },
     "ADBE Vector Shape - Ellipse": {
         type: "ellipse",
@@ -254,6 +253,10 @@ var PROPERTY_MAPPING_CONFIG = {
     }
 
     function getSourceType(layer) {
+        switch(layer.matchName) {
+            case "ADBE Vector Layer":
+                return "shape"; // シェイプレイヤー
+        }
         if (!layer.source) {
             return "none"; // ソースなし（シェイプレイヤーなど）
         }
@@ -1516,8 +1519,10 @@ var PROPERTY_MAPPING_CONFIG = {
             }
             
             if (property.numProperties && property.numProperties > 0) {
-                if (config.outputAsArray && config.assignTo) {
-                    var orderedArray = [];
+                var childResults = null;
+                var as_array = config.asArray;
+                if (as_array) {
+                    childResults = [];
                     
                     for (var i = 1; i <= property.numProperties; i++) {
                         var childProp = property.property(i);
@@ -1550,16 +1555,12 @@ var PROPERTY_MAPPING_CONFIG = {
                                     }
                                 }
                                 
-                                orderedArray.push(arrayItem);
+                                childResults.push(arrayItem);
                             }
                         }
                     }
-                    
-                    if (orderedArray.length > 0) {
-                        result[config.assignTo] = orderedArray;
-                    }
                 } else {
-                    var childResults = {};
+                    childResults = {};
                     
                     for (var i = 1; i <= property.numProperties; i++) {
                         var childProp = property.property(i);
@@ -1583,18 +1584,34 @@ var PROPERTY_MAPPING_CONFIG = {
                             }
                         }
                     }
-                    
-                    if (config.inline && childResults.keys().length > 0) {
-                        for (var key in childResults) {
-                            if (childResults.hasOwnProperty(key)) {
-                                result[key] = childResults[key];
-                            }
-                        }
-                    } else {
-                        if(config.assignTo && childResults.keys().length > 0) {
-                            result[config.assignTo] = childResults;
+                }
+                if(config.assignTo) {
+                    result[config.assignTo] = childResults;
+                }
+                else if (config.inline) {
+                    if(as_array) {
+                        debugLog("extractPropertiesRecursive", "Cannot inline array into non-array result", null, "warning");
+                    }
+                    else {
+                        var keys = childResults.keys();
+                        for (var i = 0; i < keys.length; i++) {
+                            var key = keys[i];
+                            result[key] = childResults[key];
                         }
                     }
+                }
+                if(config.asSourceFile) {
+                    var outputFolderPath  = options.outputFolderPath;
+                    var outputFolder  = new Folder(outputFolderPath + "/" + layer.containingComp.name.fsSanitized());
+                    var footageFolderPath = options.footageFolderPath || (outputFolder.fsName + "/footages");
+                    var footageFolder = new Folder(footageFolderPath);
+                    var fileName = layerUniqueName(layer) + ".json";
+                    var jsonString = JSON.stringify(childResults, null, 4);
+                    var saveFile = new File(footageFolder.fsName + "/" + fileName);
+                    saveFile.encoding = "UTF-8";
+                    saveFile.open("w");
+                    saveFile.write(jsonString);
+                    saveFile.close();
                 }
             }
 
@@ -1658,13 +1675,20 @@ var PROPERTY_MAPPING_CONFIG = {
             resultData["layerType"] = layer.matchName;
             var sourceType = getSourceType(layer);
             resultData["sourceType"] = sourceType;
-
-            if (layer.source) {
-                var sourceName = getRelativePath(layerFolder, footageFolder) + "/" + layer.source.name;
-                if (sourceType === "composition") {
-                    sourceName = sourceName + "/comp.json";
-                }
-                resultData["source"] = sourceName;
+            
+            switch(sourceType) {
+                case "shape":
+                    resultData["source"] = getRelativePath(layerFolder, footageFolder) + "/" + layerUniqueName(layer) + ".json";
+                    break;
+                default:
+                    if (layer.source) {
+                        var sourceName = getRelativePath(layerFolder, footageFolder) + "/" + layer.source.name;
+                        if (sourceType === "composition") {
+                            sourceName = sourceName + "/comp.json";
+                        }
+                        resultData["source"] = sourceName;
+                    }
+                    break;
             }
 
             var inPoint  = toFrame(layer.inPoint, true);
@@ -1710,6 +1734,15 @@ var PROPERTY_MAPPING_CONFIG = {
             }
 
             // フッテージコピーとネスト再帰
+            switch(sourceType){
+                case "image":
+                case "sequence":
+                case "video":
+                case "audio":
+                    break;
+                default:
+                    continue; // フッテージコピーとネスト再帰はこれらのタイプのみ
+            }
             if (layer.source){
                 if (layer.source.mainSource instanceof FileSource){
                     var sourceFile = layer.source.mainSource.file;

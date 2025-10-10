@@ -24,12 +24,6 @@ ShapeSource::~ShapeSource() {
 
 bool ShapeSource::setup(const ofJson& json) {
     try {
-        // Validate JSON structure
-        if (!validateShapeJson(json)) {
-            ofLogError("ShapeSource") << "Invalid JSON structure for shape source";
-            return false;
-        }
-        
         // Initialize root group if not exists
         if (!rootGroup_) {
             rootGroup_ = std::make_unique<ShapeGroup>();
@@ -288,24 +282,6 @@ void ShapeSource::calculateBounds() const {
     ofLogVerbose("ShapeSource") << "Calculated bounds: " 
                                 << cachedBounds_.x << "," << cachedBounds_.y 
                                 << " " << cachedBounds_.width << "x" << cachedBounds_.height;
-}
-
-bool ShapeSource::validateShapeJson(const ofJson& json) const {
-    // Check for valid shape source indicators
-    if (json.contains("sourceType")) {
-        std::string sourceType = json["sourceType"];
-        if (sourceType != "shape") {
-            return false;
-        }
-    }
-    
-    // Must have either shapes array, properties array, or be a group structure
-    bool hasValidStructure = json.contains("shapes") || 
-                            json.contains("properties") ||
-                            json.contains("layer") ||
-                            json.contains("type");
-    
-    return hasValidStructure;
 }
 
 // ========================================================================

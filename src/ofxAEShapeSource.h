@@ -221,7 +221,7 @@ private:
 
 /**
  * ShapeSource - LayerSource implementation for vector shapes and paths
- * 
+ *
  * This class migrates the existing ShapeLayer functionality to the new 
  * Source-based architecture, enabling vector shapes to be used as layer sources
  * with full After Effects compatibility.
@@ -419,13 +419,6 @@ private:
      * Updates cachedBounds_ and resets boundsNeedUpdate_ flag
      */
     void calculateBounds() const;
-    
-    /**
-     * Validate that the JSON structure contains valid shape data
-     * @param json JSON object to validate
-     * @return true if structure is valid for shapes
-     */
-    bool validateShapeJson(const ofJson& json) const;
 };
 
 }} // namespace ofx::ae
