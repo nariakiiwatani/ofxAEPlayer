@@ -5,9 +5,8 @@
 
 #include "ofxAEComposition.h"
 #include "ofxAELayer.h"
-#include "ofxAELayerFactory.h"
 #include "ofxAERenderEngine.h"
-#include "ofxAEShapeLayer.h"
+#include "ofxAEShapeSource.h"
 #include "ofxAEKeyframe.h"
 #include "ofxAEMarker.h"
 #include "ofxAEMask.h"

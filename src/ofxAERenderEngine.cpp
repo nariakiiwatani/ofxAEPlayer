@@ -1,5 +1,5 @@
 #include "ofxAERenderEngine.h"
-#include "ofxAECompositionLayer.h"
+#include "ofxAECompositionSource.h"
 #include <algorithm>
 
 namespace ofx {
@@ -51,12 +51,15 @@ void RenderTarget::clear(ofColor color) {
 // RenderEngine Implementation
 //--------------------------------------------------------------
 
-RenderEngine::RenderEngine() 
+RenderEngine::RenderEngine()
     : renderWidth(1920)
     , renderHeight(1080)
     , qualityScale(1.0f)
     , cullingEnabled(true)
     , cacheEnabled(true)
+    , sourceCachingEnabled_(true)
+    , lodLevel_(1.0f)
+    , debugMode_(false)
     , lastRenderTime(0.0f)
     , frameCount(0)
     , averageRenderTime(0.0f) {
@@ -71,6 +74,9 @@ RenderEngine::RenderEngine()
     
     // Initialize LOD levels
     initializeLODLevels();
+    
+    // Initialize new Source-based statistics
+    lastStats_.reset();
 }
 
 RenderEngine::~RenderEngine() {
@@ -254,7 +260,7 @@ void RenderEngine::renderShape(const Layer& layer, float currentTime) {
         
         // For now, we'll implement basic shape rendering
         // In full implementation, this would:
-        // 1. Cast to ShapeLayer to access shape data
+        // 1. Get ShapeSource from layer to access shape data
         // 2. Render each shape group with proper hierarchy
         // 3. Apply fill and stroke properties
         // 4. Handle shape animations
@@ -303,35 +309,29 @@ void RenderEngine::renderComposition(const Layer& layer, float currentTime) {
             return;
         }
         
-        // Cast to CompositionLayer to access composition-specific methods
-        const CompositionLayer* compLayer = dynamic_cast<const CompositionLayer*>(&layer);
-        if (!compLayer) {
-            ofLogError("RenderEngine") << "Failed to cast to CompositionLayer";
+        // Get CompositionSource from the layer
+        auto compositionSource = layer.getSource<CompositionSource>();
+        if (!compositionSource) {
+            ofLogError("RenderEngine") << "Layer does not have CompositionSource";
             return;
         }
         
-        // Get the child composition
-        auto childComposition = compLayer->getChildComposition();
+        // Get child composition
+        auto childComposition = compositionSource->getComposition();
         if (!childComposition) {
-            ofLogWarning("RenderEngine") << "CompositionLayer has no child composition";
+            ofLogWarning("RenderEngine") << "CompositionSource has no child composition";
             return;
         }
         
-        // Calculate nested time
-        float nestedTime = compLayer->calculateNestedTime(currentTime);
+        // Calculate nested time using CompositionSource
+        float nestedTime = currentTime; // Simple time mapping for now
         
-        // Check hierarchy depth to prevent infinite recursion
-        if (compLayer->getHierarchyDepth() > 8) { // Conservative limit
-            ofLogError("RenderEngine") << "Maximum hierarchy depth exceeded";
-            return;
-        }
-        
-        // CompositionLayer handles its own FBO rendering in draw()
+        // CompositionSource handles its own FBO rendering in draw()
         // We just need to call the layer's draw method which will:
         // 1. Calculate nested time
         // 2. Render child composition to FBO
         // 3. Draw the FBO texture with layer transforms
-        compLayer->draw(0, 0, compLayer->getWidth(), compLayer->getHeight());
+        layer.draw(0, 0, layer.getWidth(), layer.getHeight());
         
         ofLogVerbose("RenderEngine") << "Rendered composition layer: " << layer.getInfo().name
                                      << " at nested time: " << nestedTime;
@@ -511,7 +511,7 @@ void RenderEngine::initializeLODLevels() {
 float RenderEngine::calculateLODQuality(const Layer& layer, float currentTime) {
     // Calculate distance-based LOD
     ofRectangle bounds = getLayerBounds(layer, currentTime);
-    float distance = glm::distance(glm::vec2(bounds.getCenter().x, bounds.getCenter().y), 
+    float distance = glm::distance(glm::vec2(bounds.getCenter().x, bounds.getCenter().y),
                                   glm::vec2(renderWidth/2, renderHeight/2));
     
     for (int i = lodLevels.size() - 1; i >= 0; i--) {
@@ -521,6 +521,207 @@ float RenderEngine::calculateLODQuality(const Layer& layer, float currentTime) {
     }
     
     return 1.0f; // Default to full quality
+}
+
+//--------------------------------------------------------------
+// New Source-based rendering implementation
+//--------------------------------------------------------------
+
+void RenderEngine::renderLayer(const Layer& layer, const RenderContext& context) {
+    float startTime = ofGetElapsedTimef();
+    
+    // Performance tracking reset for this render call
+    if (debugMode_) {
+        lastStats_.reset();
+    }
+    
+    // Check if layer should be culled in the new system
+    if (shouldCullLayer(layer, context)) {
+        lastStats_.layersCulled++;
+        if (debugMode_) {
+            ofLogVerbose("RenderEngine") << "Culled layer: " << layer.getName();
+        }
+        return;
+    }
+    
+    // Create layer-specific rendering context
+    RenderContext layerContext = createLayerContext(layer, context);
+    
+    // Apply layer transforms and blending
+    ofPushMatrix();
+    ofPushStyle();
+    
+    applyLayerTransform(layer, layerContext);
+    applyLayerBlending(layer, layerContext);
+    
+    // Get the layer's source for rendering
+    auto source = layer.getSource();
+    if (source) {
+        // Delegate rendering to the Source
+        source->draw(layerContext);
+        lastStats_.sourcesRendered++;
+        
+        if (debugMode_) {
+            ofLogVerbose("RenderEngine") << "Rendered layer via Source: " << layer.getName()
+                                         << " SourceType: " << static_cast<int>(source->getSourceType());
+        }
+    } else {
+        // Fallback to legacy rendering if no Source attached
+        if (debugMode_) {
+            ofLogWarning("RenderEngine") << "Layer has no Source, using legacy rendering: " << layer.getName();
+        }
+        renderLayer(layer, layerContext.currentTime); // Call legacy method
+    }
+    
+    ofPopStyle();
+    ofPopMatrix();
+    
+    lastStats_.layersRendered++;
+    
+    // Update performance metrics
+    if (debugMode_) {
+        lastStats_.renderTimeMs += (ofGetElapsedTimef() - startTime) * 1000.0f;
+    }
+}
+
+void RenderEngine::renderComposition(const Composition& comp, const RenderContext& context) {
+    float startTime = ofGetElapsedTimef();
+    
+    if (debugMode_) {
+        lastStats_.reset();
+        ofLogVerbose("RenderEngine") << "Starting Source-based composition render: " << "Composition";
+    }
+    
+    // Setup composition rendering
+    mainTarget.clear();
+    mainTarget.begin();
+    
+    setupRenderState();
+    
+    // Get layers and sort by rendering order (background to foreground)
+    auto layers = comp.getLayers();
+    std::sort(layers.begin(), layers.end(),
+        [](const std::shared_ptr<Layer>& a, const std::shared_ptr<Layer>& b) {
+            // Higher index = background (rendered first)
+            return a->getInfo().in_point > b->getInfo().in_point;
+        });
+    
+    // Render each layer using Source-based pipeline
+    for (const auto& layer : layers) {
+        if (layer && layer->isVisible()) {
+            // Check if layer is active at current time
+            float compositionFrameTime = context.currentTime * comp.getInfo().fps;
+            if (layer->isActiveAtTime(compositionFrameTime)) {
+                // Create layer-specific context
+                RenderContext layerContext = context;
+                layerContext.currentTime = layer->getLayerTime(compositionFrameTime);
+                
+                // Render using new Source-based method
+                renderLayer(*layer, layerContext);
+            }
+        }
+    }
+    
+    restoreRenderState();
+    mainTarget.end();
+    
+    // Update total performance metrics
+    if (debugMode_) {
+        lastStats_.renderTimeMs = (ofGetElapsedTimef() - startTime) * 1000.0f;
+        ofLogNotice("RenderEngine") << "Composition render complete - Layers: " << lastStats_.layersRendered
+                                    << ", Sources: " << lastStats_.sourcesRendered
+                                    << ", Culled: " << lastStats_.layersCulled
+                                    << ", Time: " << lastStats_.renderTimeMs << "ms";
+    }
+}
+
+RenderContext RenderEngine::createLayerContext(const Layer& layer, const RenderContext& parentContext) {
+    RenderContext layerContext = parentContext;
+    
+    // Apply layer-specific properties to context
+    layerContext.opacity *= layer.getOpacity() / 100.0f;
+    
+    // Set layer blend mode (if supported by RenderContext)
+    // layerContext.blendMode = layer.getBlendMode(); // Uncomment when RenderContext supports this
+    
+    // Adjust time for layer timing
+    float compositionTime = parentContext.currentTime;
+    layerContext.currentTime = layer.getLayerTime(compositionTime);
+    
+    // Apply layer transform matrix
+    // The LayerSource will handle transform application during draw()
+    
+    if (debugMode_) {
+        ofLogVerbose("RenderEngine") << "Created layer context for: " << layer.getName()
+                                     << " Opacity: " << layerContext.opacity
+                                     << " Time: " << layerContext.currentTime;
+    }
+    
+    return layerContext;
+}
+
+void RenderEngine::applyLayerTransform(const Layer& layer, RenderContext& context) {
+    // Apply layer transform using the existing TransformNode system
+    // This maintains compatibility with the current Layer transform implementation
+    layer.pushMatrix();
+    
+    if (debugMode_) {
+        ofLogVerbose("RenderEngine") << "Applied transform for layer: " << layer.getName();
+    }
+}
+
+void RenderEngine::applyLayerBlending(const Layer& layer, RenderContext& context) {
+    // Apply layer opacity
+    float totalOpacity = context.opacity * (layer.getOpacity() / 100.0f);
+    ofSetColor(255, 255, 255, totalOpacity * 255);
+    
+    // Apply blend mode
+    // For now, use basic alpha blending; could be enhanced with full AE blend mode support
+    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+    
+    if (debugMode_) {
+        ofLogVerbose("RenderEngine") << "Applied blending for layer: " << layer.getName()
+                                     << " Opacity: " << totalOpacity;
+    }
+}
+
+bool RenderEngine::shouldCullLayer(const Layer& layer, const RenderContext& context) {
+    // Time-based culling - check if layer is active
+    if (!layer.isActiveAtTime(context.currentTime)) {
+        return true;
+    }
+    
+    // Opacity-based culling
+    if (layer.getOpacity() <= 0.001f || context.opacity <= 0.001f) {
+        return true;
+    }
+    
+    // LOD-based spatial culling
+    if (lodLevel_ > 0.0f) {
+        // Get layer bounds for culling check
+        ofRectangle layerBounds = getLayerBounds(layer, context.currentTime);
+        ofRectangle viewportBounds(context.x, context.y, context.w, context.h);
+        
+        // Cull if layer is completely outside viewport
+        if (!layerBounds.intersects(viewportBounds)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+void RenderEngine::clearCache() {
+    // Clear legacy cache
+    layerCache.clear();
+    
+    // Clear Source-based cache if implemented
+    if (sourceCachingEnabled_) {
+        // Future implementation: clear Source-specific caches
+        if (debugMode_) {
+            ofLogNotice("RenderEngine") << "Cleared all caches";
+        }
+    }
 }
 
 } // namespace ae

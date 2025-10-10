@@ -24,31 +24,31 @@ enum class PlaybackMode {
 
 class Composition : public ofBaseDraws, public ofBaseUpdates {
 public:
-	struct CompositionInfo {
+	struct Info {
 		int duration;
 		float fps;
 		int width;
 		int height;
 		int start_frame;
 		int end_frame;
-		std::string footage_directory;
-		std::vector<std::string> layer_names;
+		struct LayerInfo {
+			std::string name, unique_name, filepath;
+		};
+		std::vector<LayerInfo> layers;
 		std::vector<MarkerData> markers;
 		
-		CompositionInfo() : duration(0), fps(30.0f), width(0), height(0),
-						start_frame(0), end_frame(0), footage_directory("footages") {}
+		Info() : duration(0), fps(30.0f), width(0), height(0),
+						start_frame(0), end_frame(0) {}
 	};
-	
-	// 既存メソッド
+
+	bool load(const std::filesystem::path &filepath);
 	bool setup(const ofJson &json);
 	void update() override;
 	void draw(float x, float y, float w, float h) const override;
 	float getHeight() const override;
 	float getWidth() const override;
 	
-	// 追加実装
-	bool load(const std::string &comp_path);
-	const CompositionInfo& getInfo() const;
+	const Info& getInfo() const;
 	std::shared_ptr<Layer> getLayer(const std::string &name) const;
 	std::vector<std::shared_ptr<Layer>> getLayers() const;
 	void play();
@@ -70,9 +70,10 @@ public:
 	int getLoopCount() const { return loop_count_; }
 	
 private:
-	CompositionInfo composition_info_;
+	Info info_;
 	std::vector<std::shared_ptr<Layer>> layers_;
-	std::filesystem::path base_path_;
+	std::map<std::string, std::weak_ptr<Layer>> name_layers_map_;
+	std::map<std::string, std::weak_ptr<Layer>> unique_name_layers_map_;
 	int current_frame_;
 	bool is_playing_;
 	float start_time_;
@@ -85,8 +86,8 @@ private:
 	std::function<void(int)> loop_callback_;
 	float exact_time_;
 	
-	bool parseCompositionJson(const ofJson &json);
-	bool loadLayers();
+	bool parseJson(const ofJson &json);
+	bool loadLayers(const std::filesystem::path &base_path);
 	void updateCurrentFrame();
 };
 

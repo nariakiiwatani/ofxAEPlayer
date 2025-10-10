@@ -1,4 +1,5 @@
 #include "ofxAELayer.h"
+#include "ofxAELayerSourceFactory.h"
 #include "ofLog.h"
 #include "ofUtils.h"
 #include <fstream>
@@ -6,119 +7,327 @@
 
 namespace ofx { namespace ae {
 
-bool Layer::setup(const ofJson &json) {
-	parseTransformData(json["transform"]);
-	return true;
+// ========================================================================
+// Constructor & Destructor
+// ========================================================================
+
+Layer::Layer()
+    : TransformNode()
+    , source_(nullptr)
+    , name_("")
+    , startTime_(0.0f)
+    , duration_(0.0f)
+    , opacity_(1.0f)
+    , blendMode_(BlendMode::NORMAL)
+    , visible_(true)
+    , isVisible_(true)
+    , lastUpdateTime_(-1.0f)
+    , current_frame_(0)
+    , initialized_at_in_point_(false)
+{
+}
+
+Layer::~Layer() = default;
+
+// ========================================================================
+// Core Lifecycle Methods (Source-based implementation)
+// ========================================================================
+
+bool Layer::setup(const ofJson& json, const std::filesystem::path &source_dir) {
+    // 1. Parse layer-level properties first
+    if (!parseLayerProperties(json)) {
+        ofLogError("Layer") << "Failed to parse layer properties";
+        return false;
+    }
+    
+    // 2. Create and setup source based on JSON
+    auto source = LayerSourceFactory::createSourceOfType(layer_info_.sourceType);
+    if (!source) {
+        ofLogWarning("Layer") << "No source created for layer: " << name_;
+        // Continue without source for layers that don't need one
+    } else {
+        setSource(std::move(source));
+		source_->load(source_dir / layer_info_.source);
+    }
+    
+    // 3. Parse legacy transform data for backward compatibility
+    if (json.contains("transform")) {
+        parseTransformData(json["transform"]);
+    }
+    
+    return true;
+}
+
+void Layer::update(float currentTime) {
+    lastUpdateTime_ = currentTime;
+    
+    // Update legacy keyframes if present
+    if (hasKeyframes()) {
+        updateLegacyKeyframes(currentTime);
+    }
+    
+    // Update transform matrix if dirty
+    if (isDirty()) {
+        refreshMatrix();
+    }
+    
+    // Update source if present and needs update
+    if (source_ && source_->needsUpdate(currentTime)) {
+        source_->update(currentTime);
+    }
+}
+
+void Layer::draw(const RenderContext& context) const {
+    if (!shouldRender(context.currentTime)) {
+        return;
+    }
+    
+    if (!source_) {
+        // No source to render
+        return;
+    }
+    
+    // Create layer-specific render context
+    RenderContext layerContext = context;
+    
+    // Apply layer-level properties
+    layerContext.opacity *= opacity_;
+    layerContext.blendMode = blendMode_;
+    
+    // Apply layer transformation matrix
+    ofMatrix4x4 layerTransform = *getLocalMatrix() * context.transform;
+    // Create new context with transformed matrix
+    RenderContext transformedContext(layerContext.x, layerContext.y, layerContext.w, layerContext.h,
+                                   layerContext.currentTime, layerContext.opacity, layerTransform, layerContext.blendMode);
+    
+    // Delegate rendering to source
+    source_->draw(transformedContext);
+}
+
+// ========================================================================
+// Legacy Interface Support
+// ========================================================================
+
+void Layer::draw(float x, float y, float w, float h) const {
+    if (!visible_ || opacity_ <= 0.0f) {
+        return;
+    }
+    
+    // Create basic render context for legacy interface
+    ofMatrix4x4 identity;
+    identity.makeIdentityMatrix();
+    RenderContext context(x, y, w, h, lastUpdateTime_, opacity_, identity, blendMode_);
+    
+    draw(context);
 }
 
 void Layer::update() {
-	if (hasKeyframes()) {
-		updateTransformFromKeyframes();
-	}
-
-	if(isDirty()) {
-		refreshMatrix();
-	}
-}
-
-void Layer::draw(float x, float y, float w, float h) const {
-	if (!visible_ || opacity_ <= 0.0f) {
-		return;
-	}
-	// TransformNodeの変換を適用
-	pushMatrix();
-	
-	// 実際の描画処理（基本実装では何も描画しない）
-	// サブクラスでオーバーライドして具体的な描画を実装
-	
-	popMatrix();
+    // Legacy update method - use current time or increment
+    float currentTime = lastUpdateTime_ >= 0.0f ? lastUpdateTime_ + (1.0f/30.0f) : 0.0f;
+    update(currentTime);
 }
 
 float Layer::getHeight() const {
-	// 基本実装では0を返す
-	// サブクラスでオーバーライドして適切な高さを返す
-	return 0.0f;
+    if (source_) {
+        return source_->getHeight();
+    }
+    return 0.0f;
 }
 
 float Layer::getWidth() const {
-	// 基本実装では0を返す
-	// サブクラスでオーバーライドして適切な幅を返す
-	return 0.0f;
+    if (source_) {
+        return source_->getWidth();
+    }
+    return 0.0f;
 }
 
-bool Layer::load(const std::string &layer_path) {
-	std::ifstream file(layer_path);
-	if (!file.is_open()) {
-		ofLogError("ofxAELayer") << "Cannot open file: " << layer_path;
-		return false;
-	}
-	
-	ofJson json;
-	try {
-		file >> json;
-	} catch (const std::exception &e) {
-		ofLogError("ofxAELayer") << "JSON parse error: " << e.what();
-		return false;
-	}
-	
-	// 基本情報の解析
-	if (json.contains("name") && json["name"].is_string()) {
-		layer_info_.name = json["name"].get<std::string>();
-	}
-	
-	if (json.contains("layerType") && json["layerType"].is_string()) {
-		layer_info_.type = stringToLayerType(json["layerType"].get<std::string>());
-	}
-	
-	if (json.contains("source") && json["source"].is_string()) {
-		layer_info_.source = json["source"].get<std::string>();
-	}
-	
-	if (json.contains("sourceType") && json["sourceType"].is_string()) {
-		layer_info_.sourceType = json["sourceType"].get<std::string>();
-	}
-	
-	if (json.contains("in") && json["in"].is_number()) {
-		layer_info_.in_point = json["in"].get<int>();
-	}
-	
-	if (json.contains("out") && json["out"].is_number()) {
-		layer_info_.out_point = json["out"].get<int>();
-	}
-	
-	if (json.contains("parent") && json["parent"].is_string()) {
-		layer_info_.parent = json["parent"].get<std::string>();
-	}
-	
-	// マーカーの解析
-	if (json.contains("markers")) {
-		if (!Marker::parseMarkers(json["markers"], layer_info_.markers)) {
-			ofLogWarning("ofxAELayer") << "Failed to parse markers for layer: " << layer_info_.name;
-		}
-	}
-	
-	// レイヤーのTransformデータ解析
-	if (json.contains("layer") && json["layer"].contains("transform")) {
-		parseTransformData(json["layer"]["transform"]);
-	}
-	
-	// キーフレームデータの保存
-	if (json.contains("keyframes")) {
-		keyframes_ = json["keyframes"];
-	}
-	
-	// 初期化
-	current_frame_ = 0;
-	visible_ = true;
-	opacity_ = 1.0f;
-	initialized_at_in_point_ = false;
-	
-	return true;
+// ========================================================================
+// Source Management
+// ========================================================================
+
+void Layer::setSource(std::unique_ptr<LayerSource> source) {
+    source_ = std::move(source);
 }
 
-const Layer::LayerInfo& Layer::getInfo() const {
-	return layer_info_;
+LayerSource::SourceType Layer::getSourceType() const {
+    if (source_) {
+        return source_->getSourceType();
+    }
+    
+    // Return appropriate type based on legacy layer type
+    switch (layer_info_.type) {
+        case SHAPE_LAYER:
+            return LayerSource::SHAPE;
+        case COMPOSITION_LAYER:
+            return LayerSource::COMPOSITION;
+        case AV_LAYER:
+        case VECTOR_LAYER:
+        default:
+            return LayerSource::FOOTAGE;
+    }
 }
+
+// ========================================================================
+// Time Management
+// ========================================================================
+
+bool Layer::isActiveAtTime(float time) const {
+    float frameTime = time * 30.0f; // Convert to frame-based time
+    return frameTime >= static_cast<float>(layer_info_.in_point) &&
+           frameTime <= static_cast<float>(layer_info_.out_point);
+}
+
+float Layer::getLocalTime(float globalTime) const {
+    return globalTime - startTime_;
+}
+
+bool Layer::shouldRender(float currentTime) const {
+    return visible_ &&
+           opacity_ > 0.0f &&
+           isActiveAtTime(currentTime) &&
+           source_ &&
+           source_->isVisible();
+}
+
+void Layer::prepareForRendering(float currentTime) {
+    // Update keyframes and transform for current time
+    if (hasKeyframes()) {
+        updateLegacyKeyframes(currentTime);
+    }
+    
+    // Ensure transform is up to date
+    if (isDirty()) {
+        refreshMatrix();
+    }
+    
+    // Update source if needed
+    if (source_ && source_->needsUpdate(currentTime)) {
+        source_->update(currentTime);
+    }
+}
+
+// ========================================================================
+// JSON Parsing and Source Creation
+// ========================================================================
+
+bool Layer::parseLayerProperties(const ofJson& json) {
+    // Parse basic layer information
+    if (json.contains("name") && json["name"].is_string()) {
+        name_ = json["name"].get<std::string>();
+        layer_info_.name = name_;
+    }
+    
+    // Parse layer type
+    if (json.contains("layerType") && json["layerType"].is_string()) {
+        layer_info_.type = stringToLayerType(json["layerType"].get<std::string>());
+    }
+    
+    // Parse source information
+    if (json.contains("source") && json["source"].is_string()) {
+        layer_info_.source = json["source"].get<std::string>();
+    }
+    
+    if (json.contains("sourceType") && json["sourceType"].is_string()) {
+        layer_info_.sourceType = json["sourceType"].get<std::string>();
+    }
+    
+    // Parse timing properties
+    if (json.contains("in") && json["in"].is_number()) {
+        layer_info_.in_point = json["in"].get<int>();
+        startTime_ = static_cast<float>(layer_info_.in_point) / 30.0f; // Convert frames to seconds
+    }
+    
+    if (json.contains("out") && json["out"].is_number()) {
+        layer_info_.out_point = json["out"].get<int>();
+        duration_ = (static_cast<float>(layer_info_.out_point - layer_info_.in_point)) / 30.0f;
+    }
+    
+    // Parse parent information
+    if (json.contains("parent") && json["parent"].is_string()) {
+        layer_info_.parent = json["parent"].get<std::string>();
+    }
+    
+    // Parse visual properties
+    if (json.contains("opacity") && json["opacity"].is_number()) {
+        opacity_ = json["opacity"].get<float>() * 0.01f; // Convert percentage to 0-1
+    }
+    
+    if (json.contains("visible") && json["visible"].is_boolean()) {
+        visible_ = json["visible"].get<bool>();
+    }
+    
+    // Parse blend mode
+    if (json.contains("blendMode")) {
+        if (json["blendMode"].is_string()) {
+            std::string blendModeStr = json["blendMode"].get<std::string>();
+            // Map blend mode strings to enum values
+            if (blendModeStr == "normal") blendMode_ = BlendMode::NORMAL;
+            else if (blendModeStr == "add") blendMode_ = BlendMode::ADD;
+            else if (blendModeStr == "multiply") blendMode_ = BlendMode::MULTIPLY;
+            else if (blendModeStr == "screen") blendMode_ = BlendMode::SCREEN;
+            // Add more mappings as needed
+        } else if (json["blendMode"].is_number()) {
+            blendMode_ = static_cast<BlendMode>(json["blendMode"].get<int>());
+        }
+    }
+    
+    // Parse markers
+    if (json.contains("markers")) {
+        if (!Marker::parseMarkers(json["markers"], layer_info_.markers)) {
+            ofLogWarning("Layer") << "Failed to parse markers for layer: " << name_;
+        }
+    }
+    
+    // Parse keyframes for legacy support
+    if (json.contains("keyframes")) {
+        keyframes_ = json["keyframes"];
+    }
+    
+    return true;
+}
+
+// ========================================================================
+// Legacy Support Methods
+// ========================================================================
+
+void Layer::updateLegacyKeyframes(float currentTime) {
+    // Convert time to frame for legacy compatibility
+    int frame = static_cast<int>(currentTime * 30.0f) - layer_info_.in_point;
+    if (frame != current_frame_) {
+        setCurrentFrame(frame + layer_info_.in_point);
+    }
+    
+    // Update transform from keyframes
+    if (hasKeyframes()) {
+        updateTransformFromKeyframes();
+    }
+}
+
+const std::string& Layer::getLegacySourceType() const {
+    return layer_info_.sourceType;
+}
+
+// ========================================================================
+// Debug and Diagnostics
+// ========================================================================
+
+std::string Layer::getDebugInfo() const {
+    std::stringstream info;
+    info << "Layer[" << name_ << "] ";
+    info << "Type: " << static_cast<int>(layer_info_.type) << " ";
+    info << "Source: " << (source_ ? source_->getDebugInfo() : "None") << " ";
+    info << "Opacity: " << opacity_ << " ";
+    info << "Visible: " << (visible_ ? "true" : "false") << " ";
+    info << "Time: " << startTime_ << "-" << (startTime_ + duration_);
+    return info.str();
+}
+
+bool Layer::load(const std::string &filepath) {
+	ofJson json = ofLoadJson(filepath);
+	auto source_dir = ofFilePath::getEnclosingDirectory(filepath);
+	return setup(json, source_dir);
+}
+
 
 
 bool Layer::hasKeyframes() const {
@@ -150,21 +359,6 @@ void Layer::setCurrentFrame(int frame) {
 	}
 }
 
-bool Layer::isVisible() const {
-	return visible_;
-}
-
-void Layer::setVisible(bool visible) {
-	visible_ = visible;
-}
-
-float Layer::getOpacity() const {
-	return opacity_;
-}
-
-void Layer::setOpacity(float opacity) {
-	opacity_ = std::max(0.0f, std::min(1.0f, opacity));
-}
 
 void Layer::updateTransformFromKeyframes() {
 	if (!hasKeyframes() || !keyframes_.contains("transform")) {
@@ -362,11 +556,6 @@ float Layer::getLayerTime(float compositionTime) const {
 	return std::max(0.0f, layerTime);
 }
 
-bool Layer::isActiveAtTime(float compositionTime) const {
-	// Check if the layer is active at the given composition time
-	int frameTime = static_cast<int>(compositionTime);
-	return frameTime >= layer_info_.in_point && frameTime <= layer_info_.out_point;
-}
 
 void Layer::initializeAtInPoint() {
 	// Initialize the layer when it starts at inPoint
@@ -404,9 +593,6 @@ void Layer::handleOutPoint() {
 	// but this depends on the desired behavior
 }
 
-const std::string& Layer::getSourceType() const {
-	return layer_info_.sourceType;
-}
 
 bool Layer::isSourceTypeNone() const {
 	return layer_info_.sourceType == "none";

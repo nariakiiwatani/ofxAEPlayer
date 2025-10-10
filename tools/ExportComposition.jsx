@@ -1640,7 +1640,8 @@ var PROPERTY_MAPPING_CONFIG = {
         compInfo["startFrame"]    = toFrame(comp.workAreaStart, true);
         compInfo["endFrame"]      = toFrame((comp.workAreaStart + comp.workAreaDuration), true);
         compInfo["layers"]        = [];
-        compInfo["footageDirectory"] = getRelativePath(outputFolder, footageFolder);
+        // compInfo["layersDirectory"] = getRelativePath(outputFolder, layerFolder);
+        // compInfo["footageDirectory"] = getRelativePath(outputFolder, footageFolder);
         
         // コンポジションマーカーを追加
         var compMarkers = extractCompMarkers(comp);
@@ -1655,8 +1656,16 @@ var PROPERTY_MAPPING_CONFIG = {
             var resultData = {};
             resultData["name"] = layer.name;
             resultData["layerType"] = layer.matchName;
-            if (layer.source) resultData["source"] = layer.source.name;
-            resultData["sourceType"] = getSourceType(layer);
+            var sourceType = getSourceType(layer);
+            resultData["sourceType"] = sourceType;
+
+            if (layer.source) {
+                var sourceName = getRelativePath(layerFolder, footageFolder) + "/" + layer.source.name;
+                if (sourceType === "composition") {
+                    sourceName = sourceName + "/comp.json";
+                }
+                resultData["source"] = sourceName;
+            }
 
             var inPoint  = toFrame(layer.inPoint, true);
             var outPoint = toFrame(layer.outPoint, true);
@@ -1683,12 +1692,15 @@ var PROPERTY_MAPPING_CONFIG = {
             }
     
             var layerNameForFile = layerUniqueName(layer);
-            var fileName = layerNameForFile + ".json";
-            compInfo["layers"].push(layerNameForFile);
+            compInfo["layers"].push({
+                name: layer.name,
+                uniqueName: layerNameForFile,
+                file: getRelativePath(outputFolder, layerFolder) + "/" + layerNameForFile + ".json"
+            });
 
             try{
                 var jsonString = JSON.stringify(resultData, null, 4);
-                var saveFile = new File(layerFolder.fsName + "/" + fileName);
+                var saveFile = new File(layerFolder.fsName + "/" + layerNameForFile + ".json");
                 saveFile.encoding = "UTF-8";
                 saveFile.open("w");
                 saveFile.write(jsonString);
