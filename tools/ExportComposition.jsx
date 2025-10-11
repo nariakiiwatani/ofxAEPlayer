@@ -8,10 +8,10 @@ $.evalFile(File(scriptFolder.fullName + "/json2.js"));
 var PROPERTY_MAPPING_CONFIG = {
     // Layers
     "ADBE AV Layer": {
-        assignTo: "layer"
+        assignTo: "properties"
     },
     "ADBE Vector Layer": {
-        assignTo: "layer"
+        assignTo: "properties"
     },
     // Transform系
     "ADBE Transform Group": {
@@ -514,7 +514,7 @@ var PROPERTY_MAPPING_CONFIG = {
         footageGroup.orientation = "row";
         footageGroup.alignment = "fill";
 
-        var footageLabelText = footageGroup.add("statictext", undefined, "フッテージパス（default: 出力先/comp名/footages）");
+        var footageLabelText = footageGroup.add("statictext", undefined, "フッテージパス（default: 出力先/comp名/sources)");
         footageLabelText.alignment = "left";
 
         var footagePathText = footageGroup.add("edittext");
@@ -1603,7 +1603,7 @@ var PROPERTY_MAPPING_CONFIG = {
                 if(config.asSourceFile) {
                     var outputFolderPath  = options.outputFolderPath;
                     var outputFolder  = new Folder(outputFolderPath + "/" + layer.containingComp.name.fsSanitized());
-                    var footageFolderPath = options.footageFolderPath || (outputFolder.fsName + "/footages");
+                    var footageFolderPath = options.footageFolderPath || (outputFolder.fsName + "/sources");
                     var footageFolder = new Folder(footageFolderPath);
                     var fileName = layerUniqueName(layer) + ".json";
                     var jsonString = JSON.stringify(childResults, null, 4);
@@ -1635,7 +1635,7 @@ var PROPERTY_MAPPING_CONFIG = {
         var outputFolderPath  = options.outputFolderPath;
         var outputFolder  = new Folder(outputFolderPath + "/" + compName);
         var layerFolder   = new Folder(outputFolder.fsName + "/layers");
-        var footageFolderPath = options.footageFolderPath || (outputFolder.fsName + "/footages");
+        var footageFolderPath = options.footageFolderPath || (outputFolder.fsName + "/sources");
         var footageFolder = new Folder(footageFolderPath);
 
         var procNestedComp    = options.procNestedComp;
@@ -1675,7 +1675,7 @@ var PROPERTY_MAPPING_CONFIG = {
             resultData["layerType"] = layer.matchName;
             var sourceType = getSourceType(layer);
             resultData["sourceType"] = sourceType;
-            
+
             switch(sourceType) {
                 case "shape":
                     resultData["source"] = getRelativePath(layerFolder, footageFolder) + "/" + layerUniqueName(layer) + ".json";
