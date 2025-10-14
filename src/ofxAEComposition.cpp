@@ -16,9 +16,9 @@ void Composition::update() {
 	}
 	
 	// レイヤーの更新
+	float currentTime = getCurrentTime();
 	for (auto &layer : layers_) {
 		if (layer) {
-			layer->setCurrentFrame(current_frame_);
 			layer->update();
 		}
 	}
@@ -29,10 +29,9 @@ void Composition::draw(float x, float y, float w, float h) const {
 	ofTranslate(x, y);
 	ofScale(w / info_.width, h / info_.height);
 	
-	// レイヤーを描画順序で描画
 	for (const auto &layer : layers_) {
 		if (layer) {
-			layer->draw(0, 0, info_.width, info_.height);
+			layer->draw();
 		}
 	}
 	
@@ -87,7 +86,7 @@ const Composition::Info& Composition::getInfo() const {
 
 std::shared_ptr<Layer> Composition::getLayer(const std::string &name) const {
 	for (const auto &layer : layers_) {
-		if (layer && layer->getInfo().name == name) {
+		if (layer && layer->getName() == name) {
 			return layer;
 		}
 	}

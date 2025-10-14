@@ -22,7 +22,8 @@ enum class PlaybackMode {
 	LOOP_COUNT // Loop a specific number of times
 };
 
-class Composition : public ofBaseDraws, public ofBaseUpdates {
+class Composition : public ofBaseDraws, public ofBaseUpdates
+{
 public:
 	struct Info {
 		int duration;

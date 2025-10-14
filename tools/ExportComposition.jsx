@@ -8,207 +8,205 @@ $.evalFile(File(scriptFolder.fullName + "/json2.js"));
 var PROPERTY_MAPPING_CONFIG = {
     // Layers
     "ADBE AV Layer": {
-        assignTo: "properties"
     },
     "ADBE Vector Layer": {
-        assignTo: "properties"
     },
     // Transform系
     "ADBE Transform Group": {
-        assignTo: "transform"
+        wrapInObject: "transform"
     },
     "ADBE Anchor Point": {
-        assignTo: "anchor"
+        wrapInObject: "anchor"
     },
     "ADBE Position": {
-        assignTo: "position"
+        wrapInObject: "position"
     },
     "ADBE Position_0": {
-        assignTo: "positionX",
-        enabled: false
+        wrapInObject: "positionX",
+        ignored: true
     },
     "ADBE Position_1": {
-        assignTo: "positionY",
-        enabled: false
+        wrapInObject: "positionY",
+        ignored: true
     },
     "ADBE Position_2": {
-        assignTo: "positionZ",
-        enabled: false
+        wrapInObject: "positionZ",
+        ignored: true
     },
     "ADBE Scale": {
-        assignTo: "scale"
+        wrapInObject: "scale"
     },
     "ADBE Orientation": {
-        assignTo: "orientation",
-        enabled: false
+        wrapInObject: "orientation",
+        ignored: true
     },
     "ADBE Rotate X": {
-        assignTo: "rotateX",
-        enabled: false
+        wrapInObject: "rotateX",
+        ignored: true
     },
     "ADBE Rotate Y": {
-        assignTo: "rotateY",
-        enabled: false
+        wrapInObject: "rotateY",
+        ignored: true
     },
     "ADBE Rotate Z": {
-        assignTo: "rotateZ"
+        wrapInObject: "rotateZ"
     },
     "ADBE Opacity": {
-        assignTo: "opacity"
+        wrapInObject: "opacity"
     },
 
     // Vector Layer系
     "ADBE Root Vectors Group": {
-        asArray: true,
-        asSourceFile: true
+        wrapInObject: "shape"
     },
     "ADBE Vector Group": {
-        type: "group",
-        assignTo: "properties",
-        asArray: true
+        wrapInObject: "group"
+    },
+    "ADBE Vectors Group": {
+        wrapInObject: "shape"
     },
     "ADBE Vector Shape - Ellipse": {
-        type: "ellipse",
+        wrapInObject: "ellipse",
         inline: true
     },
     "ADBE Vector Shape - Rect": {
-        type: "rectangle",
+        wrapInObject: "rectangle",
         inline: true
     },
     "ADBE Vector Shape - Star": {
-        type: "polygon",
+        wrapInObject: "polygon",
         inline: true
     },
     "ADBE Vector Shape - Group": {
-        type: "path",
+        wrapInObject: "path",
         inline: true
     },
     
     // Shape系
     "ADBE Vector Ellipse Size": {
-        assignTo: "size"
+        wrapInObject: "size"
     },
     "ADBE Vector Ellipse Position": {
-        assignTo: "position"
+        wrapInObject: "position"
     },
     "ADBE Vector Rect Size": {
-        assignTo: "size"
+        wrapInObject: "size"
     },
     "ADBE Vector Rect Position": {
-        assignTo: "position"
+        wrapInObject: "position"
     },
     "ADBE Vector Rect Roundness": {
-        assignTo: "roundness"
+        wrapInObject: "roundness"
     },
     "ADBE Vector Star Type": {
-        assignTo: "type"
+        wrapInObject: "type"
     },
     "ADBE Vector Star Points": {
-        assignTo: "points"
+        wrapInObject: "points"
     },
     "ADBE Vector Star Position": {
-        assignTo: "position"
+        wrapInObject: "position"
     },
     "ADBE Vector Star Outer Radius": {
-        assignTo: "outerRadius"
+        wrapInObject: "outerRadius"
     },
     "ADBE Vector Star Inner Radius": {
-        assignTo: "innerRadius"
+        wrapInObject: "innerRadius"
     },
     "ADBE Vector Star Outer Roundess": {
-        assignTo: "outerRoundess"
+        wrapInObject: "outerRoundess"
     },
     "ADBE Vector Star Inner Roundess": {
-        assignTo: "innerRoundess"
+        wrapInObject: "innerRoundess"
     },
     "ADBE Vector Star Rotation": {
-        assignTo: "rotation"
+        wrapInObject: "rotation"
     },
     
     "ADBE Vector Shape Direction": {
-        assignTo: "direction"
+        wrapInObject: "direction"
     },
     "ADBE Vector Blend Mode": {
-        assignTo: "blendMode"
+        wrapInObject: "blendMode"
     },
     "ADBE Vector Composite Order": {
-        assignTo: "compositeOrder"
+        wrapInObject: "compositeOrder"
     },
 
     // Fill/Stroke系
     "ADBE Vector Graphic - Fill": {
-        assignTo: "fill",
+        wrapInObject: "fill",
         inline: true
     },
     "ADBE Vector Fill Rule": {
-        assignTo: "rule"
+        wrapInObject: "rule"
     },
     "ADBE Vector Fill Color": {
-        assignTo: "color"
+        wrapInObject: "color"
     },
     "ADBE Vector Fill Opacity": {
-        assignTo: "opacity"
+        wrapInObject: "opacity"
     },
     "ADBE Vector Graphic - Stroke": {
-        assignTo: "stroke",
+        wrapInObject: "stroke",
         inline: true
     },
     "ADBE Vector Stroke Color": {
-        assignTo: "color"
+        wrapInObject: "color"
     },
     "ADBE Vector Stroke Opacity": {
-        assignTo: "opacity"
+        wrapInObject: "opacity"
     },
     "ADBE Vector Stroke Width": {
-        assignTo: "width"
+        wrapInObject: "width"
     },
     "ADBE Vector Stroke Line Cap": {
-        assignTo: "lineCap"
+        wrapInObject: "lineCap"
     },
     "ADBE Vector Stroke Line Join": {
-        assignTo: "lineJoin"
+        wrapInObject: "lineJoin"
     },
     "ADBE Vector Stroke Miter Limit": {
-        assignTo: "miterLimit"
+        wrapInObject: "miterLimit"
     },
     "ADBE Vector Stroke Dashes": {
-        assignTo: "dashes"
+        wrapInObject: "dashes"
     },
     "ADBE Vector Stroke Taper": {
-        assignTo: "taper"
+        wrapInObject: "taper"
     },
     "ADBE Vector Stroke Wave": {
-        assignTo: "wave"
+        wrapInObject: "wave"
     },
     "ADBE Vector Filter - Trim": {
-        assignTo: "properties"
+        wrapInObject: "properties"
     },
     "ADBE Vector Filter - Trim Start": {
-        assignTo: "start"
+        wrapInObject: "start"
     },
     "ADBE Vector Filter - Trim End": {
-        assignTo: "end"
+        wrapInObject: "end"
     },
     "ADBE Vector Filter - Trim Offset": {
-        assignTo: "offset"
+        wrapInObject: "offset"
     },
 
     // 不要なプロパティを無効化
-    "ADBE Audio Group": { enabled: false },
-    "ADBE Data Group": { enabled: false },
-    "ADBE Layer Overrides": { enabled: false },
-    "ADBE Layer Sets": { enabled: false },
-    "ADBE Envir Appear in Reflect": { enabled: false },
-    "ADBE Layer Styles": { enabled: false },
-    "ADBE Plane Options Group": { enabled: false },
-    "ADBE Extrsn Options Group": { enabled: false },
-    "ADBE Material Options Group": { enabled: false },
-    "ADBE Source Options Group": { enabled: false },
-    "ADBE Marker": { enabled: false },
-    "ADBE Mask Parade": { enabled: false },
-    "ADBE Effect Parade": { enabled: false },
-    "ADBE Time Remapping": { enabled: false },
-    "ADBE MTrackers": { enabled: false }
+    "ADBE Audio Group": { ignored: true },
+    "ADBE Data Group": { ignored: true },
+    "ADBE Layer Overrides": { ignored: true },
+    "ADBE Layer Sets": { ignored: true },
+    "ADBE Envir Appear in Reflect": { ignored: true },
+    "ADBE Layer Styles": { ignored: true },
+    "ADBE Plane Options Group": { ignored: true },
+    "ADBE Extrsn Options Group": { ignored: true },
+    "ADBE Material Options Group": { ignored: true },
+    "ADBE Source Options Group": { ignored: true },
+    "ADBE Marker": { ignored: true },
+    "ADBE Mask Parade": { ignored: true },
+    "ADBE Effect Parade": { ignored: true },
+    "ADBE Time Remapping": { ignored: true },
+    "ADBE MTrackers": { ignored: true }
 };
 
 
@@ -253,20 +251,16 @@ var PROPERTY_MAPPING_CONFIG = {
     }
 
     function getSourceType(layer) {
-        switch(layer.matchName) {
-            case "ADBE Vector Layer":
-                return "shape"; // シェイプレイヤー
-        }
         if (!layer.source) {
             return "none"; // ソースなし（シェイプレイヤーなど）
         }
         
-        // コンポジション
         if (layer.source instanceof CompItem) {
             return "composition";
         }
-        
-        // フッテージ（ファイルベース）
+        if (layer.source.mainSource instanceof SolidSource) {
+            return "solid";
+        }
         if (layer.source.mainSource instanceof FileSource) {
             var fileSource = layer.source.mainSource;
             
@@ -320,11 +314,6 @@ var PROPERTY_MAPPING_CONFIG = {
             }
             
             return "footage"; // その他のフッテージ
-        }
-        
-        // 平面
-        if (layer.source.mainSource instanceof SolidSource) {
-            return "solid";
         }
         
         return "unknown";
@@ -718,7 +707,7 @@ var PROPERTY_MAPPING_CONFIG = {
     
     // プロパティの有効状態を判定
     function isPropertyEnabled(config) {
-        return (config.enabled !== undefined) ? config.enabled : true;
+        return (config.ignored !== undefined) ? !config.ignored : true;
     }
     
     // キーフレーム補間情報を抽出
@@ -1201,7 +1190,7 @@ var PROPERTY_MAPPING_CONFIG = {
 
 
     // キーフレームベースの抽出関数
-    function extractKeyframeBasedProperty(prop, inPoint, duration, fps, decimalPlaces, valueCount) {
+    function extractKeyframeBasedProperty(prop, inPoint, fps, decimalPlaces) {
         try {
             if (!prop) {
                 debugLog("extractKeyframeBasedProperty", "prop is null");
@@ -1210,47 +1199,17 @@ var PROPERTY_MAPPING_CONFIG = {
             
             debugLog("extractKeyframeBasedProperty", "Processing property: " + (prop.matchName || prop.name || "unnamed"));
             
-            function toTime(f) { return f / fps; }
-            function toFrame(t) { return Math.floor(t * fps); }
-            
-            if (!valueCount || valueCount === 0) {
-                var sampleValue = prop.valueAtTime(toTime(inPoint), false);
-                valueCount = (sampleValue instanceof Array) ? sampleValue.length : 1;
-                debugLog("extractKeyframeBasedProperty", "Auto-detected valueCount: " + valueCount);
-            }
-            
-            var isSingleValue = (valueCount === 1);
+
+            function toFrame(t){ return Math.floor(t * fps); }
+
             var nk = (typeof prop.numKeys === 'number') ? prop.numKeys : 0;
-            
-            // Get initial value
-            var initialValue = extractValue(prop, toTime(inPoint), decimalPlaces);
-            
-            if (initialValue instanceof Array) {
-                initialValue = initialValue.slice(0, valueCount);
-                while (initialValue.length < valueCount) initialValue.push(null);
-            } else if (valueCount > 1) {
-                var temp = [initialValue];
-                while (temp.length < valueCount) temp.push(null);
-                initialValue = temp;
-            }
-            
-            if (isSingleValue && initialValue instanceof Array) {
-                initialValue = initialValue[0];
-            }
-            
-            // Return structured data with initial value and keyframe data
-            var result = {
-                initialValue: initialValue,
-                hasAnimation: (nk > 0),
-                extractionMethod: "keyframe"
-            };
-            
+
             if (nk === 0) {
                 // No animation - only return initial value info
                 debugLog("extractKeyframeBasedProperty", "No animation detected, returning initial value only");
-                return result;
+                return null;
             }
-            
+
             // Extract keyframe data
             var keyframes = [];
             
@@ -1259,26 +1218,7 @@ var PROPERTY_MAPPING_CONFIG = {
                     var keyTime = prop.keyTime(i);
                     var keyFrame = toFrame(keyTime) - inPoint;
                     
-                    // キーフレームがレイヤーの有効範囲内かチェック
-                    // if (keyFrame < 0 || keyFrame > duration) {
-                    //     continue;
-                    // }
-                    
                     var keyValue = extractValue(prop, keyTime, decimalPlaces);
-                    
-                    // 値の正規化
-                    if (keyValue instanceof Array) {
-                        keyValue = keyValue.slice(0, valueCount);
-                        while (keyValue.length < valueCount) keyValue.push(null);
-                    } else if (valueCount > 1) {
-                        var temp = [keyValue];
-                        while (temp.length < valueCount) temp.push(null);
-                        keyValue = temp;
-                    }
-                    
-                    if (isSingleValue && keyValue instanceof Array) {
-                        keyValue = keyValue[0];
-                    }
                     
                     // キーフレーム情報を構築
                     var keyframeInfo = {
@@ -1305,20 +1245,17 @@ var PROPERTY_MAPPING_CONFIG = {
                 }
             }
             
-            result.keyframes = keyframes;
-            
             debugLog("extractKeyframeBasedProperty", "Keyframe extraction completed successfully", {
-                keyframeCount: keyframes.length,
-                hasAnimation: result.hasAnimation
+                keyframeCount: keyframes.length
             });
-            return result;
+            return keyframes;
         } catch (e) {
             debugLog("extractKeyframeBasedProperty", "Error in keyframe extraction: " + e.toString(), null, "error");
             return null;
         }
     }
     
-    function extractAnimatedProperty(prop, inPoint, duration, fps, decimalPlaces, valueCount) {
+    function extractAnimatedProperty(prop, inPoint, duration, fps, decimalPlaces) {
         try {
             if (!prop) {
                 debugLog("extractAnimatedProperty", "prop is null");
@@ -1327,45 +1264,16 @@ var PROPERTY_MAPPING_CONFIG = {
             
             debugLog("extractAnimatedProperty", "Processing property: " + (prop.matchName || prop.name || "unnamed"));
             
-            function toTime(f) { return f / fps; }
-            
-            if (!valueCount || valueCount === 0) {
-                var sampleValue = prop.valueAtTime(toTime(inPoint), false);
-                valueCount = (sampleValue instanceof Array) ? sampleValue.length : 1;
-                debugLog("extractAnimatedProperty", "Auto-detected valueCount: " + valueCount);
-            }
-            
-            var isSingleValue = (valueCount === 1);
             var nk = (typeof prop.numKeys === 'number') ? prop.numKeys : 0;
-            
-            // Get initial value
-            var initialValue = extractValue(prop, toTime(inPoint), decimalPlaces);
-            
-            if (initialValue instanceof Array) {
-                initialValue = initialValue.slice(0, valueCount);
-                while (initialValue.length < valueCount) initialValue.push(null);
-            } else if (valueCount > 1) {
-                var temp = [initialValue];
-                while (temp.length < valueCount) temp.push(null);
-                initialValue = temp;
-            }
-            
-            if (isSingleValue && initialValue instanceof Array) {
-                initialValue = initialValue[0];
-            }
-            
-            // Return structured data with initial value and animation data
-            var result = {
-                initialValue: initialValue,
-                hasAnimation: (nk > 0)
-            };
-            
             if (nk === 0) {
                 // No animation - only return initial value info
                 debugLog("extractAnimatedProperty", "No animation detected, returning initial value only");
-                return result;
+                return null;
             }
             
+
+            function toTime(f) { return f / fps; }
+
             // Extract animation data (keyframes)
             var animationData = {};
             var prevValue = null;
@@ -1375,20 +1283,7 @@ var PROPERTY_MAPPING_CONFIG = {
             for (var frame = 0; frame <= duration; frame++) {
                 var time = toTime(frame + inPoint);
                 var extractedValue = extractValue(prop, time, decimalPlaces);
-                
-                if (extractedValue instanceof Array) {
-                    extractedValue = extractedValue.slice(0, valueCount);
-                    while (extractedValue.length < valueCount) extractedValue.push(null);
-                } else if (valueCount > 1) {
-                    var temp = [extractedValue];
-                    while (temp.length < valueCount) temp.push(null);
-                    extractedValue = temp;
-                }
-                
-                if (isSingleValue && extractedValue instanceof Array) {
-                    extractedValue = extractedValue[0];
-                }
-                
+                                
                 var hasChanged = (prevValue === null) || !valuesAreEqual(extractedValue, prevValue);
                 
                 if (hasChanged) {
@@ -1416,17 +1311,36 @@ var PROPERTY_MAPPING_CONFIG = {
                 saveGroup(animationData, groupStartFrame, groupValues);
             }
             
-            result.animationData = animationData;
-            
             debugLog("extractAnimatedProperty", "Extraction completed successfully", {
-                frameCount: animationData.keys ? animationData.keys().length : 0,
-                hasAnimation: result.hasAnimation
+                frameCount: (animationData.keys ? animationData.keys().length : 0)
             });
-            return result;
+            return animationData;
         } catch (e) {
             debugLog("extractAnimatedProperty", "Error in extraction: " + e.toString(), null, "error");
             return null;
         }
+    }
+
+    function extractPropertyValue(prop, options, layer) {
+        var fps = layer.containingComp.frameRate;
+        var inPoint = Math.floor(layer.inPoint * fps);
+        var outPoint = Math.floor(layer.outPoint * fps);
+        var duration = outPoint - inPoint;
+        var DEC = options.decimalPlaces || 4;
+
+        function toTime(f) { return f / fps; }
+
+        var result;
+        if (options.keyframes) {
+            if (options.useKeyframeExtraction) {
+                result = extractKeyframeBasedProperty(prop, inPoint, fps, DEC);
+            } else {
+                result = extractAnimatedProperty(prop, inPoint, duration, fps, DEC);
+            }
+        } else {
+            result = extractValue(prop, toTime(inPoint), DEC);
+        }
+        return result;
     }
     
     // ===== 統一処理関数 =====
@@ -1437,6 +1351,11 @@ var PROPERTY_MAPPING_CONFIG = {
                 return null;
             }
             
+            if (!property.enabled) {
+                debugLog("extractPropertiesRecursive", "Property not enabled: " + property.matchName, null, "verbose");
+                return null;
+            }
+
             var config = PROPERTY_MAPPING_CONFIG[property.matchName];
             if (!config) {
                 debugLog("extractPropertiesRecursive", "No config found for matchName: " + property.matchName, null, "warning");
@@ -1456,170 +1375,49 @@ var PROPERTY_MAPPING_CONFIG = {
             var duration = outPoint - inPoint;
             var DEC = options.decimalPlaces || 4;
             
-            var result = {};
-            var keyframes = {}; // Collect keyframes for animated properties
-            
-            if (config.type) {
-                result.type = config.type;
-            }
-            
-            if (property.valueAtTime && typeof property.valueAtTime === 'function') {
-                var extractedData;
-                
-                // Choose extraction method based on options
-                if (options.useKeyframeExtraction) {
-                    // Use keyframe-based extraction
-                    extractedData = extractKeyframeBasedProperty(property, inPoint, duration, fps, DEC, 0);
-                    if (extractedData && config.assignTo) {
-                        if (extractedData.hasAnimation && extractedData.keyframes) {
-                            // Property has animation - store initial value directly and keyframes
-                            result[config.assignTo] = extractedData.initialValue;
-                            
-                            // Transform系プロパティの場合は階層構造を作る
-                            var parentMatchName = property.parentProperty ? property.parentProperty.matchName : "";
-                            if (parentMatchName === "ADBE Transform Group") {
-                                if (!keyframes["transform"]) {
-                                    keyframes["transform"] = {};
-                                }
-                                keyframes["transform"][config.assignTo] = extractedData.keyframes;
-                            } else {
-                                // その他のプロパティは直接配置
-                                keyframes[config.assignTo] = extractedData.keyframes;
-                            }
-                        } else {
-                            // Property has no animation - store initial value directly
-                            result[config.assignTo] = extractedData.initialValue;
-                        }
-                    }
-                } else {
-                    // Use full-frame extraction (legacy)
-                    extractedData = extractAnimatedProperty(property, inPoint, duration, fps, DEC, 0);
-                    if (extractedData && config.assignTo) {
-                        if (extractedData.hasAnimation && extractedData.animationData) {
-                            // Property has animation - store initial value directly and animation in keyframes
-                            result[config.assignTo] = extractedData.initialValue;
-                            
-                            // Transform系プロパティの場合は階層構造を作る
-                            var parentMatchName = property.parentProperty ? property.parentProperty.matchName : "";
-                            if (parentMatchName === "ADBE Transform Group") {
-                                if (!keyframes["transform"]) {
-                                    keyframes["transform"] = {};
-                                }
-                                keyframes["transform"][config.assignTo] = extractedData.animationData;
-                            } else {
-                                // その他のプロパティは直接配置
-                                keyframes[config.assignTo] = extractedData.animationData;
-                            }
-                        } else {
-                            // Property has no animation - store initial value directly
-                            result[config.assignTo] = extractedData.initialValue;
-                        }
-                    }
-                }
-            }
-            
-            if (property.numProperties && property.numProperties > 0) {
-                var childResults = null;
-                var as_array = config.asArray;
-                if (as_array) {
-                    childResults = [];
-                    
+            var result = null;
+
+            var propType = property.propertyType;
+            switch(propType) {
+                case PropertyType.PROPERTY:
+                    result = extractPropertyValue(property, options, layer);
+                    break;
+                case PropertyType.INDEXED_GROUP:
+                    result = [];
                     for (var i = 1; i <= property.numProperties; i++) {
                         var childProp = property.property(i);
-                        if (childProp) {
-                            var childConfig = PROPERTY_MAPPING_CONFIG[childProp.matchName];
-                            var childResult = extractPropertiesRecursive(childProp, options, layer);
-                            if (childResult) {
-                                var arrayItem = {};
-                                
-                                if (childConfig && childConfig.type) {
-                                    arrayItem.type = childConfig.type;
-                                }
-                                
-                                if (childConfig && childConfig.assignTo) {
-                                    arrayItem[childConfig.assignTo] = childResult[childConfig.assignTo] || childResult;
-                                } else {
-                                    for (var key in childResult) {
-                                        if (childResult.hasOwnProperty(key) && key !== "keyframes") {
-                                            arrayItem[key] = childResult[key];
-                                        }
-                                    }
-                                }
-                                
-                                // Merge child keyframes
-                                if (childResult.keyframes) {
-                                    for (var kfKey in childResult.keyframes) {
-                                        if (childResult.keyframes.hasOwnProperty(kfKey)) {
-                                            keyframes[kfKey] = childResult.keyframes[kfKey];
-                                        }
-                                    }
-                                }
-                                
-                                childResults.push(arrayItem);
-                            }
+                        var child = extractPropertiesRecursive(childProp, options, layer);
+                        if (child) {
+                            result.push(child);
                         }
                     }
-                } else {
-                    childResults = {};
-                    
+                    if(result.length === 0) result = null;
+                    break;
+                case PropertyType.NAMED_GROUP:
+                    result = {};
                     for (var i = 1; i <= property.numProperties; i++) {
                         var childProp = property.property(i);
-                        if (childProp) {
-                            var childResult = extractPropertiesRecursive(childProp, options, layer);
-                            if (childResult) {
-                                for (var key in childResult) {
-                                    if (childResult.hasOwnProperty(key) && key !== "keyframes") {
-                                        childResults[key] = childResult[key];
-                                    }
-                                }
-                                
-                                // Merge child keyframes
-                                if (childResult.keyframes) {
-                                    for (var kfKey in childResult.keyframes) {
-                                        if (childResult.keyframes.hasOwnProperty(kfKey)) {
-                                            keyframes[kfKey] = childResult.keyframes[kfKey];
-                                        }
-                                    }
+                        var child = extractPropertiesRecursive(childProp, options, layer);
+                        if (child) {
+                            for (var key in child) {
+                                if (child.hasOwnProperty(key)) {
+                                    result[key] = child[key];
                                 }
                             }
                         }
                     }
-                }
-                if(config.assignTo) {
-                    result[config.assignTo] = childResults;
-                }
-                else if (config.inline) {
-                    if(as_array) {
-                        debugLog("extractPropertiesRecursive", "Cannot inline array into non-array result", null, "warning");
-                    }
-                    else {
-                        var keys = childResults.keys();
-                        for (var i = 0; i < keys.length; i++) {
-                            var key = keys[i];
-                            result[key] = childResults[key];
-                        }
-                    }
-                }
-                if(config.asSourceFile) {
-                    var outputFolderPath  = options.outputFolderPath;
-                    var outputFolder  = new Folder(outputFolderPath + "/" + layer.containingComp.name.fsSanitized());
-                    var footageFolderPath = options.footageFolderPath || (outputFolder.fsName + "/sources");
-                    var footageFolder = new Folder(footageFolderPath);
-                    var fileName = layerUniqueName(layer) + ".json";
-                    var jsonString = JSON.stringify(childResults, null, 4);
-                    var saveFile = new File(footageFolder.fsName + "/" + fileName);
-                    saveFile.encoding = "UTF-8";
-                    saveFile.open("w");
-                    saveFile.write(jsonString);
-                    saveFile.close();
-                }
+                    if(result.keys().length === 0) result = null;
+                    break;
             }
-
-            // Add keyframes object if there are any animated properties
-            if (keyframes.keys().length > 0) {
-                result.keyframes = keyframes;
+            if(!result) {
+                debugLog("extractPropertiesRecursive", "No result extracted for property: " + property.matchName, null, "verbose");
+                return null;
             }
-
+            if (config.wrapInObject){
+                var wrapped = {};
+                wrapped[config.wrapInObject] = result;
+                result = wrapped;
+            }
             debugLog("extractPropertiesRecursive", "Processing completed for: " + property.matchName);
             return result;
         } catch (e) {
@@ -1670,57 +1468,124 @@ var PROPERTY_MAPPING_CONFIG = {
             var layer = comp.layer(i);
             if (!layer.enabled) continue;
 
-            var resultData = {};
-            resultData["name"] = layer.name;
-            resultData["layerType"] = layer.matchName;
-            var sourceType = getSourceType(layer);
-            resultData["sourceType"] = sourceType;
-
-            switch(sourceType) {
-                case "shape":
-                    resultData["source"] = getRelativePath(layerFolder, footageFolder) + "/" + layerUniqueName(layer) + ".json";
-                    break;
-                default:
-                    if (layer.source) {
-                        var sourceName = getRelativePath(layerFolder, footageFolder) + "/" + layer.source.name;
-                        if (sourceType === "composition") {
-                            sourceName = sourceName + "/comp.json";
-                        }
-                        resultData["source"] = sourceName;
-                    }
-                    break;
-            }
-
-            var inPoint  = toFrame(layer.inPoint, true);
-            var outPoint = toFrame(layer.outPoint, true);
-            resultData["in"]  = inPoint;
-            resultData["out"] = outPoint;
-
-            if (layer.parent) resultData["parent"] = layerUniqueName(layer.parent);
-
-    
-            // レイヤーマーカーを追加
-            var layerMarkers = extractLayerMarkers(layer);
-            if (layerMarkers.length > 0) {
-                resultData["markers"] = layerMarkers;
-            }
-
-            // レイヤー固有処理の統一化
-            var extractedData = extractPropertiesRecursive(layer, options, layer);
-            if(extractedData && extractedData.keys().length > 0) {
-                for (var key in extractedData) {
-                    if (extractedData.hasOwnProperty(key)) {
-                        resultData[key] = extractedData[key];
-                    }
-                }
-            }
-    
             var layerNameForFile = layerUniqueName(layer);
             compInfo["layers"].push({
                 name: layer.name,
                 uniqueName: layerNameForFile,
                 file: getRelativePath(outputFolder, layerFolder) + "/" + layerNameForFile + ".json"
             });
+
+
+            var resultData = {};
+            resultData["name"] = layer.name;
+            resultData["layerType"] = layer.matchName;
+            var inPoint  = toFrame(layer.inPoint, true);
+            var outPoint = toFrame(layer.outPoint, true);
+            resultData["in"]  = inPoint;
+            resultData["out"] = outPoint;
+
+            if (layer.parent) resultData["parent"] = layerUniqueName(layer.parent);
+    
+            var sourceType = getSourceType(layer);
+            if (layer.source) {
+                resultData["sourceType"] = sourceType;
+                var source = null;
+                switch(sourceType) {
+                    case "composition":
+                        source = layer.source.name + "/comp.json";
+                        break;
+                    case "sequence":
+                        source = layer.source.name;
+                        break;
+                    case "solid":
+                        source = layer.source.name + ".json";
+                        break;
+                    case "still":
+                    case "video":
+                    case "audio":
+                        source = layer.source.mainSource.name;
+                        break;
+                    default:
+                        debugLog("extractPropertiesForAllLayers", "Unknown source type for layer: " + layer.name, { matchName: layer.matchName }, "warning");
+                        break;
+                }
+            }
+            if(source) {
+                resultData["source"] = getRelativePath(layerFolder, footageFolder) + "/" + source;
+            }
+
+            var layerMarkers = extractLayerMarkers(layer);
+            if (layerMarkers.length > 0) {
+                resultData["markers"] = layerMarkers;
+            }
+            options.keyframes = false;
+            var properties = extractPropertiesRecursive(layer, options, layer);
+            if(properties) {
+                for (var key in properties) {
+                    if (properties.hasOwnProperty(key)) {
+                        resultData[key] = properties[key];
+                    }
+                }
+            }
+
+            options.keyframes = true;
+            var keyframes = extractPropertiesRecursive(layer, options, layer);
+            if(keyframes) {
+                resultData["animations"] = keyframes;
+            }
+    
+            switch(sourceType) {
+                case "composition":
+                    if (procNestedComp) {
+                        var nestedOptions = {
+                            outputFolderPath: footageFolderPath,
+                            footageFolderPath: options.footageFolderPath,
+                            procNestedComp: true,
+                            decimalPlaces: DEC
+                        };
+                        extractPropertiesForAllLayers(layer.source, nestedOptions);
+                    }
+                    break;
+                case "solid":
+                    var solidInfo = {
+                        name: layer.source.name,
+                        width: layer.source.width,
+                        height: layer.source.height,
+                        color: layer.source.mainSource.color
+                    };
+                    try {
+                        var solidFile = new File(footageFolder.fsName + "/" + layer.source.name + ".json");
+                        solidFile.encoding = "UTF-8";
+                        solidFile.open("w");
+                        solidFile.write(JSON.stringify(solidInfo, null, 4));
+                        solidFile.close();
+                    } catch(e) {
+                        alert("ソリッド情報の保存中にエラーが発生しました: " + e.message);
+                    }
+                    break;
+                case "still":
+                case "video":
+                case "audio":
+                    var destFile = new File(footageFolder.fsName + "/" + layer.source.mainSource.file.name);
+                    try{ layer.source.mainSource.file.copy(destFile); }catch(e){ alert("ファイルのコピー中にエラー: " + e.message); }
+                    break;
+                case "sequence":
+                    var extMatch = (""+layer.source.mainSource.file.name).match(/(\.[^.]+)$/);
+                    var ext = extMatch ? extMatch[1].toLowerCase() : "";
+                    var sequenceFolder = new Folder(footageFolder.fsName + "/" + layer.source.name);
+                    if (!sequenceFolder.exists) sequenceFolder.create();
+                    var sequenceFiles = sourceFile.parent.getFiles(function(f){
+                        return f instanceof File && ((""+f.name).toLowerCase().indexOf(ext)>=0);
+                    });
+                    for (var s=0; s<sequenceFiles.length; s++){
+                        var sequenceFile = sequenceFiles[s];
+                        var dest = new File(sequenceFolder.fsName + "/" + sequenceFile.name);
+                        try{ sequenceFile.copy(dest); }catch(e){ alert("ファイルのコピー中にエラー: " + e.message); }
+                    }
+                    break;
+                default:
+                    break;
+            }
 
             try{
                 var jsonString = JSON.stringify(resultData, null, 4);
@@ -1732,75 +1597,17 @@ var PROPERTY_MAPPING_CONFIG = {
             }catch(e){
                 alert("ファイルの保存中にエラーが発生しました: " + e.message);
             }
-
-            // フッテージコピーとネスト再帰
-            switch(sourceType){
-                case "image":
-                case "sequence":
-                case "video":
-                case "audio":
-                    break;
-                default:
-                    continue; // フッテージコピーとネスト再帰はこれらのタイプのみ
-            }
-            if (layer.source){
-                if (layer.source.mainSource instanceof FileSource){
-                    var sourceFile = layer.source.mainSource.file;
-                    if (sourceFile && sourceFile.exists){
-                        if (layer.source.mainSource.isStill){
-                            var destFile = new File(footageFolder.fsName + "/" + sourceFile.name);
-                            try{ sourceFile.copy(destFile); }catch(e){ alert("ファイルのコピー中にエラー: " + e.message); }
-                        }else{
-                            var sourceType = getSourceType(layer);
-                            
-                            if (sourceType === "sequence") {
-                                // 画像シーケンスの場合：連番ファイルをすべてコピー
-                                var extMatch = (""+sourceFile.name).match(/(\.[^.]+)$/);
-                                var ext = extMatch ? extMatch[1].toLowerCase() : "";
-                                var sequenceFolder = new Folder(footageFolder.fsName + "/" + layer.source.name);
-                                if (!sequenceFolder.exists) sequenceFolder.create();
-                                var sequenceFiles = sourceFile.parent.getFiles(function(f){
-                                    return f instanceof File && ((""+f.name).toLowerCase().indexOf(ext)>=0);
-                                });
-                                for (var s=0; s<sequenceFiles.length; s++){
-                                    var sequenceFile = sequenceFiles[s];
-                                    var dest = new File(sequenceFolder.fsName + "/" + sequenceFile.name);
-                                    try{ sequenceFile.copy(dest); }catch(e){ alert("ファイルのコピー中にエラー: " + e.message); }
-                                }
-                            } else {
-                                // 単一動画・音声ファイルの場合：そのファイルのみをコピー
-                                var destFile = new File(footageFolder.fsName + "/" + sourceFile.name);
-                                try{
-                                    sourceFile.copy(destFile);
-                                }catch(e){
-                                    alert("ファイルのコピー中にエラー: " + e.message);
-                                }
-                            }
-                        }
-                    }
-                }
-                if (procNestedComp && layer.source instanceof CompItem){
-                    var nestedOptions = {
-                        outputFolderPath: footageFolderPath,
-                        footageFolderPath: options.footageFolderPath,
-                        procNestedComp: true,
-                        decimalPlaces: DEC
-                    };
-                    extractPropertiesForAllLayers(layer.source, nestedOptions);
-                }
-            }
         }
 
-        try{
+        try {
             var compInfoFile = new File(outputFolder.fsName + "/comp.json");
             compInfoFile.encoding = "UTF-8";
             compInfoFile.open("w");
             compInfoFile.write(JSON.stringify(compInfo, null, 4));
             compInfoFile.close();
-        }catch(e){
+        } catch(e) {
             alert("コンポジション情報の保存中にエラーが発生しました: " + e.message);
-        }
-        finally{
+        } finally {
             if (DEBUG_PANEL && DEBUG_PANEL.visible) {
                 updateDebugDisplay();
             }
