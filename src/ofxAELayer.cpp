@@ -3,6 +3,7 @@
 #include "ofUtils.h"
 #include <fstream>
 #include <algorithm>
+#include "JsonFuncs.h"
 
 namespace ofx { namespace ae {
 
@@ -34,11 +35,6 @@ Layer::TransformProps::TransformProps()
 }
 
 namespace {
-template<typename T> bool extract(const ofJson &data, std::string key, T &dst) {
-	if(!data.contains(key)) return false;
-	dst = data[key].get<T>();
-	return true;
-}
 bool hasKeyframesFor(const ofJson &data, std::string key) {
 	return data.contains("keyframes") && data["keyframes"].contains(key);
 }
@@ -52,8 +48,8 @@ void Layer::TransformProps::loadAnimation(const ofJson &data)
 }
 
 bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
-#define EXTRACT(n) extract(json, #n, n)
-#define EXTRACT_(n) extract(json, #n, n##_)
+#define EXTRACT(n) json::extract(json, #n, n)
+#define EXTRACT_(n) json::extract(json, #n, n##_)
 	EXTRACT_(name);
 	EXTRACT_(in);
 	EXTRACT_(out);
@@ -87,6 +83,7 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 //		}
 //	}
 
+	current_frame_ = -1;
     return true;
 #undef EXTRACT_
 #undef EXTRACT
@@ -94,12 +91,20 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 
 void Layer::update()
 {
-// TODO: frameが変わってたら処理対象
+	// updateProperties
+}
+
+bool Layer::setFrame(int frame)
+{
+	std::swap(current_frame_, frame);
+	return current_frame_ != frame;
 }
 
 void Layer::draw(float x, float y, float w, float h) const
 {
-	
+	if(source_) {
+		source_->draw(x,y,w,h);
+	}
 }
 
 

@@ -27,7 +27,7 @@ public:
 	bool load(const std::string& base_dir);
 	bool setup(const ofJson& json, const std::filesystem::path &source_dir="");
 	void update() override;
-	void setFrame(int frame);
+	bool setFrame(int frame);
 	using ofBaseDraws::draw;
 	void draw() const { draw(0,0); }
 	void draw(float x, float y, float w, float h) const override;
@@ -55,37 +55,7 @@ public:
 	bool shouldRender(int frame) const;
 	void prepareForRendering(int frame);
 
-
-	// ========================================================================
-	// Debug and Diagnostics
-	// ========================================================================
-
-	/**
-	 * Get debug information about this layer
-	 * @return String containing layer and source debug info
-	 */
 	std::string getDebugInfo() const;
-
-	/**
-	 * Get a vec3 property value at specified time
-	 * @param propertyPath Path to property (e.g., "transform.position")
-	 * @param time Time to evaluate property at
-	 * @return Property value
-	 */
-	glm::vec3 getPropertyVec3(const std::string& propertyPath, float time) const;
-
-	/**
-	 * Check if a property exists
-	 * @param propertyPath Path to property
-	 * @return true if property exists
-	 */
-	bool hasProperty(const std::string& propertyPath) const;
-
-	/**
-	 * Get list of all available properties
-	 * @return Vector of property paths
-	 */
-	std::vector<std::string> getAvailableProperties() const;
 
 private:
 	std::unique_ptr<LayerSource> source_;
