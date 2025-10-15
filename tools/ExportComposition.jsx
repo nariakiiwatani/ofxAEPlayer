@@ -1509,9 +1509,9 @@ var PROPERTY_MAPPING_CONFIG = {
                         debugLog("extractPropertiesForAllLayers", "Unknown source type for layer: " + layer.name, { matchName: layer.matchName }, "warning");
                         break;
                 }
-            }
-            if(source) {
-                resultData["source"] = getRelativePath(layerFolder, footageFolder) + "/" + source;
+                if(source) {
+                    resultData["source"] = getRelativePath(layerFolder, footageFolder) + "/" + source;
+                }
             }
 
             var layerMarkers = extractLayerMarkers(layer);
@@ -1531,7 +1531,7 @@ var PROPERTY_MAPPING_CONFIG = {
             options.keyframes = true;
             var keyframes = extractPropertiesRecursive(layer, options, layer);
             if(keyframes) {
-                resultData["animations"] = keyframes;
+                resultData["keyframes"] = keyframes;
             }
     
             switch(sourceType) {
@@ -1541,7 +1541,10 @@ var PROPERTY_MAPPING_CONFIG = {
                             outputFolderPath: footageFolderPath,
                             footageFolderPath: options.footageFolderPath,
                             procNestedComp: true,
-                            decimalPlaces: DEC
+                            decimalPlaces: DEC,
+                            recordUnsupportedProps: options.recordUnsupportedProps,
+                            useKeyframeExtraction: options.useKeyframeExtraction
+
                         };
                         extractPropertiesForAllLayers(layer.source, nestedOptions);
                     }
@@ -1574,7 +1577,7 @@ var PROPERTY_MAPPING_CONFIG = {
                     var ext = extMatch ? extMatch[1].toLowerCase() : "";
                     var sequenceFolder = new Folder(footageFolder.fsName + "/" + layer.source.name);
                     if (!sequenceFolder.exists) sequenceFolder.create();
-                    var sequenceFiles = sourceFile.parent.getFiles(function(f){
+                    var sequenceFiles = sourclayer.source.mainSource.filee.parent.getFiles(function(f){
                         return f instanceof File && ((""+f.name).toLowerCase().indexOf(ext)>=0);
                     });
                     for (var s=0; s<sequenceFiles.length; s++){

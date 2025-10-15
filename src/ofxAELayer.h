@@ -7,11 +7,10 @@
 #include "ofJson.h"
 #include "ofxAEMarker.h"
 #include "ofxAEKeyframe.h"
-#include "ofxAERenderContext.h"
+#include "ofxAETransformProp.h"
 #include "ofxAELayerSource.h"
-#include "utils/TransformNode.h"
-#include "utils/Hierarchical.h"
-#include "utils/PropertyValue.h"
+#include "TransformNode.h"
+#include "Hierarchical.h"
 
 namespace ofx { namespace ae {
 
@@ -22,7 +21,6 @@ class Layer : public TransformNode, public ofBaseDraws, public ofBaseUpdates
 public:
 
 	Layer();
-	virtual ~Layer();
 
 	bool load(const std::string& base_dir);
 	bool setup(const ofJson& json, const std::filesystem::path &source_dir="");
@@ -64,18 +62,10 @@ private:
 	int in_, out_;
 	int current_frame_;
 
+	float opacity_=1;
 	BlendMode blendMode_;
 
-	struct TransformProps {
-		TransformProps();
-		PropertyValue<glm::vec3> position;
-		PropertyValue<glm::vec3> scale;
-		PropertyValue<glm::vec3> rotation;
-		PropertyValue<glm::vec3> anchorPoint;
-		PropertyValue<float> opacity;
-		void loadInitialValue(const ofJson &data);
-		void loadAnimation(const ofJson &data);
-	} transform_;
+	TransformProp transform_;
 };
 
 }} // namespace ofx::ae

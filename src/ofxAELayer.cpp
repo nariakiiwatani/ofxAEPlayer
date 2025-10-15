@@ -1,4 +1,5 @@
 #include "ofxAELayer.h"
+#include "ofxAEKeyframe.h"
 #include "ofLog.h"
 #include "ofUtils.h"
 #include <fstream>
@@ -21,31 +22,6 @@ Layer::Layer()
 {
 }
 
-Layer::~Layer() = default;
-
-
-Layer::TransformProps::TransformProps()
-: position(glm::vec3(0.0f))
-, scale(glm::vec3(1.0f))
-, rotation(glm::vec3(0.0f))
-, anchorPoint(glm::vec3(0.0f))
-, opacity(1.0f)
-{
-
-}
-
-namespace {
-bool hasKeyframesFor(const ofJson &data, std::string key) {
-	return data.contains("keyframes") && data["keyframes"].contains(key);
-}
-}
-
-void Layer::TransformProps::loadInitialValue(const ofJson &data)
-{
-}
-void Layer::TransformProps::loadAnimation(const ofJson &data)
-{
-}
 
 bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 #define EXTRACT(n) json::extract(json, #n, n)
@@ -53,12 +29,12 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 	EXTRACT_(name);
 	EXTRACT_(in);
 	EXTRACT_(out);
+	auto &&keyframes = json.value("/keyframes"_json_pointer, ofJson{});
 	if(json.contains("transform")) {
-		transform_.loadInitialValue(json["transform"]);
-	}
 
-	if(hasKeyframesFor(json, "transform")) {
-		transform_.loadAnimation(json["keyframes"]["transform"]);
+		if(keyframes.contains("transform")) {
+			transform_.setup(json["transform"], keyframes["transform"]);
+		}
 	}
 
     std::string sourceType = "unknown";
@@ -91,20 +67,39 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 
 void Layer::update()
 {
-	// updateProperties
+	refreshMatrix();
+
+	if (source_) {
+		source_->update();
+	}
 }
 
 bool Layer::setFrame(int frame)
 {
-	std::swap(current_frame_, frame);
-	return current_frame_ != frame;
+	if(current_frame_ == frame) {
+		return false;
+	}
+	bool ret = false;
+	if(transform_.setFrame(frame)) {
+		TransformData t;
+		transform_.extract(t);
+		TransformNode::setAnchorPoint(t.anchor);
+		setTranslation(t.position);
+		setScale(t.scale);
+		opacity_ = t.opacity;
+		ret |= true;
+	}
+	current_frame_ = frame;
+	return ret;
 }
 
 void Layer::draw(float x, float y, float w, float h) const
 {
+	pushMatrix();
 	if(source_) {
 		source_->draw(x,y,w,h);
 	}
+	popMatrix();
 }
 
 
@@ -160,5 +155,4 @@ bool Layer::load(const std::string &filepath) {
 	auto base_dir = ofFilePath::getEnclosingDirectory(filepath);
 	return setup(json, base_dir);
 }
-
 }} // namespace ofx::ae
