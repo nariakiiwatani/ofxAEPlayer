@@ -31,7 +31,6 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 	EXTRACT_(out);
 	auto &&keyframes = json.value("/keyframes"_json_pointer, ofJson{});
 	if(json.contains("transform")) {
-
 		if(keyframes.contains("transform")) {
 			transform_.setup(json["transform"], keyframes["transform"]);
 		}

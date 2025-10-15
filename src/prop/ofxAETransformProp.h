@@ -16,13 +16,13 @@ public:
 	TransformProp() {
 		registerProperty<VecProp<3>>("/anchor");
 		registerProperty<VecProp<3>>("/position");
-		registerProperty<VecProp<3>>("/scale");
+		registerProperty<PercentVecProp<3>>("/scale");
 		registerProperty<PercentProp>("/opacity");
 	}
 	void extract(TransformData &t) const override {
 		getProperty<VecProp<3>>("/anchor")->get(t.anchor);
 		getProperty<VecProp<3>>("/position")->get(t.position);
-		getProperty<VecProp<3>>("/scale")->get(t.scale);
+		getProperty<PercentVecProp<3>>("/scale")->get(t.scale);
 		getProperty<PercentProp>("/opacity")->get(t.opacity);
 	}
 };

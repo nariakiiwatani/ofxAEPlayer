@@ -36,15 +36,116 @@ public:
 		keyframes_.insert({frame, keyframe});
 	}
 	virtual T parse(const ofJson &json) const=0;
+	
+	ofx::ae::Keyframe::InterpolationType parseInterpolationType(const std::string &type) const {
+		if(type == "LINEAR") return ofx::ae::Keyframe::LINEAR;
+		else if(type == "BEZIER") return ofx::ae::Keyframe::BEZIER;
+		else if(type == "HOLD") return ofx::ae::Keyframe::HOLD;
+		else if(type == "EASE_IN") return ofx::ae::Keyframe::EASE_IN;
+		else if(type == "EASE_OUT") return ofx::ae::Keyframe::EASE_OUT;
+		else if(type == "EASE_IN_OUT") return ofx::ae::Keyframe::EASE_IN_OUT;
+		else if(type == "CUBIC") return ofx::ae::Keyframe::CUBIC;
+		else if(type == "HERMITE") return ofx::ae::Keyframe::HERMITE;
+		else if(type == "CATMULL_ROM") return ofx::ae::Keyframe::CATMULL_ROM;
+		else return ofx::ae::Keyframe::LINEAR; // default fallback
+	}
 	std::pair<int, ofxAEKeyframe<T>> parseKeyframe(const ofJson &json) const {
 		std::pair<int, ofxAEKeyframe<T>> ret;
 		ret.first = json["frame"].get<int>();
 		ret.second.value = parse(json["value"]);
+		
+		// Parse interpolation data
+		if(json.contains("interpolation")) {
+			const auto &interp = json["interpolation"];
+			
+			// Parse interpolation types
+			if(interp.contains("inType")) {
+				std::string inType = interp["inType"].get<std::string>();
+				ret.second.interpolation.in_type = parseInterpolationType(inType);
+			}
+			if(interp.contains("outType")) {
+				std::string outType = interp["outType"].get<std::string>();
+				ret.second.interpolation.out_type = parseInterpolationType(outType);
+			}
+			
+			// Parse roving and continuous flags
+			if(interp.contains("roving")) {
+				ret.second.interpolation.roving = interp["roving"].get<bool>();
+			}
+			if(interp.contains("continuous")) {
+				ret.second.interpolation.continuous = interp["continuous"].get<bool>();
+			}
+			
+			// Parse temporal ease data
+			if(interp.contains("temporalEase")) {
+				const auto &tempEase = interp["temporalEase"];
+				if(tempEase.contains("inEase")) {
+					const auto &inEase = tempEase["inEase"];
+					if(inEase.contains("speed")) {
+						ret.second.interpolation.in_ease.speed = inEase["speed"].get<float>();
+					}
+					if(inEase.contains("influence")) {
+						ret.second.interpolation.in_ease.influence = inEase["influence"].get<float>();
+					}
+				}
+				if(tempEase.contains("outEase")) {
+					const auto &outEase = tempEase["outEase"];
+					if(outEase.contains("speed")) {
+						ret.second.interpolation.out_ease.speed = outEase["speed"].get<float>();
+					}
+					if(outEase.contains("influence")) {
+						ret.second.interpolation.out_ease.influence = outEase["influence"].get<float>();
+					}
+				}
+			}
+		}
+		
+		// Parse spatial tangents data
+		if(json.contains("spatialTangents")) {
+			const auto &spatialTangents = json["spatialTangents"];
+			if(spatialTangents.contains("inTangent") && spatialTangents["inTangent"].is_array()) {
+				const auto &inTangent = spatialTangents["inTangent"];
+				ret.second.spatial_tangents.in_tangent.clear();
+				for(const auto &val : inTangent) {
+					ret.second.spatial_tangents.in_tangent.push_back(val.get<float>());
+				}
+			}
+			if(spatialTangents.contains("outTangent") && spatialTangents["outTangent"].is_array()) {
+				const auto &outTangent = spatialTangents["outTangent"];
+				ret.second.spatial_tangents.out_tangent.clear();
+				for(const auto &val : outTangent) {
+					ret.second.spatial_tangents.out_tangent.push_back(val.get<float>());
+				}
+			}
+		}
+		
 		return ret;
 	}
 	void set(const T &t) { cache_ = t; }
 	virtual void get(T &t) const { t = cache_; }
 	bool hasAnimation() const override { return !keyframes_.empty(); }
+	
+	bool setFrame(int frame) override {
+		if (keyframes_.empty()) {
+			// No animation, use base value
+			cache_ = base_;
+			return false;
+		}
+		
+		// Use the new keyframe lookup utility from ofxAEKeyframe.h
+		auto pair = ofx::ae::util::findKeyframePair(keyframes_, frame);
+		
+		if (pair.keyframe_a == nullptr || pair.keyframe_b == nullptr) {
+			// Fallback to base value if lookup failed
+			cache_ = base_;
+			return false;
+		}
+		
+		// Use enhanced interpolation that considers both spatial and temporal modes
+		cache_ = ofx::ae::util::interpolateKeyframe(*pair.keyframe_a, *pair.keyframe_b, pair.ratio);
+		
+		return true;
+	}
 
 private:
 	T base_, cache_;
@@ -130,5 +231,22 @@ public:
 		return ret;
 	}
 };
+
+template<int N, typename T=float>
+class PercentVecProp : public Property<glm::vec<N, T>>
+{
+public:
+	using value_type = glm::vec<N, T>;
+	value_type parse(const ofJson &json) const override {
+		value_type ret;
+		if(json.is_array()) {
+			for(int i = 0; i < std::min<int>(json.size(), N); ++i) {
+				ret[i] = json[i].get<T>()/100.f;
+			}
+		}
+		return ret;
+	}
+};
+
 
 }} // namespace ofx::ae
