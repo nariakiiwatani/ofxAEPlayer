@@ -40,12 +40,8 @@ void ShapeSource::update() {
     shape_props_.extractShapeData(current_shape_data_);
 }
 
-void ShapeSource::setFrame(int frame) {
-    // Update all properties to the specified frame
-    shape_props_.setFrame(frame);
-    
-    // Update current data
-    update();
+bool ShapeSource::setFrame(int frame) {
+    return shape_props_.setFrame(frame);
 }
 
 void ShapeSource::draw(float x, float y, float w, float h) const {
@@ -70,8 +66,8 @@ void ShapeSource::renderShape(float x, float y, float w, float h) const {
     has_stroke_active_ = false;
     
     // Process shape items in order
-    for (const auto& item : current_shape_data_.items) {
-        renderShapeItem(item, x, y, w, h);
+	for(auto it = current_shape_data_.items.rbegin(); it != current_shape_data_.items.rend(); ++it) {
+        renderShapeItem(*it, x, y, w, h);
     }
 }
 

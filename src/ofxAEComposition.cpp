@@ -65,15 +65,20 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 
 bool Composition::setFrame(int frame)
 {
-	std::swap(current_frame_, frame);
-	return current_frame_ != frame;
+	if(current_frame_ == frame) {
+		return false;
+	}
+	bool ret = false;
+	for (auto &layer : layers_) {
+		ret |= layer->setFrame(frame);
+	}
+	current_frame_ = frame;
+	return ret;
 }
 void Composition::update()
 {
 	for (auto &layer : layers_) {
-		if (layer && layer->setFrame(current_frame_)) {
-			layer->update();
-		}
+		layer->update();
 	}
 }
 

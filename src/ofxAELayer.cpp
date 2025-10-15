@@ -92,6 +92,9 @@ bool Layer::setFrame(int frame)
 		opacity_ = t.opacity;
 		ret |= true;
 	}
+	if(source_) {
+		ret |= source_->setFrame(frame);
+	}
 	current_frame_ = frame;
 	return ret;
 }

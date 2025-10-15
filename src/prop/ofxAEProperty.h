@@ -28,7 +28,6 @@ public:
 			for(int i = 0; i < keyframes.size(); ++i) {
 				keyframes_.insert(parseKeyframe(keyframes[i]));
 			}
-			return;
 		}
 	}
 	void setBaseValue(const T &t) { base_ = t; }
@@ -176,7 +175,7 @@ public:
 	void setup(const ofJson &base, const ofJson &keyframes) override {
 		for(auto &&[k,v] : props_) {
 			auto p = nlohmann::json::json_pointer(k);
-			v->setup(base.value(p, ofJson{}), keyframes.value(p, ofJson{}));
+			v->setup(base.value(p, ofJson{}), keyframes.is_null() ? ofJson{} : keyframes.value(p, ofJson{}));
 		}
 	}
 	bool hasAnimation() const override {
@@ -259,9 +258,11 @@ public:
 		items_.clear();
 		
 		if (base.is_array()) {
-			for (const auto &item : base) {
+			for(int i = 0; i < base.size(); ++i) {
+				auto b = base[i];
+				ofJson k = i < keyframes.size() ? keyframes[i] : ofJson{};
 				T element;
-				if (setupElement(element, item, keyframes)) {
+				if (setupElement(element, b, k)) {
 					items_.push_back(std::move(element));
 				}
 			}

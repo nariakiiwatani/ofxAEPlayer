@@ -57,13 +57,16 @@ var PROPERTY_MAPPING_CONFIG = {
 
     // Vector Layer系
     "ADBE Root Vectors Group": {
-        wrapInObject: "shape"
+        wrapInObject: "shape",
+        preserveIndexes: true
     },
     "ADBE Vector Group": {
-        wrapInObject: "group"
+        wrapInObject: "group",
+        preserveIndexes: true
     },
     "ADBE Vectors Group": {
-        wrapInObject: "shape"
+        wrapInObject: "shape",
+        preserveIndexes: true
     },
     "ADBE Vector Shape - Ellipse": {
         wrapInObject: "ellipse",
@@ -1384,14 +1387,37 @@ var PROPERTY_MAPPING_CONFIG = {
                     break;
                 case PropertyType.INDEXED_GROUP:
                     result = [];
+                    var preserveIndexes = config.preserveIndexes || false;
+                    
                     for (var i = 1; i <= property.numProperties; i++) {
                         var childProp = property.property(i);
                         var child = extractPropertiesRecursive(childProp, options, layer);
-                        if (child) {
+                        
+                        if (preserveIndexes) {
+                            // インデックスを維持（nullも配列に追加）
                             result.push(child);
+                        } else {
+                            // 従来の動作（nullは除外）
+                            if (child) {
+                                result.push(child);
+                            }
                         }
                     }
-                    if(result.length === 0) result = null;
+                    
+                    if (preserveIndexes) {
+                        // 全てがnullの場合のみresult自体をnullにする
+                        var hasValidChild = false;
+                        for (var j = 0; j < result.length; j++) {
+                            if (result[j] !== null) {
+                                hasValidChild = true;
+                                break;
+                            }
+                        }
+                        if (!hasValidChild) result = null;
+                    } else {
+                        // 従来の動作
+                        if(result.length === 0) result = null;
+                    }
                     break;
                 case PropertyType.NAMED_GROUP:
                     result = {};

@@ -3,6 +3,8 @@
 #include "ofxAELayerSource.h"
 #include "ofxAEProperty.h"
 #include "ofxAERenderContext.h"
+#include <variant>
+#include <memory>
 
 namespace ofx { namespace ae {
 
@@ -125,40 +127,129 @@ public:
     }
 };
 
-// ShapeItem with all properties embedded
-struct ShapeItemWithProps {
-    ShapeItemType type;
-    std::unique_ptr<EllipseProp> ellipse_prop;
-    std::unique_ptr<RectangleProp> rectangle_prop;
-    std::unique_ptr<FillProp> fill_prop;
-    std::unique_ptr<StrokeProp> stroke_prop;
+// Base class for shape property groups
+class ShapePropertyBase {
+public:
+    virtual ~ShapePropertyBase() = default;
+    virtual bool hasAnimation() const = 0;
+    virtual bool setFrame(int frame) = 0;
+    virtual ShapeItemType getType() const = 0;
+};
+
+// Template wrapper for typed property groups
+template<typename PropType, ShapeItemType TypeEnum>
+class ShapePropertyWrapper : public ShapePropertyBase {
+public:
+    std::unique_ptr<PropType> prop;
     
-    ShapeItemWithProps() : type(SHAPE_UNKNOWN) {}
+    ShapePropertyWrapper() : prop(std::make_unique<PropType>()) {}
+    
+    bool hasAnimation() const override {
+        return prop->hasAnimation();
+    }
+    
+    bool setFrame(int frame) override {
+        return prop->setFrame(frame);
+    }
+    
+    ShapeItemType getType() const override {
+        return TypeEnum;
+    }
+    
+    PropType* operator->() { return prop.get(); }
+    const PropType* operator->() const { return prop.get(); }
+    PropType& operator*() { return *prop; }
+    const PropType& operator*() const { return *prop; }
+};
+
+// Convenience aliases for typed wrappers
+using EllipsePropertyWrapper = ShapePropertyWrapper<EllipseProp, SHAPE_ELLIPSE>;
+using RectanglePropertyWrapper = ShapePropertyWrapper<RectangleProp, SHAPE_RECTANGLE>;
+using FillPropertyWrapper = ShapePropertyWrapper<FillProp, SHAPE_FILL>;
+using StrokePropertyWrapper = ShapePropertyWrapper<StrokeProp, SHAPE_STROKE>;
+
+// Variant-based ShapeItem with properties
+struct ShapeItemWithProps {
+    using PropertyVariant = std::variant<
+        std::monostate,  // For SHAPE_UNKNOWN
+        EllipsePropertyWrapper,
+        RectanglePropertyWrapper,
+        FillPropertyWrapper,
+        StrokePropertyWrapper
+    >;
+    
+    PropertyVariant property;
+    
+    ShapeItemWithProps() : property(std::monostate{}) {}
+    
+    // Get the shape type
+    ShapeItemType getType() const {
+        return std::visit([](const auto& prop) -> ShapeItemType {
+            using T = std::decay_t<decltype(prop)>;
+            if constexpr (std::is_same_v<T, std::monostate>) {
+                return SHAPE_UNKNOWN;
+            } else {
+                return prop.getType();
+            }
+        }, property);
+    }
     
     // Extract current values to ShapeItem
     void extractTo(ShapeItem& item) const {
-        item.type = type;
-        if (ellipse_prop) ellipse_prop->extract(item.ellipse);
-        if (rectangle_prop) rectangle_prop->extract(item.rectangle);
-        if (fill_prop) fill_prop->extract(item.fill);
-        if (stroke_prop) stroke_prop->extract(item.stroke);
+        item.type = getType();
+        
+        std::visit([&item](const auto& prop) {
+            using T = std::decay_t<decltype(prop)>;
+            if constexpr (std::is_same_v<T, EllipsePropertyWrapper>) {
+                prop->extract(item.ellipse);
+            } else if constexpr (std::is_same_v<T, RectanglePropertyWrapper>) {
+                prop->extract(item.rectangle);
+            } else if constexpr (std::is_same_v<T, FillPropertyWrapper>) {
+                prop->extract(item.fill);
+            } else if constexpr (std::is_same_v<T, StrokePropertyWrapper>) {
+                prop->extract(item.stroke);
+            }
+            // std::monostate case - do nothing
+        }, property);
     }
     
     bool hasAnimation() const {
-        if (ellipse_prop && ellipse_prop->hasAnimation()) return true;
-        if (rectangle_prop && rectangle_prop->hasAnimation()) return true;
-        if (fill_prop && fill_prop->hasAnimation()) return true;
-        if (stroke_prop && stroke_prop->hasAnimation()) return true;
-        return false;
+        return std::visit([](const auto& prop) -> bool {
+            using T = std::decay_t<decltype(prop)>;
+            if constexpr (std::is_same_v<T, std::monostate>) {
+                return false;
+            } else {
+                return prop.hasAnimation();
+            }
+        }, property);
     }
     
     bool setFrame(int frame) {
-        bool changed = false;
-        if (ellipse_prop) changed |= ellipse_prop->setFrame(frame);
-        if (rectangle_prop) changed |= rectangle_prop->setFrame(frame);
-        if (fill_prop) changed |= fill_prop->setFrame(frame);
-        if (stroke_prop) changed |= stroke_prop->setFrame(frame);
-        return changed;
+        return std::visit([frame](auto& prop) -> bool {
+            using T = std::decay_t<decltype(prop)>;
+            if constexpr (std::is_same_v<T, std::monostate>) {
+                return false;
+            } else {
+                return prop.setFrame(frame);
+            }
+        }, property);
+    }
+    
+    // Type-safe accessors
+    template<typename T>
+    T* get() {
+        return std::get_if<T>(&property);
+    }
+    
+    template<typename T>
+    const T* get() const {
+        return std::get_if<T>(&property);
+    }
+    
+    // Check if holding specific type
+    template<typename T>
+    bool holds() const {
+        return std::holds_alternative<T>(property);
     }
 };
 
@@ -176,30 +267,41 @@ public:
     
 protected:
     bool setupElement(ShapeItemWithProps &element, const ofJson &json, const ofJson &keyframes) override {
-        element.type = detectItemType(json);
-        
-        switch (element.type) {
-            case SHAPE_ELLIPSE:
-                element.ellipse_prop = std::make_unique<EllipseProp>();
-                element.ellipse_prop->setup(json, keyframes);
+        ShapeItemType type = detectItemType(json);
+		auto data = json.begin().value();
+		auto keyframe = keyframes.is_null() || keyframes.empty() ? ofJson{} : keyframes.begin().value();
+
+        switch (type) {
+            case SHAPE_ELLIPSE: {
+                auto wrapper = EllipsePropertyWrapper{};
+                wrapper->setup(data, keyframe);
+                element.property = std::move(wrapper);
                 break;
+            }
                 
-            case SHAPE_RECTANGLE:
-                element.rectangle_prop = std::make_unique<RectangleProp>();
-                element.rectangle_prop->setup(json, keyframes);
+            case SHAPE_RECTANGLE: {
+                auto wrapper = RectanglePropertyWrapper{};
+                wrapper->setup(data, keyframe);
+                element.property = std::move(wrapper);
                 break;
+            }
                 
-            case SHAPE_FILL:
-                element.fill_prop = std::make_unique<FillProp>();
-                element.fill_prop->setup(json, keyframes);
+            case SHAPE_FILL: {
+                auto wrapper = FillPropertyWrapper{};
+                wrapper->setup(data, keyframe);
+                element.property = std::move(wrapper);
                 break;
+            }
                 
-            case SHAPE_STROKE:
-                element.stroke_prop = std::make_unique<StrokeProp>();
-                element.stroke_prop->setup(json, keyframes);
+            case SHAPE_STROKE: {
+                auto wrapper = StrokePropertyWrapper{};
+                wrapper->setup(data, keyframe);
+                element.property = std::move(wrapper);
                 break;
+            }
                 
             default:
+                element.property = std::monostate{};
                 return false; // Skip unknown types
         }
         
@@ -216,9 +318,9 @@ protected:
     
 private:
     ShapeItemType detectItemType(const ofJson& item) const {
-        if (!item.contains("type")) return SHAPE_UNKNOWN;
+		if(!item.is_object() || item.empty()) return SHAPE_UNKNOWN;
         
-        std::string type = item["type"].get<std::string>();
+        std::string type = item.begin().key();
         if (type == "ellipse") return SHAPE_ELLIPSE;
         if (type == "rectangle") return SHAPE_RECTANGLE;
         if (type == "fill") return SHAPE_FILL;
@@ -240,7 +342,7 @@ public:
     bool setup(const ofJson &json) override;
     void update() override;
     void draw(float x, float y, float w, float h) const override;
-    void setFrame(int frame) override;
+    bool setFrame(int frame) override;
     
     SourceType getSourceType() const override { return SHAPE; }
     float getWidth() const override;
