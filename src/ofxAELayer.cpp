@@ -49,14 +49,17 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 			}
 		}
 	}
-//	else if(json.contains("shape")) {
-//		auto source = LayerSourceFactory::createSourceOfType("shape");
-//		setSource(std::move(source));
-//		source_->loadInitialValue(json["shape"]);
-//		if(hasKeyframesFor(json, "shape")) {
-//			source_->loadAnimation(json["keyframes"]["shape"]);
-//		}
-//	}
+	else if(json.contains("shape")) {
+		auto source = LayerSource::createSourceOfType("shape");
+		if (source) {
+			// Setup the shape source with the complete JSON data
+			if (source->setup(json)) {
+				setSource(std::move(source));
+			} else {
+				ofLogError("Layer") << "Failed to setup shape source for layer: " << name_;
+			}
+		}
+	}
 
 	current_frame_ = -1;
     return true;

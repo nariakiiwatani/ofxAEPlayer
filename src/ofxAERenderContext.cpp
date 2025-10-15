@@ -45,6 +45,16 @@ void RenderContext::setColorRGB(ofFloatColor color)
 	ofSetColor(ctx.color);
 }
 
+void RenderContext::mulColorRGBA(ofFloatColor color)
+{
+	auto &ctx = getTop();
+	ctx.color.r *= color.r;
+	ctx.color.g *= color.g;
+	ctx.color.b *= color.b;
+	ctx.color.a *= color.a;
+	ofSetColor(ctx.color);
+}
+
 void RenderContext::setBlendMode(BlendMode mode)
 {
 	auto &ctx = getTop();

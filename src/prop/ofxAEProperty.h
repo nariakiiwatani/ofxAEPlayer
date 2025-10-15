@@ -13,7 +13,7 @@ class PropertyBase
 public:
 	virtual bool hasAnimation() const { return false; }
 	virtual bool setFrame(int frame) { return false; }
-	virtual void setup(const ofJson &base, const ofJson &keyframes) {}
+	virtual void setup(const ofJson &base, const ofJson &keyframes={}) {}
 };
 
 template<typename T>
@@ -246,6 +246,62 @@ public:
 		}
 		return ret;
 	}
+};
+
+template<typename T>
+class PropertyArray : public PropertyBase
+{
+public:
+	using value_type = T;
+	using container_type = std::vector<T>;
+	
+	void setup(const ofJson &base, const ofJson &keyframes) override {
+		items_.clear();
+		
+		if (base.is_array()) {
+			for (const auto &item : base) {
+				T element;
+				if (setupElement(element, item, keyframes)) {
+					items_.push_back(std::move(element));
+				}
+			}
+		}
+	}
+	
+	bool hasAnimation() const override {
+		for (const auto &item : items_) {
+			if (hasElementAnimation(item)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	bool setFrame(int frame) override {
+		bool changed = false;
+		for (auto &item : items_) {
+			changed |= setElementFrame(item, frame);
+		}
+		return changed;
+	}
+	
+	const container_type& getItems() const { return items_; }
+	container_type& getItems() { return items_; }
+	
+	size_t size() const { return items_.size(); }
+	bool empty() const { return items_.empty(); }
+	
+	const T& operator[](size_t index) const { return items_[index]; }
+	T& operator[](size_t index) { return items_[index]; }
+	
+protected:
+	// Override these methods in derived classes for specific element types
+	virtual bool setupElement(T &element, const ofJson &json, const ofJson &keyframes) = 0;
+	virtual bool hasElementAnimation(const T &element) const = 0;
+	virtual bool setElementFrame(T &element, int frame) = 0;
+	
+private:
+	container_type items_;
 };
 
 

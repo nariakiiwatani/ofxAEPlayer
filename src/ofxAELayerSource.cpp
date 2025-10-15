@@ -1,6 +1,7 @@
 #include "ofxAELayerSource.h"
 #include "ofxAESolidSource.h"
 #include "ofxAECompositionSource.h"
+#include "ofxAEShapeSource.h"
 #include "ofLog.h"
 
 namespace ofx { namespace ae {
@@ -10,6 +11,7 @@ std::unique_ptr<LayerSource> LayerSource::createSourceOfType(SourceType type)
 	switch(type) {
 		case SOLID: return std::make_unique<SolidSource>();
 		case COMPOSITION: return std::make_unique<CompositionSource>();
+		case SHAPE: return std::make_unique<ShapeSource>();
 		default:
 			return nullptr;
 //		case SHAPE: return "shape";

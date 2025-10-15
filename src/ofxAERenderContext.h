@@ -35,6 +35,7 @@ struct RenderContext {
 	static void pop();
 	static void setOpacity(float opacity);
 	static void setColorRGB(ofFloatColor color);
+	static void mulColorRGBA(ofFloatColor color);
 	static void setBlendMode(BlendMode mode);
 };
 
