@@ -31,8 +31,6 @@ enum class BlendMode {
  * future extensions without breaking the LayerSource interface.
  */
 struct RenderContext {
-	ofFloatColor color{1,1,1,1};
-	BlendMode blendMode{BlendMode::NORMAL};
 	static void push();
 	static void pop();
 	static void setOpacity(float opacity);

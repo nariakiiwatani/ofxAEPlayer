@@ -2,11 +2,15 @@
 #include "ofLog.h"
 
 namespace ofx { namespace ae {
-static std::stack<RenderContext> stack;
+struct Style {
+	ofFloatColor color{1,1,1,1};
+	BlendMode blendMode{BlendMode::NORMAL};
+};
+static std::stack<Style> stack;
 namespace {
-RenderContext& getTop()
+Style& getTop()
 {
-	static RenderContext root;
+	static Style root;
 	return stack.empty() ? root : stack.top();
 }
 }
