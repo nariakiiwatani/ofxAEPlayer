@@ -23,6 +23,7 @@ public:
 	using value_type = T;
 	void setup(const ofJson &base, const ofJson &keyframes) override {
 		setBaseValue(parse(base));
+		cache_ = base_; // Initialize cache with base value
 		keyframes_.clear();
 		if(keyframes.is_array()) {
 			for(int i = 0; i < keyframes.size(); ++i) {
@@ -175,7 +176,16 @@ public:
 	void setup(const ofJson &base, const ofJson &keyframes) override {
 		for(auto &&[k,v] : props_) {
 			auto p = nlohmann::json::json_pointer(k);
-			v->setup(base.value(p, ofJson{}), keyframes.is_null() ? ofJson{} : keyframes.value(p, ofJson{}));
+			auto propValue = base.value(p, ofJson{});
+			auto keyframeValue = keyframes.is_null() ? ofJson{} : keyframes.value(p, ofJson{});
+			
+			// Debug logging for property extraction
+			ofLogNotice("PropertyGroup") << "Setting up property: " << k;
+			ofLogNotice("PropertyGroup") << "JSON pointer: " << p.to_string();
+			ofLogNotice("PropertyGroup") << "Property value: " << propValue.dump();
+			ofLogNotice("PropertyGroup") << "Keyframe value: " << keyframeValue.dump();
+			
+			v->setup(propValue, keyframeValue);
 		}
 	}
 	bool hasAnimation() const override {
@@ -206,13 +216,25 @@ public:
 class FloatProp : public Property<float>
 {
 public:
-	float parse(const ofJson &json) const override { return json.get<float>(); }
+	float parse(const ofJson &json) const override {
+		return json.is_null() ? 0.0f : json.get<float>();
+	}
+};
+
+class IntProp : public Property<int>
+{
+public:
+	int parse(const ofJson &json) const override {
+		return json.is_null() ? 0 : json.get<int>();
+	}
 };
 
 class PercentProp : public Property<float>
 {
 public:
-	float parse(const ofJson &json) const override { return json.get<float>()/100.f; }
+	float parse(const ofJson &json) const override {
+		return json.is_null() ? 0.0f : json.get<float>()/100.f;
+	}
 };
 
 template<int N, typename T=float>
@@ -221,7 +243,7 @@ class VecProp : public Property<glm::vec<N, T>>
 public:
 	using value_type = glm::vec<N, T>;
 	value_type parse(const ofJson &json) const override {
-		value_type ret;
+		value_type ret{};
 		if(json.is_array()) {
 			for(int i = 0; i < std::min<int>(json.size(), N); ++i) {
 				ret[i] = json[i].get<T>();
@@ -237,7 +259,7 @@ class PercentVecProp : public Property<glm::vec<N, T>>
 public:
 	using value_type = glm::vec<N, T>;
 	value_type parse(const ofJson &json) const override {
-		value_type ret;
+		value_type ret{};
 		if(json.is_array()) {
 			for(int i = 0; i < std::min<int>(json.size(), N); ++i) {
 				ret[i] = json[i].get<T>()/100.f;

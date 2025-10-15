@@ -12,24 +12,50 @@ namespace ofx { namespace ae {
 struct EllipseData {
     glm::vec2 size;
     glm::vec2 position;
+    int direction = 1; // 1 = clockwise, -1 = counterclockwise
 };
 
 struct RectangleData {
     glm::vec2 size;
     glm::vec2 position;
     float roundness;
+    int direction = 1; // 1 = clockwise, -1 = counterclockwise
+};
+
+struct PolygonData {
+    int direction = 1;
+    int type = 1; // 1 = polygon, 2 = star
+    int points = 5;
+    glm::vec2 position;
+    float rotation = 0;
+    float innerRadius = 50;
+    float outerRadius = 100;
+    float innerRoundness = 0;
+    float outerRoundness = 0;
+};
+
+struct GroupData {
+    int blendMode = 1;
+    std::vector<struct ShapeItem> shapes; // Forward declaration handled below
 };
 
 struct FillData {
     glm::vec3 color;
     float opacity;
+    int rule = 1; // Fill rule
+    int blendMode = 1;
+    int compositeOrder = 1;
 };
 
 struct StrokeData {
     glm::vec3 color;
     float opacity;
     float width;
-    // Note: lineCap, lineJoin, miterLimit can be added later
+    int lineCap = 1;
+    int lineJoin = 1;
+    float miterLimit = 4;
+    int blendMode = 1;
+    int compositeOrder = 1;
 };
 
 // Shape item types for array-based structure
@@ -47,9 +73,10 @@ struct ShapeItem {
     ShapeItemType type;
     EllipseData ellipse;
     RectangleData rectangle;
+    PolygonData polygon;
+    GroupData group;
     FillData fill;
     StrokeData stroke;
-    // Note: polygon and group data can be added later
     
     ShapeItem() : type(SHAPE_UNKNOWN) {}
 };
@@ -77,10 +104,12 @@ public:
     EllipseProp() {
         registerProperty<VecProp<2>>("/size");
         registerProperty<VecProp<2>>("/position");
+        registerProperty<IntProp>("/direction");
     }
     void extract(EllipseData &e) const override {
         getProperty<VecProp<2>>("/size")->get(e.size);
         getProperty<VecProp<2>>("/position")->get(e.position);
+        getProperty<IntProp>("/direction")->get(e.direction);
     }
 };
 
@@ -91,11 +120,53 @@ public:
         registerProperty<VecProp<2>>("/size");
         registerProperty<VecProp<2>>("/position");
         registerProperty<FloatProp>("/roundness");
+        registerProperty<IntProp>("/direction");
     }
     void extract(RectangleData &r) const override {
         getProperty<VecProp<2>>("/size")->get(r.size);
         getProperty<VecProp<2>>("/position")->get(r.position);
         getProperty<FloatProp>("/roundness")->get(r.roundness);
+        getProperty<IntProp>("/direction")->get(r.direction);
+    }
+};
+
+class PolygonProp : public PropertyGroup_<PolygonData>
+{
+public:
+    PolygonProp() {
+        registerProperty<IntProp>("/direction");
+        registerProperty<IntProp>("/type");
+        registerProperty<IntProp>("/points");
+        registerProperty<VecProp<2>>("/position");
+        registerProperty<FloatProp>("/rotation");
+        registerProperty<FloatProp>("/innerRadius");
+        registerProperty<FloatProp>("/outerRadius");
+        registerProperty<FloatProp>("/innerRoundness");
+        registerProperty<FloatProp>("/outerRoundness");
+    }
+    void extract(PolygonData &p) const override {
+        getProperty<IntProp>("/direction")->get(p.direction);
+        getProperty<IntProp>("/type")->get(p.type);
+        getProperty<IntProp>("/points")->get(p.points);
+        getProperty<VecProp<2>>("/position")->get(p.position);
+        getProperty<FloatProp>("/rotation")->get(p.rotation);
+        getProperty<FloatProp>("/innerRadius")->get(p.innerRadius);
+        getProperty<FloatProp>("/outerRadius")->get(p.outerRadius);
+        getProperty<FloatProp>("/innerRoundness")->get(p.innerRoundness);
+        getProperty<FloatProp>("/outerRoundness")->get(p.outerRoundness);
+    }
+};
+
+class GroupProp : public PropertyGroup_<GroupData>
+{
+public:
+    GroupProp() {
+        registerProperty<IntProp>("/blendMode");
+        // Note: nested shapes will be handled differently via the shape array
+    }
+    void extract(GroupData &g) const override {
+        getProperty<IntProp>("/blendMode")->get(g.blendMode);
+        // Note: nested shapes are handled in ShapeProp
     }
 };
 
@@ -105,10 +176,16 @@ public:
     FillProp() {
         registerProperty<VecProp<3>>("/color");
         registerProperty<PercentProp>("/opacity");
+        registerProperty<IntProp>("/rule");
+        registerProperty<IntProp>("/blendMode");
+        registerProperty<IntProp>("/compositeOrder");
     }
     void extract(FillData &f) const override {
         getProperty<VecProp<3>>("/color")->get(f.color);
         getProperty<PercentProp>("/opacity")->get(f.opacity);
+        getProperty<IntProp>("/rule")->get(f.rule);
+        getProperty<IntProp>("/blendMode")->get(f.blendMode);
+        getProperty<IntProp>("/compositeOrder")->get(f.compositeOrder);
     }
 };
 
@@ -119,11 +196,21 @@ public:
         registerProperty<VecProp<3>>("/color");
         registerProperty<PercentProp>("/opacity");
         registerProperty<FloatProp>("/width");
+        registerProperty<IntProp>("/lineCap");
+        registerProperty<IntProp>("/lineJoin");
+        registerProperty<FloatProp>("/miterLimit");
+        registerProperty<IntProp>("/blendMode");
+        registerProperty<IntProp>("/compositeOrder");
     }
     void extract(StrokeData &s) const override {
         getProperty<VecProp<3>>("/color")->get(s.color);
         getProperty<PercentProp>("/opacity")->get(s.opacity);
         getProperty<FloatProp>("/width")->get(s.width);
+        getProperty<IntProp>("/lineCap")->get(s.lineCap);
+        getProperty<IntProp>("/lineJoin")->get(s.lineJoin);
+        getProperty<FloatProp>("/miterLimit")->get(s.miterLimit);
+        getProperty<IntProp>("/blendMode")->get(s.blendMode);
+        getProperty<IntProp>("/compositeOrder")->get(s.compositeOrder);
     }
 };
 
@@ -165,6 +252,8 @@ public:
 // Convenience aliases for typed wrappers
 using EllipsePropertyWrapper = ShapePropertyWrapper<EllipseProp, SHAPE_ELLIPSE>;
 using RectanglePropertyWrapper = ShapePropertyWrapper<RectangleProp, SHAPE_RECTANGLE>;
+using PolygonPropertyWrapper = ShapePropertyWrapper<PolygonProp, SHAPE_POLYGON>;
+using GroupPropertyWrapper = ShapePropertyWrapper<GroupProp, SHAPE_GROUP>;
 using FillPropertyWrapper = ShapePropertyWrapper<FillProp, SHAPE_FILL>;
 using StrokePropertyWrapper = ShapePropertyWrapper<StrokeProp, SHAPE_STROKE>;
 
@@ -174,6 +263,8 @@ struct ShapeItemWithProps {
         std::monostate,  // For SHAPE_UNKNOWN
         EllipsePropertyWrapper,
         RectanglePropertyWrapper,
+        PolygonPropertyWrapper,
+        GroupPropertyWrapper,
         FillPropertyWrapper,
         StrokePropertyWrapper
     >;
@@ -204,6 +295,10 @@ struct ShapeItemWithProps {
                 prop->extract(item.ellipse);
             } else if constexpr (std::is_same_v<T, RectanglePropertyWrapper>) {
                 prop->extract(item.rectangle);
+            } else if constexpr (std::is_same_v<T, PolygonPropertyWrapper>) {
+                prop->extract(item.polygon);
+            } else if constexpr (std::is_same_v<T, GroupPropertyWrapper>) {
+                prop->extract(item.group);
             } else if constexpr (std::is_same_v<T, FillPropertyWrapper>) {
                 prop->extract(item.fill);
             } else if constexpr (std::is_same_v<T, StrokePropertyWrapper>) {
@@ -268,8 +363,13 @@ public:
 protected:
     bool setupElement(ShapeItemWithProps &element, const ofJson &json, const ofJson &keyframes) override {
         ShapeItemType type = detectItemType(json);
-		auto data = json.begin().value();
-		auto keyframe = keyframes.is_null() || keyframes.empty() ? ofJson{} : keyframes.begin().value();
+ auto data = json.begin().value();
+ auto keyframe = keyframes.is_null() || keyframes.empty() ? ofJson{} : keyframes.begin().value();
+
+        // Debug logging for JSON structure
+        ofLogNotice("ShapeProp") << "Setting up element type: " << type;
+        ofLogNotice("ShapeProp") << "JSON data: " << data.dump();
+        ofLogNotice("ShapeProp") << "Keyframes: " << keyframe.dump();
 
         switch (type) {
             case SHAPE_ELLIPSE: {
@@ -281,6 +381,20 @@ protected:
                 
             case SHAPE_RECTANGLE: {
                 auto wrapper = RectanglePropertyWrapper{};
+                wrapper->setup(data, keyframe);
+                element.property = std::move(wrapper);
+                break;
+            }
+                
+            case SHAPE_POLYGON: {
+                auto wrapper = PolygonPropertyWrapper{};
+                wrapper->setup(data, keyframe);
+                element.property = std::move(wrapper);
+                break;
+            }
+                
+            case SHAPE_GROUP: {
+                auto wrapper = GroupPropertyWrapper{};
                 wrapper->setup(data, keyframe);
                 element.property = std::move(wrapper);
                 break;
@@ -358,6 +472,8 @@ private:
     void renderShapeItem(const ShapeItem& item, float x, float y, float w, float h) const;
     void renderEllipse(const EllipseData& ellipse, float x, float y, float w, float h) const;
     void renderRectangle(const RectangleData& rectangle, float x, float y, float w, float h) const;
+    void renderPolygon(const PolygonData& polygon, float x, float y, float w, float h) const;
+    void renderGroup(const GroupData& group, float x, float y, float w, float h) const;
     void applyFill(const FillData& fill) const;
     void applyStroke(const StrokeData& stroke) const;
     
