@@ -1409,7 +1409,7 @@ var PROPERTY_MAPPING_CONFIG = {
                     if(result.keys().length === 0) result = null;
                     break;
             }
-            if(!result) {
+            if(result === null) {
                 debugLog("extractPropertiesRecursive", "No result extracted for property: " + property.matchName, null, "verbose");
                 return null;
             }

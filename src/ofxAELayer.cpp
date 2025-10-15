@@ -85,6 +85,7 @@ bool Layer::setFrame(int frame)
 		TransformNode::setAnchorPoint(t.anchor);
 		setTranslation(t.position);
 		setScale(t.scale);
+		setRotationZ(t.rotateZ);
 		opacity_ = t.opacity;
 		ret |= true;
 	}
@@ -95,9 +96,12 @@ bool Layer::setFrame(int frame)
 void Layer::draw(float x, float y, float w, float h) const
 {
 	pushMatrix();
+	RenderContext::push();
+	RenderContext::setOpacity(opacity_);
 	if(source_) {
 		source_->draw(x,y,w,h);
 	}
+	RenderContext::pop();
 	popMatrix();
 }
 
