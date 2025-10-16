@@ -1604,7 +1604,7 @@ var PROPERTY_MAPPING_CONFIG = {
                     var ext = extMatch ? extMatch[1].toLowerCase() : "";
                     var sequenceFolder = new Folder(footageFolder.fsName + "/" + layer.source.name);
                     if (!sequenceFolder.exists) sequenceFolder.create();
-                    var sequenceFiles = sourclayer.source.mainSource.filee.parent.getFiles(function(f){
+                    var sequenceFiles = layer.source.mainSource.file.parent.getFiles(function(f){
                         return f instanceof File && ((""+f.name).toLowerCase().indexOf(ext)>=0);
                     });
                     for (var s=0; s<sequenceFiles.length; s++){

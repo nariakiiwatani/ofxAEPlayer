@@ -87,10 +87,8 @@ void Composition::draw(float x, float y, float w, float h) const {
 	ofTranslate(x, y);
 	ofScale(w / info_.width, h / info_.height);
 	
-	for (const auto &layer : layers_) {
-		if (layer) {
-			layer->draw();
-		}
+	for(auto it = layers_.rbegin(); it != layers_.rend(); ++it) {
+		(*it)->draw();
 	}
 	
 	ofPopMatrix();
