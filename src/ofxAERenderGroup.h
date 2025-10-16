@@ -21,12 +21,12 @@ struct RenderItem {
     bool isFill;               // true=Fill, false=Stroke
     
     // Fill固有プロパティ
-    glm::vec3 fillColor;
+    ofFloatColor fillColor;
     float fillOpacity;
     int fillRule;
     
     // Stroke固有プロパティ
-    glm::vec3 strokeColor;
+	ofFloatColor strokeColor;
     float strokeOpacity;
     float strokeWidth;
     int lineCap;

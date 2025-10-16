@@ -84,7 +84,11 @@ bool Layer::setFrame(int frame)
 	bool ret = false;
 	if(transform_.setFrame(frame)) {
 		TransformData t;
-		transform_.extract(t);
+		if (!transform_.tryExtract(t)) {
+			// Log warning and use default values
+			ofLogWarning("PropertyExtraction") << "Failed to extract TransformData, using defaults";
+			t = TransformData::getDefault();
+		}
 		TransformNode::setAnchorPoint(t.anchor);
 		setTranslation(t.position);
 		setScale(t.scale);

@@ -2,6 +2,9 @@
 
 #include <vector>
 #include <memory>
+#include <typeindex>
+#include <unordered_map>
+#include <functional>
 #include "ofJson.h"
 #include "ofxAEKeyframe.h"
 #include "ofGraphicsBaseTypes.h"
@@ -14,6 +17,24 @@ public:
 	virtual bool hasAnimation() const { return false; }
 	virtual bool setFrame(int frame) { return false; }
 	virtual void setup(const ofJson &base, const ofJson &keyframes={}) {}
+
+	template<typename T>
+	bool tryExtract(T& out) const {
+		auto it = extractors_.find(std::type_index(typeid(T)));
+		if (it == extractors_.end()) return false;
+		return it->second(reinterpret_cast<void*>(&out));
+	}
+protected:
+	using ExtractFn = std::function<bool(void*)>;
+	template<typename T, typename Fn>
+	void registerExtractor(Fn&& fn) {
+		extractors_[std::type_index(typeid(T))] =
+			[fn = std::forward<Fn>(fn)](void* dst) -> bool {
+				return fn(*reinterpret_cast<T*>(dst));
+			};
+	}
+private:
+	std::unordered_map<std::type_index, ExtractFn> extractors_;
 };
 
 template<typename T>
@@ -21,6 +42,14 @@ class Property : public PropertyBase
 {
 public:
 	using value_type = T;
+
+	Property() {
+		registerExtractor<T>([this](T &t){
+			t = get();
+			return true;
+		});
+	}
+
 	void setup(const ofJson &base, const ofJson &keyframes) override {
 		setBaseValue(parse(base));
 		cache_ = base_; // Initialize cache with base value
@@ -122,206 +151,211 @@ public:
 		return ret;
 	}
 	void set(const T &t) { cache_ = t; }
-	virtual void get(T &t) const { t = cache_; }
+	const T& get() const { return cache_; }
 	bool hasAnimation() const override { return !keyframes_.empty(); }
 	
 	bool setFrame(int frame) override {
 		if (keyframes_.empty()) {
-			// No animation, use base value
 			cache_ = base_;
 			return false;
 		}
-		
-		// Use the new keyframe lookup utility from ofxAEKeyframe.h
 		auto pair = ofx::ae::util::findKeyframePair(keyframes_, frame);
-		
 		if (pair.keyframe_a == nullptr || pair.keyframe_b == nullptr) {
-			// Fallback to base value if lookup failed
 			cache_ = base_;
 			return false;
 		}
-		
-		// Use enhanced interpolation that considers both spatial and temporal modes
 		cache_ = ofx::ae::util::interpolateKeyframe(*pair.keyframe_a, *pair.keyframe_b, pair.ratio);
-		
 		return true;
 	}
-
-private:
-	T base_, cache_;
-	std::map<int, ofxAEKeyframe<T>> keyframes_;
-};
-
-class PropertyGroup : public PropertyBase
-{
-public:
-	template<typename T>
-	T* registerProperty(std::string key) {
-		auto result = props_.insert(std::make_pair(key, std::make_unique<T>()));
-		return static_cast<T*>(result.first->second.get());
-	}
-
-	template<typename T>
-	T* getProperty(std::string key) {
-		auto found = props_.find(key);
-		if(found == end(props_)) return nullptr;
-		return static_cast<T*>(found->second.get());
-	}
-	template<typename T>
-	const T* getProperty(std::string key) const {
-		auto found = props_.find(key);
-		if(found == end(props_)) return nullptr;
-		return static_cast<const T*>(found->second.get());
-	}
-	void setup(const ofJson &base, const ofJson &keyframes) override {
-		for(auto &&[k,v] : props_) {
-			auto p = nlohmann::json::json_pointer(k);
-			auto propValue = base.value(p, ofJson{});
-			auto keyframeValue = keyframes.is_null() ? ofJson{} : keyframes.value(p, ofJson{});
-			v->setup(propValue, keyframeValue);
+	
+	private:
+		T base_, cache_;
+		std::map<int, ofxAEKeyframe<T>> keyframes_;
+	};
+	
+	class PropertyGroup : public PropertyBase
+	{
+	public:
+		template<typename T>
+		T* registerProperty(std::string key) {
+			auto result = props_.insert(std::make_pair(key, std::make_unique<T>()));
+			return static_cast<T*>(result.first->second.get());
 		}
-	}
-	bool hasAnimation() const override {
-		for(auto &&[_,p] : props_) {
-			if(p->hasAnimation()) return true;
+	
+		template<typename T>
+		T* getProperty(std::string key) {
+			auto found = props_.find(key);
+			if(found == end(props_)) return nullptr;
+			return static_cast<T*>(found->second.get());
 		}
-		return false;
-	}
-	bool setFrame(int frame) override {
-		bool ret = false;
-		for(auto &&[_,p] : props_) {
-			ret |= p->setFrame(frame);
+		template<typename T>
+		const T* getProperty(std::string key) const {
+			auto found = props_.find(key);
+			if(found == end(props_)) return nullptr;
+			return static_cast<const T*>(found->second.get());
 		}
-		return ret;
-	}
-
-private:
-	std::map<std::string, std::unique_ptr<PropertyBase>> props_;
-};
-
-template<typename T>
-class PropertyGroup_ : public PropertyGroup
-{
-public:
-	virtual void extract(T &t) const=0;
-};
-
-
-class PropertyArray : public PropertyBase
-{
-public:
-	void clear() { properties_.clear(); }
-	template<typename T>
-	T* addProperty() {
-		auto p = std::make_unique<T>();
-		T* ret = p.get();
-		addProperty(std::move(p));
-		return ret;
-	}
-
-	void addProperty(std::unique_ptr<PropertyBase> property) {
-		properties_.push_back(std::move(property));
-	}
-
-	template<typename T=PropertyBase>
-	T* getProperty(size_t index) {
-		if (index >= properties_.size()) return nullptr;
-		return static_cast<T*>(properties_[index].get());
-	}
-
-	template<typename T=PropertyBase>
-	const T* getProperty(size_t index) const {
-		if (index >= properties_.size()) return nullptr;
-		return static_cast<const T*>(properties_[index].get());
-	}
-
-	bool hasAnimation() const override {
-		for (const auto &p : properties_) {
-			if (p && p->hasAnimation()) {
-				return true;
+		void setup(const ofJson &base, const ofJson &keyframes) override {
+			for(auto &&[k,v] : props_) {
+				auto p = nlohmann::json::json_pointer(k);
+				auto propValue = base.value(p, ofJson{});
+				auto keyframeValue = keyframes.is_null() ? ofJson{} : keyframes.value(p, ofJson{});
+				v->setup(propValue, keyframeValue);
 			}
 		}
-		return false;
-	}
-
-	bool setFrame(int frame) override {
-		bool changed = false;
-		for (auto &p : properties_) {
-			if (p) {
-				changed |= p->setFrame(frame);
+		bool hasAnimation() const override {
+			for(auto &&[_,p] : props_) {
+				if(p->hasAnimation()) return true;
 			}
+			return false;
 		}
-		return changed;
-	}
-
-protected:
-	std::vector<std::unique_ptr<PropertyBase>> properties_;
-};
-
-template<typename T>
-class PropertyArray_ : public PropertyArray
-{
-public:
-	virtual void extract(T &t) const=0;
-};
-
-
-
-class FloatProp : public Property<float>
-{
-public:
-	float parse(const ofJson &json) const override {
-		return json.is_null() ? 0.0f : json.get<float>();
-	}
-};
-
-class IntProp : public Property<int>
-{
-public:
-	int parse(const ofJson &json) const override {
-		return json.is_null() ? 0 : json.get<int>();
-	}
-};
-
-class PercentProp : public Property<float>
-{
-public:
-	float parse(const ofJson &json) const override {
-		return json.is_null() ? 0.0f : json.get<float>()/100.f;
-	}
-};
-
-template<int N, typename T=float>
-class VecProp : public Property<glm::vec<N, T>>
-{
-public:
-	using value_type = glm::vec<N, T>;
-	value_type parse(const ofJson &json) const override {
-		value_type ret{};
-		if(json.is_array()) {
-			for(int i = 0; i < std::min<int>(json.size(), N); ++i) {
-				ret[i] = json[i].get<T>();
+		bool setFrame(int frame) override {
+			bool ret = false;
+			for(auto &&[_,p] : props_) {
+				ret |= p->setFrame(frame);
 			}
+			return ret;
 		}
-		return ret;
-	}
-};
-
-template<int N, typename T=float>
-class PercentVecProp : public Property<glm::vec<N, T>>
-{
-public:
-	using value_type = glm::vec<N, T>;
-	value_type parse(const ofJson &json) const override {
-		value_type ret{};
-		if(json.is_array()) {
-			for(int i = 0; i < std::min<int>(json.size(), N); ++i) {
-				ret[i] = json[i].get<T>()/100.f;
+	
+	private:
+		std::map<std::string, std::unique_ptr<PropertyBase>> props_;
+	};
+	
+	class PropertyArray : public PropertyBase
+	{
+	public:
+		void clear() { properties_.clear(); }
+		template<typename T>
+		T* addProperty() {
+			auto p = std::make_unique<T>();
+			T* ret = p.get();
+			addProperty(std::move(p));
+			return ret;
+		}
+	
+		void addProperty(std::unique_ptr<PropertyBase> property) {
+			properties_.push_back(std::move(property));
+		}
+	
+		template<typename T=PropertyBase>
+		T* getProperty(size_t index) {
+			if (index >= properties_.size()) return nullptr;
+			return static_cast<T*>(properties_[index].get());
+		}
+	
+		template<typename T=PropertyBase>
+		const T* getProperty(size_t index) const {
+			if (index >= properties_.size()) return nullptr;
+			return static_cast<const T*>(properties_[index].get());
+		}
+	
+		bool hasAnimation() const override {
+			for (const auto &p : properties_) {
+				if (p && p->hasAnimation()) {
+					return true;
+				}
 			}
+			return false;
 		}
-		return ret;
-	}
-};
+	
+		bool setFrame(int frame) override {
+			bool changed = false;
+			for (auto &p : properties_) {
+				if (p) {
+					changed |= p->setFrame(frame);
+				}
+			}
+			return changed;
+		}
+	
+	protected:
+		std::vector<std::unique_ptr<PropertyBase>> properties_;
+	};
+	
+	class FloatProp : public Property<float>
+	{
+	public:
+		FloatProp() : Property<float>() {}
+		
+		float parse(const ofJson &json) const override {
+			return json.is_null() ? 0.0f : json.get<float>();
+		}
+	};
+	
+	class IntProp : public Property<int>
+	{
+	public:
+		IntProp() : Property<int>() {}
+		
+		int parse(const ofJson &json) const override {
+			return json.is_null() ? 0 : json.get<int>();
+		}
+	};
+	
+	class PercentProp : public FloatProp
+	{
+	public:
+		PercentProp() : FloatProp() {}
+		
+		float parse(const ofJson &json) const override {
+			return json.is_null() ? 0.0f : json.get<float>()/100.f;
+		}
+	};
+	
+	template<int N, typename T=float>
+	class VecProp : public Property<glm::vec<N, T>>
+	{
+	public:
+		using value_type = glm::vec<N, T>;
+		
+		VecProp() : Property<glm::vec<N, T>>() {}
+		
+		value_type parse(const ofJson &json) const override {
+			value_type ret{};
+			if(json.is_array()) {
+				for(int i = 0; i < std::min<int>(json.size(), N); ++i) {
+					ret[i] = json[i].get<T>();
+				}
+			}
+			return ret;
+		}
+	};
+	
+	template<int N, typename T=float>
+	class PercentVecProp : public Property<glm::vec<N, T>>
+	{
+	public:
+		using value_type = glm::vec<N, T>;
+		
+		PercentVecProp() : Property<glm::vec<N, T>>() {}
+		
+		value_type parse(const ofJson &json) const override {
+			value_type ret{};
+			if(json.is_array()) {
+				for(int i = 0; i < std::min<int>(json.size(), N); ++i) {
+					ret[i] = json[i].get<T>()/100.f;
+				}
+			}
+			return ret;
+		}
+	};
+
+	class ColorProp : public Property<ofFloatColor>
+	{
+	public:
+		ColorProp() : Property<ofFloatColor>() {}
+		
+		ofFloatColor parse(const ofJson &json) const override {
+			ofFloatColor ret(1.0f, 1.0f, 1.0f, 1.0f);
+			if(json.is_array() && json.size() >= 3) {
+				float r = json[0].get<float>();
+				float g = json[1].get<float>();
+				float b = json[2].get<float>();
+				float a = json.size() >= 4 ? json[3].get<float>() : 1.0f;
+				ret.set(r, g, b, a);
+			}
+			return ret;
+		}
+	};
 
 
 }} // namespace ofx::ae

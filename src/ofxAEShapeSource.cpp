@@ -39,7 +39,11 @@ void ShapeSource::draw(float x, float y, float w, float h) const {
     try {
         // ShapeDataを取得
         ShapeData data;
-        shape_props_.extract(data);
+        if (!shape_props_.tryExtract(data)) {
+            // Log warning and use default values
+            ofLogWarning("PropertyExtraction") << "Failed to extract ShapeData in draw(), using defaults";
+            data = ShapeDataHelper::getDefault();
+        }
         
         // RenderGroupProcessorでcompositeOrder順にRenderItemsを生成
         auto renderItems = renderProcessor_->processRenderOrder(data, x, y, w, h);
@@ -57,7 +61,11 @@ void ShapeSource::draw(float x, float y, float w, float h) const {
 float ShapeSource::getWidth() const {
     // ShapeDataからサイズを計算
     ShapeData data;
-    shape_props_.extract(data);
+    if (!shape_props_.tryExtract(data)) {
+        // Log warning and use default values
+        ofLogWarning("PropertyExtraction") << "Failed to extract ShapeData in getWidth(), using defaults";
+        data = ShapeDataHelper::getDefault();
+    }
     
     float maxWidth = 0.0f;
     for (const auto& shapePtr : data) {
@@ -80,7 +88,11 @@ float ShapeSource::getWidth() const {
 float ShapeSource::getHeight() const {
     // ShapeDataからサイズを計算
     ShapeData data;
-    shape_props_.extract(data);
+    if (!shape_props_.tryExtract(data)) {
+        // Log warning and use default values
+        ofLogWarning("PropertyExtraction") << "Failed to extract ShapeData in getHeight(), using defaults";
+        data = ShapeDataHelper::getDefault();
+    }
     
     float maxHeight = 0.0f;
     for (const auto& shapePtr : data) {
