@@ -6,8 +6,10 @@ namespace ofx { namespace ae {
 
 namespace renderer {
 struct Context : public ShapeVisitor {
-	Context() { push(); }
-	
+	Context(float opacity=1):opacity(opacity) {
+		push();
+	}
+
 	void visit(const EllipseData &ellipse) override {
 		ofPath path = createEllipsePath(ellipse);
 		appendPath(path);
@@ -24,9 +26,12 @@ struct Context : public ShapeVisitor {
 	}
 	
 	void visit(const FillData &fill) override {
+		float alpha = opacity;
 		auto command = [=](const ofPath &path) {
 			auto p = path;
-			p.setFillColor(fill.color);
+			ofFloatColor c = fill.color;
+			c.a = fill.opacity*alpha;
+			p.setFillColor(c);
 			p.setFilled(true);
 			p.setStrokeWidth(0);
 			p.draw();
@@ -40,9 +45,12 @@ struct Context : public ShapeVisitor {
 	}
 	
 	void visit(const StrokeData &stroke) override {
+		float alpha = opacity;
 		auto command = [=](const ofPath &path) {
 			auto p = path;
-			p.setStrokeColor(stroke.color);
+			ofFloatColor c = stroke.color;
+			c.a = stroke.opacity*alpha;
+			p.setStrokeColor(c);
 			p.setStrokeWidth(stroke.width);
 			p.setFilled(false);
 			p.draw();
@@ -86,10 +94,11 @@ private:
 		}
 	};
 	std::stack<Work> work;
-	
+	float opacity;
+
 	void appendPath(const ofPath &p) { work.top().path.append(p); }
 	void push() { work.push(Work()); }
-	void pop() { auto &&w = work.top(); work.pop(); work.top().append(w); }
+	void pop() { auto w = work.top(); work.pop(); work.top().append(w); }
 
 	ofPath& getPath() { return work.top().path; }
 	void appendCommand(std::function<void(const ofPath&)> fn) { auto p = getPath(); appendCommand([p,fn]{fn(p);}); }

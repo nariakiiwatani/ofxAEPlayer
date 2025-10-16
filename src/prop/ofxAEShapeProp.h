@@ -272,23 +272,7 @@ public:
 class GroupProp : public PropertyGroup
 {
 public:
-	GroupProp() {
-		registerProperty<IntProp>("/blendMode");
-		// Note: nested shapes will be handled differently via the shape array
-		
-		registerExtractor<GroupData>([this](GroupData& g) -> bool {
-			bool success = true;
-			
-			if (!getProperty<IntProp>("/blendMode")->tryExtract(g.blendMode)) {
-				ofLogWarning("PropertyExtraction") << "Failed to extract group blendMode, using default";
-				g.blendMode = 1;
-				success = false;
-			}
-			
-			// Note: nested shapes are handled in ShapeProp
-			return success;
-		});
-	}
+	GroupProp();
 };
 
 class FillProp : public PropertyGroup
