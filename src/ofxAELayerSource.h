@@ -21,8 +21,14 @@ public:
         ADJUSTMENT,   // Adjustment layers (effects only)
         TEXT,         // Text layers with typography
         NULL_OBJECT,  // Null objects for hierarchy/parenting
-		UNKNOWN,
-		NUM_TYPES
+        
+        // New media source types
+        STILL,        // Still images via TexturePlayer
+        VIDEO,        // Video files via ofVideoPlayer
+        SEQUENCE,     // Image sequences via SequencePlayer
+        
+ UNKNOWN,
+ NUM_TYPES
     };
 
 	virtual ~LayerSource() = default;
@@ -51,6 +57,9 @@ public:
             case ADJUSTMENT: return "adjustment";
             case TEXT: return "text";
             case NULL_OBJECT: return "null";
+            case STILL: return "still";      // NEW
+            case VIDEO: return "video";      // NEW
+            case SEQUENCE: return "sequence"; // NEW
             default: return "unknown";
         }
     }

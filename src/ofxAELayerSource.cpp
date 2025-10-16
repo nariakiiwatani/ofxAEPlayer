@@ -2,6 +2,9 @@
 #include "ofxAESolidSource.h"
 #include "ofxAECompositionSource.h"
 #include "ofxAEShapeSource.h"
+#include "media/ofxAEStillSource.h"
+#include "media/ofxAEVideoSource.h"
+#include "media/ofxAESequenceSource.h"
 #include "ofLog.h"
 
 namespace ofx { namespace ae {
@@ -12,9 +15,14 @@ std::unique_ptr<LayerSource> LayerSource::createSourceOfType(SourceType type)
 		case SOLID: return std::make_unique<SolidSource>();
 		case COMPOSITION: return std::make_unique<CompositionSource>();
 		case SHAPE: return std::make_unique<ShapeSource>();
+		
+		// New media source types
+		case STILL: return std::make_unique<StillSource>();
+		case VIDEO: return std::make_unique<VideoSource>();
+		case SEQUENCE: return std::make_unique<SequenceSource>();
+		
 		default:
 			return nullptr;
-//		case SHAPE: return "shape";
 //		case CAMERA: return "camera";
 //		case LIGHT: return "light";
 //		case ADJUSTMENT: return "adjustment";
