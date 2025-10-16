@@ -1,7 +1,8 @@
 #pragma once
 
 #include "ofxAELayerSource.h"
-#include "ofxAEShapeProp.h"
+#include "prop/ofxAEShapeProp.h"
+#include "ofxAERenderGroup.h"
 
 namespace ofx { namespace ae {
 
@@ -20,6 +21,10 @@ public:
 
 private:
 	ShapeProp shape_props_;
+	
+	// RenderGroupシステムのコンポーネント
+	std::unique_ptr<RenderGroupProcessor> renderProcessor_;
+	std::unique_ptr<RenderItemRenderer> renderer_;
 };
 
 }} // namespace ofx::ae

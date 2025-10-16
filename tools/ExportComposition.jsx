@@ -61,7 +61,7 @@ var PROPERTY_MAPPING_CONFIG = {
         preserveIndexes: true
     },
     "ADBE Vector Group": {
-        wrapInObject: "group",
+        merge: {shapeType: "group"},
         preserveIndexes: true
     },
     "ADBE Vectors Group": {

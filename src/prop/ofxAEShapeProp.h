@@ -5,6 +5,7 @@
 namespace ofx { namespace ae {
 
 struct ShapeDataBase {
+	virtual void hoge(){}
 };
 struct EllipseData : public ShapeDataBase {
 	glm::vec2 size;
@@ -183,6 +184,7 @@ public:
 		if (base.is_array()) {
 			for(int i = 0; i < base.size(); ++i) {
 				auto b = base[i];
+				if(b.is_null()) continue;
 				ofJson k = i < keyframes.size() ? keyframes[i] : ofJson{};
 				if(auto p = addPropertyForType(b["shapeType"])) {
 					p->setup(b, k);
@@ -191,7 +193,39 @@ public:
 		}
 	}
 	void extract(ShapeData &t) const override {
-
+		t.clear();
+		for (const auto& prop : properties_) {
+			if (auto ellipseProp = dynamic_cast<const EllipseProp*>(prop.get())) {
+				auto ellipse = std::make_unique<EllipseData>();
+				ellipseProp->extract(*ellipse);
+				t.push_back(std::move(ellipse));
+			}
+			else if (auto rectProp = dynamic_cast<const RectangleProp*>(prop.get())) {
+				auto rectangle = std::make_unique<RectangleData>();
+				rectProp->extract(*rectangle);
+				t.push_back(std::move(rectangle));
+			}
+			else if (auto fillProp = dynamic_cast<const FillProp*>(prop.get())) {
+				auto fill = std::make_unique<FillData>();
+				fillProp->extract(*fill);
+				t.push_back(std::move(fill));
+			}
+			else if (auto strokeProp = dynamic_cast<const StrokeProp*>(prop.get())) {
+				auto stroke = std::make_unique<StrokeData>();
+				strokeProp->extract(*stroke);
+				t.push_back(std::move(stroke));
+			}
+			else if (auto polygonProp = dynamic_cast<const PolygonProp*>(prop.get())) {
+				auto polygon = std::make_unique<PolygonData>();
+				polygonProp->extract(*polygon);
+				t.push_back(std::move(polygon));
+			}
+			else if (auto groupProp = dynamic_cast<const GroupProp*>(prop.get())) {
+				auto group = std::make_unique<GroupData>();
+				groupProp->extract(*group);
+				t.push_back(std::move(group));
+			}
+		}
 	}
 
 private:

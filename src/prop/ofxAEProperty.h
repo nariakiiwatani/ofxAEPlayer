@@ -254,7 +254,7 @@ public:
 		return changed;
 	}
 
-private:
+protected:
 	std::vector<std::unique_ptr<PropertyBase>> properties_;
 };
 
