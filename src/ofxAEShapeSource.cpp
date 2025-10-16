@@ -3,13 +3,6 @@
 
 namespace ofx { namespace ae {
 
-// ShapeSource implementation
-ShapeSource::ShapeSource() {
-    current_shape_data_ = {};
-    has_fill_active_ = false;
-    has_stroke_active_ = false;
-}
-
 bool ShapeSource::setup(const ofJson &json)
 {
 	if (!json.contains("shape")) {
@@ -19,55 +12,17 @@ bool ShapeSource::setup(const ofJson &json)
 
 	const auto& shapeJson = json["shape"];
 
-	// Setup keyframes if they exist
 	ofJson keyframes = {};
 	if (json.contains("keyframes") && json["keyframes"].contains("shape")) {
 		keyframes = json["keyframes"]["shape"];
 	}
 
-	// Initialize shape properties with PropertyArray-based structure
 	shape_props_.setup(shapeJson, keyframes);
 
-	// Extract initial shape data
-	shape_props_.extractShapeData(current_shape_data_);
-
-	ofLogNotice("ShapeSource") << "Setup complete with " << current_shape_data_.items.size() << " shape items";
-	
-	// Add detailed logging for debugging
-	for (size_t i = 0; i < current_shape_data_.items.size(); ++i) {
-		const auto& item = current_shape_data_.items[i];
-		switch (item.type) {
-			case SHAPE_POLYGON:
-				ofLogNotice("ShapeSource") << "Item " << i << ": POLYGON - points:" << item.polygon.points
-					<< " innerRadius:" << item.polygon.innerRadius << " outerRadius:" << item.polygon.outerRadius
-					<< " innerRoundness:" << item.polygon.innerRoundness << " outerRoundness:" << item.polygon.outerRoundness;
-				break;
-			case SHAPE_ELLIPSE:
-				ofLogNotice("ShapeSource") << "Item " << i << ": ELLIPSE - size:" << item.ellipse.size.x << "x" << item.ellipse.size.y;
-				break;
-			case SHAPE_RECTANGLE:
-				ofLogNotice("ShapeSource") << "Item " << i << ": RECTANGLE - size:" << item.rectangle.size.x << "x" << item.rectangle.size.y;
-				break;
-			case SHAPE_GROUP:
-				ofLogNotice("ShapeSource") << "Item " << i << ": GROUP - blendMode:" << item.group.blendMode << " shapes:" << item.group.shapes.size();
-				break;
-			case SHAPE_FILL:
-				ofLogNotice("ShapeSource") << "Item " << i << ": FILL - color:" << item.fill.color.r << "," << item.fill.color.g << "," << item.fill.color.b;
-				break;
-			case SHAPE_STROKE:
-				ofLogNotice("ShapeSource") << "Item " << i << ": STROKE - width:" << item.stroke.width << " lineCap:" << item.stroke.lineCap;
-				break;
-			default:
-				ofLogNotice("ShapeSource") << "Item " << i << ": UNKNOWN";
-				break;
-		}
-	}
 	return true;
 }
 
 void ShapeSource::update() {
-    // Extract current shape data from properties using PropertyArray pattern
-    shape_props_.extractShapeData(current_shape_data_);
 }
 
 bool ShapeSource::setFrame(int frame) {
@@ -76,92 +31,73 @@ bool ShapeSource::setFrame(int frame) {
 
 void ShapeSource::draw(float x, float y, float w, float h) const {
     RenderContext::push();
-    renderShape(x, y, w, h);
+	ShapeData data;
+	shape_props_.extract(data);
+	for(auto it = data.rbegin(); it != data.rend(); ++it) {
+		// TODO: rnder function
+
+	}
     RenderContext::pop();
 }
 
 float ShapeSource::getWidth() const {
-    glm::vec2 size = getShapeSize();
-    return size.x;
+    return 0;
 }
 
 float ShapeSource::getHeight() const {
-    glm::vec2 size = getShapeSize();
-    return size.y;
-}
-
-void ShapeSource::renderShape(float x, float y, float w, float h) const {
-    // Reset rendering state
-    has_fill_active_ = false;
-    has_stroke_active_ = false;
-    
-    // Process shape items in order
-	for(auto it = current_shape_data_.items.rbegin(); it != current_shape_data_.items.rend(); ++it) {
-        renderShapeItem(*it, x, y, w, h);
-    }
+    return 0;
 }
 
 void ShapeSource::renderShapeItem(const ShapeItem& item, float x, float y, float w, float h) const {
-    switch (item.type) {
-        case SHAPE_FILL:
-            current_fill_ = item.fill;
+    std::visit([this, x, y, w, h](const auto& shape) {
+        using T = std::decay_t<decltype(shape)>;
+        
+        if constexpr (std::is_same_v<T, FillData>) {
+            current_fill_ = shape;
             has_fill_active_ = true;
-            break;
-            
-        case SHAPE_STROKE:
-            current_stroke_ = item.stroke;
+        } else if constexpr (std::is_same_v<T, StrokeData>) {
+            current_stroke_ = shape;
             has_stroke_active_ = true;
-            break;
-            
-        case SHAPE_ELLIPSE:
+        } else if constexpr (std::is_same_v<T, EllipseData>) {
             // Apply current fill/stroke state and render
             if (has_fill_active_) {
                 applyFill(current_fill_);
                 ofFill();
-                renderEllipse(item.ellipse, x, y, w, h);
+                renderEllipse(shape, x, y, w, h);
             }
             if (has_stroke_active_) {
                 applyStroke(current_stroke_);
                 ofNoFill();
-                renderEllipse(item.ellipse, x, y, w, h);
+                renderEllipse(shape, x, y, w, h);
             }
-            break;
-            
-        case SHAPE_RECTANGLE:
+        } else if constexpr (std::is_same_v<T, RectangleData>) {
             // Apply current fill/stroke state and render
             if (has_fill_active_) {
                 applyFill(current_fill_);
                 ofFill();
-                renderRectangle(item.rectangle, x, y, w, h);
+                renderRectangle(shape, x, y, w, h);
             }
             if (has_stroke_active_) {
                 applyStroke(current_stroke_);
                 ofNoFill();
-                renderRectangle(item.rectangle, x, y, w, h);
+                renderRectangle(shape, x, y, w, h);
             }
-            break;
-            
-        case SHAPE_POLYGON:
+        } else if constexpr (std::is_same_v<T, PolygonData>) {
             // Apply current fill/stroke state and render
             if (has_fill_active_) {
                 applyFill(current_fill_);
                 ofFill();
-                renderPolygon(item.polygon, x, y, w, h);
+                renderPolygon(shape, x, y, w, h);
             }
             if (has_stroke_active_) {
                 applyStroke(current_stroke_);
                 ofNoFill();
-                renderPolygon(item.polygon, x, y, w, h);
+                renderPolygon(shape, x, y, w, h);
             }
-            break;
-            
-        case SHAPE_GROUP:
-            renderGroup(item.group, x, y, w, h);
-            break;
-            
-        default:
-            break;
-    }
+        } else if constexpr (std::is_same_v<T, GroupData>) {
+            renderGroup(shape, x, y, w, h);
+        }
+    }, item);
 }
 
 void ShapeSource::renderEllipse(const EllipseData& ellipse, float x, float y, float w, float h) const {
@@ -316,16 +252,22 @@ void ShapeSource::renderGroup(const GroupData& group, float x, float y, float w,
 glm::vec2 ShapeSource::getShapeSize() const {
     // Find the first shape item to determine size
     for (const auto& item : current_shape_data_.items) {
-        switch (item.type) {
-            case SHAPE_ELLIPSE:
-                return item.ellipse.size;
-            case SHAPE_RECTANGLE:
-                return item.rectangle.size;
-            case SHAPE_POLYGON:
+        auto size = std::visit([](const auto& shape) -> glm::vec2 {
+            using T = std::decay_t<decltype(shape)>;
+            if constexpr (std::is_same_v<T, EllipseData>) {
+                return shape.size;
+            } else if constexpr (std::is_same_v<T, RectangleData>) {
+                return shape.size;
+            } else if constexpr (std::is_same_v<T, PolygonData>) {
                 // For polygons, use outer radius * 2 as approximate size
-                return glm::vec2(item.polygon.outerRadius * 2, item.polygon.outerRadius * 2);
-            default:
-                break;
+                return glm::vec2(shape.outerRadius * 2, shape.outerRadius * 2);
+            } else {
+                return glm::vec2(0, 0);
+            }
+        }, item);
+        
+        if (size.x > 0 || size.y > 0) {
+            return size;
         }
     }
     return glm::vec2(0, 0);
@@ -337,22 +279,25 @@ ofRectangle ShapeSource::getShapeBounds() const {
     
     // Find the first shape item to determine position
     for (const auto& item : current_shape_data_.items) {
-        switch (item.type) {
-            case SHAPE_ELLIPSE:
-                position = item.ellipse.position;
-                goto found_position;
-            case SHAPE_RECTANGLE:
-                position = item.rectangle.position;
-                goto found_position;
-            case SHAPE_POLYGON:
-                position = item.polygon.position;
-                goto found_position;
-            default:
-                break;
+        auto pos = std::visit([](const auto& shape) -> glm::vec2 {
+            using T = std::decay_t<decltype(shape)>;
+            if constexpr (std::is_same_v<T, EllipseData>) {
+                return shape.position;
+            } else if constexpr (std::is_same_v<T, RectangleData>) {
+                return shape.position;
+            } else if constexpr (std::is_same_v<T, PolygonData>) {
+                return shape.position;
+            } else {
+                return glm::vec2(0, 0);
+            }
+        }, item);
+        
+        if (pos.x != 0 || pos.y != 0) {
+            position = pos;
+            break;
         }
     }
     
-    found_position:
     // Calculate bounds (position is center, so offset by half size)
     return ofRectangle(
         position.x - size.x * 0.5f,

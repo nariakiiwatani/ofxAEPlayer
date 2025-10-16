@@ -178,13 +178,6 @@ public:
 			auto p = nlohmann::json::json_pointer(k);
 			auto propValue = base.value(p, ofJson{});
 			auto keyframeValue = keyframes.is_null() ? ofJson{} : keyframes.value(p, ofJson{});
-			
-			// Debug logging for property extraction
-			ofLogNotice("PropertyGroup") << "Setting up property: " << k;
-			ofLogNotice("PropertyGroup") << "JSON pointer: " << p.to_string();
-			ofLogNotice("PropertyGroup") << "Property value: " << propValue.dump();
-			ofLogNotice("PropertyGroup") << "Keyframe value: " << keyframeValue.dump();
-			
 			v->setup(propValue, keyframeValue);
 		}
 	}
@@ -212,6 +205,67 @@ class PropertyGroup_ : public PropertyGroup
 public:
 	virtual void extract(T &t) const=0;
 };
+
+
+class PropertyArray : public PropertyBase
+{
+public:
+	void clear() { properties_.clear(); }
+	template<typename T>
+	T* addProperty() {
+		auto p = std::make_unique<T>();
+		T* ret = p.get();
+		addProperty(std::move(p));
+		return ret;
+	}
+
+	void addProperty(std::unique_ptr<PropertyBase> property) {
+		properties_.push_back(std::move(property));
+	}
+
+	template<typename T=PropertyBase>
+	T* getProperty(size_t index) {
+		if (index >= properties_.size()) return nullptr;
+		return static_cast<T*>(properties_[index].get());
+	}
+
+	template<typename T=PropertyBase>
+	const T* getProperty(size_t index) const {
+		if (index >= properties_.size()) return nullptr;
+		return static_cast<const T*>(properties_[index].get());
+	}
+
+	bool hasAnimation() const override {
+		for (const auto &p : properties_) {
+			if (p && p->hasAnimation()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool setFrame(int frame) override {
+		bool changed = false;
+		for (auto &p : properties_) {
+			if (p) {
+				changed |= p->setFrame(frame);
+			}
+		}
+		return changed;
+	}
+
+private:
+	std::vector<std::unique_ptr<PropertyBase>> properties_;
+};
+
+template<typename T>
+class PropertyArray_ : public PropertyArray
+{
+public:
+	virtual void extract(T &t) const=0;
+};
+
+
 
 class FloatProp : public Property<float>
 {
@@ -267,64 +321,6 @@ public:
 		}
 		return ret;
 	}
-};
-
-template<typename T>
-class PropertyArray : public PropertyBase
-{
-public:
-	using value_type = T;
-	using container_type = std::vector<T>;
-	
-	void setup(const ofJson &base, const ofJson &keyframes) override {
-		items_.clear();
-		
-		if (base.is_array()) {
-			for(int i = 0; i < base.size(); ++i) {
-				auto b = base[i];
-				ofJson k = i < keyframes.size() ? keyframes[i] : ofJson{};
-				T element;
-				if (setupElement(element, b, k)) {
-					items_.push_back(std::move(element));
-				}
-			}
-		}
-	}
-	
-	bool hasAnimation() const override {
-		for (const auto &item : items_) {
-			if (hasElementAnimation(item)) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	bool setFrame(int frame) override {
-		bool changed = false;
-		for (auto &item : items_) {
-			changed |= setElementFrame(item, frame);
-		}
-		return changed;
-	}
-	
-	const container_type& getItems() const { return items_; }
-	container_type& getItems() { return items_; }
-	
-	size_t size() const { return items_.size(); }
-	bool empty() const { return items_.empty(); }
-	
-	const T& operator[](size_t index) const { return items_[index]; }
-	T& operator[](size_t index) { return items_[index]; }
-	
-protected:
-	// Override these methods in derived classes for specific element types
-	virtual bool setupElement(T &element, const ofJson &json, const ofJson &keyframes) = 0;
-	virtual bool hasElementAnimation(const T &element) const = 0;
-	virtual bool setElementFrame(T &element, int frame) = 0;
-	
-private:
-	container_type items_;
 };
 
 

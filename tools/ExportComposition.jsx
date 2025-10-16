@@ -69,20 +69,16 @@ var PROPERTY_MAPPING_CONFIG = {
         preserveIndexes: true
     },
     "ADBE Vector Shape - Ellipse": {
-        wrapInObject: "ellipse",
-        inline: true
+        merge: {shapeType: "ellipse"}
     },
     "ADBE Vector Shape - Rect": {
-        wrapInObject: "rectangle",
-        inline: true
+        merge: {shapeType: "rect"}
     },
     "ADBE Vector Shape - Star": {
-        wrapInObject: "polygon",
-        inline: true
+        merge: {shapeType: "polygon"}
     },
     "ADBE Vector Shape - Group": {
-        wrapInObject: "path",
-        inline: true
+        merge: {shapeType: "path"}
     },
     
     // Shape系
@@ -138,8 +134,7 @@ var PROPERTY_MAPPING_CONFIG = {
 
     // Fill/Stroke系
     "ADBE Vector Graphic - Fill": {
-        wrapInObject: "fill",
-        inline: true
+        merge: {shapeType: "fill"}
     },
     "ADBE Vector Fill Rule": {
         wrapInObject: "rule"
@@ -151,8 +146,7 @@ var PROPERTY_MAPPING_CONFIG = {
         wrapInObject: "opacity"
     },
     "ADBE Vector Graphic - Stroke": {
-        wrapInObject: "stroke",
-        inline: true
+        merge: {shapeType: "stroke"}
     },
     "ADBE Vector Stroke Color": {
         wrapInObject: "color"
@@ -182,7 +176,7 @@ var PROPERTY_MAPPING_CONFIG = {
         wrapInObject: "wave"
     },
     "ADBE Vector Filter - Trim": {
-        wrapInObject: "properties"
+        merge: {shapeType: "trim"}
     },
     "ADBE Vector Filter - Trim Start": {
         wrapInObject: "start"
@@ -1438,6 +1432,13 @@ var PROPERTY_MAPPING_CONFIG = {
             if(result === null) {
                 debugLog("extractPropertiesRecursive", "No result extracted for property: " + property.matchName, null, "verbose");
                 return null;
+            }
+            if (config.merge) {
+                for (var key in config.merge) {
+                    if (config.merge.hasOwnProperty(key)) {
+                        result[key] = config.merge[key];
+                    }
+                }
             }
             if (config.wrapInObject){
                 var wrapped = {};
