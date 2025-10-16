@@ -4,10 +4,15 @@
 
 namespace ofx { namespace ae {
 
+// Forward declaration for Visitor pattern
+class ShapeVisitor;
+
 struct ShapeDataBase {
 	virtual ~ShapeDataBase() = default;
+	virtual void accept(ShapeVisitor& visitor) const = 0;
 };
 struct EllipseData : public ShapeDataBase {
+	void accept(ShapeVisitor& visitor) const override;
 	glm::vec2 size{0,0};
 	glm::vec2 position{0,0};
 	int direction{1}; // 1 = clockwise, -1 = counterclockwise
@@ -19,6 +24,7 @@ struct EllipseData : public ShapeDataBase {
 };
 
 struct RectangleData : public ShapeDataBase {
+	void accept(ShapeVisitor& visitor) const override;
 	glm::vec2 size{0,0};
 	glm::vec2 position{0,0};
 	float roundness{0};
@@ -31,6 +37,7 @@ struct RectangleData : public ShapeDataBase {
 };
 
 struct PolygonData : public ShapeDataBase {
+	void accept(ShapeVisitor& visitor) const override;
 	int direction{1};
 	int type{1}; // 1 = polygon, 2 = star
 	int points{5};
@@ -48,6 +55,7 @@ struct PolygonData : public ShapeDataBase {
 };
 
 struct FillData : public ShapeDataBase {
+	void accept(ShapeVisitor& visitor) const override;
 	ofFloatColor color{1,1,1,1};
 	float opacity{1};
 	int rule{1}; // Fill rule
@@ -61,6 +69,7 @@ struct FillData : public ShapeDataBase {
 };
 
 struct StrokeData : public ShapeDataBase {
+	void accept(ShapeVisitor& visitor) const override;
 	ofFloatColor color{1,1,1,1};
 	float opacity{1};
 	float width{1};
@@ -86,6 +95,7 @@ namespace ShapeDataHelper {
 }
 
 struct GroupData : public ShapeDataBase {
+	void accept(ShapeVisitor& visitor) const override;
 	int blendMode{1};
 	ShapeData data{};
 
@@ -95,6 +105,18 @@ struct GroupData : public ShapeDataBase {
 	}
 };
 
+
+// ShapeVisitor interface for Visitor pattern
+class ShapeVisitor {
+public:
+	virtual ~ShapeVisitor() = default;
+	virtual void visit(const EllipseData& ellipse) = 0;
+	virtual void visit(const RectangleData& rectangle) = 0;
+	virtual void visit(const PolygonData& polygon) = 0;
+	virtual void visit(const FillData& fill) = 0;
+	virtual void visit(const StrokeData& stroke) = 0;
+	virtual void visit(const GroupData& group) = 0;
+};
 
 class EllipseProp : public PropertyGroup
 {

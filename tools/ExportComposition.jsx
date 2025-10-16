@@ -72,7 +72,7 @@ var PROPERTY_MAPPING_CONFIG = {
         merge: {shapeType: "ellipse"}
     },
     "ADBE Vector Shape - Rect": {
-        merge: {shapeType: "rect"}
+        merge: {shapeType: "rectangle"}
     },
     "ADBE Vector Shape - Star": {
         merge: {shapeType: "polygon"}
