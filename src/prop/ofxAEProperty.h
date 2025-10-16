@@ -52,7 +52,6 @@ public:
 
 	void setup(const ofJson &base, const ofJson &keyframes) override {
 		setBaseValue(parse(base));
-		cache_ = base_; // Initialize cache with base value
 		keyframes_.clear();
 		if(keyframes.is_array()) {
 			for(int i = 0; i < keyframes.size(); ++i) {
@@ -151,25 +150,27 @@ public:
 		return ret;
 	}
 	void set(const T &t) { cache_ = t; }
-	const T& get() const { return cache_; }
+	const T& get() const { return cache_.has_value() ? *cache_ : base_; }
 	bool hasAnimation() const override { return !keyframes_.empty(); }
 	
 	bool setFrame(int frame) override {
+		bool is_first = !cache_.has_value();
 		if (keyframes_.empty()) {
 			cache_ = base_;
-			return false;
+			return is_first;
 		}
 		auto pair = ofx::ae::util::findKeyframePair(keyframes_, frame);
 		if (pair.keyframe_a == nullptr || pair.keyframe_b == nullptr) {
 			cache_ = base_;
-			return false;
+			return is_first;
 		}
 		cache_ = ofx::ae::util::interpolateKeyframe(*pair.keyframe_a, *pair.keyframe_b, pair.ratio);
 		return true;
 	}
 	
 	private:
-		T base_, cache_;
+		T base_;
+		std::optional<T> cache_;
 		std::map<int, ofxAEKeyframe<T>> keyframes_;
 	};
 	

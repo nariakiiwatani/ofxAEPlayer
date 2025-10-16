@@ -231,8 +231,6 @@ bool ShapeSource::setFrame(int frame) {
 }
 
 void ShapeSource::draw(float x, float y, float w, float h) const {
-    RenderContext::push();
-    
     try {
         // ShapeDataを取得
         ShapeData data;
@@ -243,7 +241,7 @@ void ShapeSource::draw(float x, float y, float w, float h) const {
         }
         
         // 新しいrenderer::Contextシステムを使用
-        renderer::Context context;
+		renderer::Context context(RenderContext::getCurrentStyle().color.a);
         for (const auto& shapePtr : data) {
             if (shapePtr) {
                 shapePtr->accept(context);
@@ -254,8 +252,6 @@ void ShapeSource::draw(float x, float y, float w, float h) const {
     catch (const std::exception& e) {
         ofLogError("ShapeSource") << "Error during rendering: " << e.what();
     }
-    
-    RenderContext::pop();
 }
 
 float ShapeSource::getWidth() const {

@@ -29,11 +29,9 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 	EXTRACT_(name);
 	EXTRACT_(in);
 	EXTRACT_(out);
-	auto &&keyframes = json.value("/keyframes"_json_pointer, ofJson{});
 	if(json.contains("transform")) {
-		if(keyframes.contains("transform")) {
-			transform_.setup(json["transform"], keyframes["transform"]);
-		}
+		auto &&kf = json.value("/keyframes/transform"_json_pointer, ofJson{});
+		transform_.setup(json["transform"], kf);
 	}
 
     std::string sourceType = "unknown";
@@ -85,7 +83,6 @@ bool Layer::setFrame(int frame)
 	if(transform_.setFrame(frame)) {
 		TransformData t;
 		if (!transform_.tryExtract(t)) {
-			// Log warning and use default values
 			ofLogWarning("PropertyExtraction") << "Failed to extract TransformData, using defaults";
 			t = TransformData::getDefault();
 		}
