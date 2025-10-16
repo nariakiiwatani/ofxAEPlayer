@@ -3,6 +3,39 @@
 
 namespace ofx { namespace ae {
 
+namespace renderer {
+struct Context {
+	Context() { push(); }
+	void visit(const ShapeDataBase &data) {
+		// pseudo code
+		/*
+		 switch(data.type):
+			case if PathData: appendPath();
+			case if Group: push(); visitChildren(data); pop();
+			case if RenderData:
+				var fn = draw current path in data style
+				if composite order is 1: prepend fn to current command
+				if else: append fn to current command
+		 */
+	}
+	void render() const { for(auto &&fn : work.top().command) { fn(); } }
+private:
+	struct Work {
+		ofPath path;
+		std::deque<std::function<void()>> command;
+		void append(Work &w) {
+			path.append(w.path);
+			command.insert(command.begin(), w.command.begin(), w.command.end());
+		}
+	};
+	std::stack<Work> work;
+
+	void appendPath(const ofPath &p) { work.top().path.append(p); }
+	void push() { work.push(Work()); }
+	void pop() { auto &&w = work.top(); work.pop(); work.top().append(w); }
+};
+}
+
 bool ShapeSource::setup(const ofJson &json)
 {
 	if (!json.contains("shape")) {
