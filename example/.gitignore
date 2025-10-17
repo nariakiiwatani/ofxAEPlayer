@@ -1,0 +1,9 @@
+.DS_Store
+*.xcodeproj
+*.app
+bin/data
+Makefile
+Project.xcconfig
+config.make
+of.entitlements
+openFrameworks-Info.plist
