@@ -68,7 +68,6 @@ struct Context : public ShapeVisitor {
 		// Set blend mode for group if needed
 		// TODO: Implement blend mode setting based on group.blendMode
 		
-		// Recursively visit all children in the group
 		for (auto &&shapePtr : group.data) {
 			if (shapePtr) {
 				shapePtr->accept(*this);
@@ -154,8 +153,7 @@ private:
 		bool firstPoint = true;
 		for (int i = 0; i < numPoints; i++) {
 			float angle = startAngle + i * angleStep;
-			
-			// Outer point
+
 			float pointX = polygon.position.x + cos(angle) * outerRadius;
 			float pointY = polygon.position.y + sin(angle) * outerRadius;
 			
@@ -166,7 +164,6 @@ private:
 				path.lineTo(pointX, pointY);
 			}
 			
-			// Star inner point
 			if (isStar) {
 				float innerAngle = angle + angleStep * 0.5f;
 				float innerPointX = polygon.position.x + cos(innerAngle) * innerRadius;
@@ -232,15 +229,11 @@ bool ShapeSource::setFrame(int frame) {
 
 void ShapeSource::draw(float x, float y, float w, float h) const {
     try {
-        // ShapeDataを取得
         ShapeData data;
         if (!shape_props_.tryExtract(data)) {
-            // Log warning and use default values
             ofLogWarning("PropertyExtraction") << "Failed to extract ShapeData in draw(), using defaults";
-            data = ShapeDataHelper::getDefault();
         }
         
-        // 新しいrenderer::Contextシステムを使用
 		renderer::Context context(RenderContext::getCurrentStyle().color.a);
         for (const auto& shapePtr : data) {
             if (shapePtr) {
@@ -255,12 +248,9 @@ void ShapeSource::draw(float x, float y, float w, float h) const {
 }
 
 float ShapeSource::getWidth() const {
-    // ShapeDataからサイズを計算
     ShapeData data;
     if (!shape_props_.tryExtract(data)) {
-        // Log warning and use default values
         ofLogWarning("PropertyExtraction") << "Failed to extract ShapeData in getWidth(), using defaults";
-        data = ShapeDataHelper::getDefault();
     }
     
     float maxWidth = 0.0f;
@@ -282,12 +272,9 @@ float ShapeSource::getWidth() const {
 }
 
 float ShapeSource::getHeight() const {
-    // ShapeDataからサイズを計算
     ShapeData data;
     if (!shape_props_.tryExtract(data)) {
-        // Log warning and use default values
         ofLogWarning("PropertyExtraction") << "Failed to extract ShapeData in getHeight(), using defaults";
-        data = ShapeDataHelper::getDefault();
     }
     
     float maxHeight = 0.0f;

@@ -51,7 +51,6 @@ private:
 	std::map<std::string, std::weak_ptr<Layer>> unique_name_layers_map_;
 
 	int current_frame_;
-
 };
 
 }}

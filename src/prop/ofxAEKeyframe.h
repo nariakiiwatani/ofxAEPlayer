@@ -50,9 +50,7 @@ public:
 
 namespace interpolation {
 
-// Utility function for cubic bezier interpolation
 inline float cubicBezier(float t, float p1, float p2) {
-    // Cubic bezier with control points at (0,0), (p1, p1), (p2, p2), (1,1)
     float u = 1.0f - t;
     float tt = t * t;
     float uu = u * u;
@@ -62,17 +60,15 @@ inline float cubicBezier(float t, float p1, float p2) {
     return 3 * uu * t * p1 + 3 * u * tt * p2 + ttt;
 }
 
-// Utility function to solve bezier curve for given x value
 inline float solveBezierForX(float x, float p1x, float p2x, float tolerance = 0.001f) {
     if (x <= 0.0f) return 0.0f;
     if (x >= 1.0f) return 1.0f;
     
-    float t = x; // Initial guess
+    float t = x;
     for (int i = 0; i < 10; ++i) {
         float currentX = cubicBezier(t, p1x, p2x);
         if (std::abs(currentX - x) < tolerance) break;
         
-        // Newton-Raphson iteration
         float derivative = 3 * (1 - t) * (1 - t) * p1x + 6 * (1 - t) * t * (p2x - p1x) + 3 * t * t * (1 - p2x);
         if (std::abs(derivative) < tolerance) break;
         
@@ -82,19 +78,16 @@ inline float solveBezierForX(float x, float p1x, float p2x, float tolerance = 0.
     return t;
 }
 
-// Linear interpolation
 template<typename T>
 T linear(const T& value_a, const T& value_b, float ratio) {
     return value_a + (value_b - value_a) * ratio;
 }
 
-// Hold interpolation (step function)
 template<typename T>
 T hold(const T& value_a, const T& value_b, float ratio) {
     return ratio >= 1.0f ? value_b : value_a;
 }
 
-// Bezier interpolation using TemporalEase parameters
 template<typename T>
 T bezier(const T& value_a, const T& value_b,
 		 const Keyframe::TemporalEase& ease_out_a,
@@ -103,23 +96,18 @@ T bezier(const T& value_a, const T& value_b,
     if (ratio <= 0.0f) return value_a;
     if (ratio >= 1.0f) return value_b;
     
-    // Convert TemporalEase to bezier control points
-    // After Effects uses speed and influence to define bezier curves
     float p1x = ease_out_a.influence / 100.0f;
     float p1y = ease_out_a.speed / 100.0f * p1x;
     float p2x = 1.0f - (ease_in_b.influence / 100.0f);
     float p2y = 1.0f - (ease_in_b.speed / 100.0f * (1.0f - p2x));
     
-    // Solve for t given x = ratio
     float t = solveBezierForX(ratio, p1x, p2x);
     
-    // Calculate y value using bezier curve
     float bezier_ratio = cubicBezier(t, p1y, p2y);
     
     return linear(value_a, value_b, bezier_ratio);
 }
 
-// Ease in interpolation
 template<typename T>
 T ease_in(const T& value_a, const T& value_b,
 		  const Keyframe::TemporalEase& ease_params,
@@ -127,11 +115,9 @@ T ease_in(const T& value_a, const T& value_b,
     if (ratio <= 0.0f) return value_a;
     if (ratio >= 1.0f) return value_b;
     
-    // Create ease-in curve using TemporalEase parameters
     float influence = ease_params.influence / 100.0f;
     float speed = ease_params.speed / 100.0f;
     
-    // Ease-in: slow start, fast end
     float p1x = influence * 0.42f; // Standard ease-in control point adjusted by influence
     float p1y = 0.0f;
     float p2x = 1.0f;
@@ -143,7 +129,6 @@ T ease_in(const T& value_a, const T& value_b,
     return linear(value_a, value_b, eased_ratio);
 }
 
-// Ease out interpolation
 template<typename T>
 T ease_out(const T& value_a, const T& value_b,
 		   const Keyframe::TemporalEase& ease_params,
@@ -151,11 +136,9 @@ T ease_out(const T& value_a, const T& value_b,
     if (ratio <= 0.0f) return value_a;
     if (ratio >= 1.0f) return value_b;
     
-    // Create ease-out curve using TemporalEase parameters
     float influence = ease_params.influence / 100.0f;
     float speed = ease_params.speed / 100.0f;
     
-    // Ease-out: fast start, slow end
     float p1x = 0.0f;
     float p1y = 0.0f;
     float p2x = 1.0f - (influence * 0.58f); // Standard ease-out control point adjusted by influence
@@ -167,7 +150,6 @@ T ease_out(const T& value_a, const T& value_b,
     return linear(value_a, value_b, eased_ratio);
 }
 
-// Ease in-out interpolation
 template<typename T>
 T ease_in_out(const T& value_a, const T& value_b,
 			  const Keyframe::TemporalEase& ease_in,
@@ -176,13 +158,11 @@ T ease_in_out(const T& value_a, const T& value_b,
     if (ratio <= 0.0f) return value_a;
     if (ratio >= 1.0f) return value_b;
     
-    // Combine ease-in and ease-out curves
     float influence_in = ease_in.influence / 100.0f;
     float speed_in = ease_in.speed / 100.0f;
     float influence_out = ease_out.influence / 100.0f;
     float speed_out = ease_out.speed / 100.0f;
     
-    // Create combined ease-in-out curve
     float p1x = influence_in * 0.42f;
     float p1y = 0.0f;
     float p2x = 1.0f - (influence_out * 0.58f);
@@ -194,12 +174,10 @@ T ease_in_out(const T& value_a, const T& value_b,
     return linear(value_a, value_b, eased_ratio);
 }
 
-// Main calculation dispatch function
 template<typename T>
 T calculate(const Keyframe::Data<T>& keyframe_a,
 			const Keyframe::Data<T>& keyframe_b,
            float ratio) {
-    // Use the outgoing interpolation type from the first keyframe
 	Keyframe::InterpolationType interp_type = keyframe_a.interpolation.out_type;
     
     switch (interp_type) {
@@ -236,7 +214,6 @@ T calculate(const Keyframe::Data<T>& keyframe_a,
 
 namespace util {
 
-// Result structure for keyframe pair lookup
 template<typename T>
 struct KeyframePair {
     const Keyframe::Data<T>* keyframe_a = nullptr;
@@ -246,17 +223,14 @@ struct KeyframePair {
     int frame_b = 0;
 };
 
-// Find keyframe pair for interpolation with efficient O(log n) lookup
 template<typename T>
 KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyframes, int frame) {
     KeyframePair<T> result;
     
-    // Handle empty keyframes
     if (keyframes.empty()) {
-        return result; // Both keyframes remain nullptr
+        return result;
     }
     
-    // Handle single keyframe
     if (keyframes.size() == 1) {
         auto it = keyframes.begin();
         result.keyframe_a = &it->second;
@@ -267,10 +241,8 @@ KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyfram
         return result;
     }
     
-    // Find the first keyframe with frame > target frame using efficient O(log n) lookup
     auto upper = keyframes.upper_bound(frame);
     
-    // If frame is before all keyframes, use first keyframe
     if (upper == keyframes.begin()) {
         auto first = keyframes.begin();
         result.keyframe_a = &first->second;
@@ -281,7 +253,6 @@ KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyfram
         return result;
     }
     
-    // If frame is after all keyframes, use last keyframe
     if (upper == keyframes.end()) {
         auto last = std::prev(keyframes.end());
         result.keyframe_a = &last->second;
@@ -292,7 +263,6 @@ KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyfram
         return result;
     }
     
-    // Frame is between two keyframes - normal interpolation case
     auto keyframe_b_it = upper;
     auto keyframe_a_it = std::prev(upper);
     
@@ -301,7 +271,6 @@ KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyfram
     result.frame_a = keyframe_a_it->first;
     result.frame_b = keyframe_b_it->first;
     
-    // Calculate interpolation ratio
     if (result.frame_b != result.frame_a) {
         result.ratio = static_cast<float>(frame - result.frame_a) /
                       static_cast<float>(result.frame_b - result.frame_a);
@@ -312,7 +281,6 @@ KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyfram
     return result;
 }
 
-// Enhanced interpolation function that dispatches to the appropriate interpolation method
 template<typename T>
 T interpolateKeyframe(const Keyframe::Data<T>& keyframe_a,
                      const Keyframe::Data<T>& keyframe_b,

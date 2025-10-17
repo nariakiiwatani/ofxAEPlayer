@@ -1,11 +1,6 @@
 #include "ofxAEMask.h"
 
-namespace ofx {
-namespace ae {
-
-//--------------------------------------------------------------
-// MaskPath Implementation
-//--------------------------------------------------------------
+namespace ofx { namespace ae {
 
 MaskPath::MaskPath() : closed(false) {
 }
@@ -14,159 +9,144 @@ MaskPath::~MaskPath() {
 }
 
 void MaskPath::addVertex(const MaskVertex& vertex) {
-    vertices.push_back(vertex);
+	vertices.push_back(vertex);
 }
 
 void MaskPath::addVertex(const glm::vec2& position) {
-    vertices.push_back(MaskVertex(position));
+	vertices.push_back(MaskVertex(position));
 }
 
 void MaskPath::clear() {
-    vertices.clear();
+	vertices.clear();
 }
 
 glm::vec2 MaskPath::evaluateAt(float t) const {
-    if (vertices.empty()) return glm::vec2(0, 0);
-    if (vertices.size() == 1) return vertices[0].position;
-    
-    // Simple linear interpolation for now
-    // In a full implementation, this would handle bezier curves
-    int segmentCount = closed ? vertices.size() : vertices.size() - 1;
-    if (segmentCount <= 0) return vertices[0].position;
-    
-    float segmentT = t * segmentCount;
-    int segmentIndex = (int)segmentT;
-    float localT = segmentT - segmentIndex;
-    
-    if (segmentIndex >= segmentCount) {
-        segmentIndex = segmentCount - 1;
-        localT = 1.0f;
-    }
-    
-    int nextIndex = (segmentIndex + 1) % vertices.size();
-    if (!closed && nextIndex >= vertices.size()) {
-        nextIndex = vertices.size() - 1;
-    }
-    
-    return glm::mix(vertices[segmentIndex].position, vertices[nextIndex].position, localT);
+	if (vertices.empty()) return glm::vec2(0, 0);
+	if (vertices.size() == 1) return vertices[0].position;
+
+	int segmentCount = closed ? vertices.size() : vertices.size() - 1;
+	if (segmentCount <= 0) return vertices[0].position;
+
+	float segmentT = t * segmentCount;
+	int segmentIndex = (int)segmentT;
+	float localT = segmentT - segmentIndex;
+
+	if (segmentIndex >= segmentCount) {
+		segmentIndex = segmentCount - 1;
+		localT = 1.0f;
+	}
+
+	int nextIndex = (segmentIndex + 1) % vertices.size();
+	if (!closed && nextIndex >= vertices.size()) {
+		nextIndex = vertices.size() - 1;
+	}
+
+	return glm::mix(vertices[segmentIndex].position, vertices[nextIndex].position, localT);
 }
 
 void MaskPath::generatePolyline(ofPolyline& polyline, int resolution) const {
-    polyline.clear();
-    
-    if (vertices.empty()) return;
-    
-    for (int i = 0; i <= resolution; i++) {
-        float t = (float)i / resolution;
-        glm::vec2 point = evaluateAt(t);
-        polyline.addVertex(point.x, point.y);
-    }
-    
-    if (closed) {
-        polyline.setClosed(true);
-    }
+	polyline.clear();
+
+	if (vertices.empty()) return;
+
+	for (int i = 0; i <= resolution; i++) {
+		float t = (float)i / resolution;
+		glm::vec2 point = evaluateAt(t);
+		polyline.addVertex(point.x, point.y);
+	}
+
+	if (closed) {
+		polyline.setClosed(true);
+	}
 }
 
-//--------------------------------------------------------------
-// Mask Implementation
-//--------------------------------------------------------------
-
-Mask::Mask() 
-    : mode(MaskMode::ADD)
-    , inverted(false)
-    , enabled(true)
-    , opacity(100.0f)
-    , expansion(0.0f) {
+Mask::Mask()
+: mode(MaskMode::ADD)
+, inverted(false)
+, enabled(true)
+, opacity(100.0f)
+, expansion(0.0f) {
 }
 
 Mask::~Mask() {
 }
 
 void Mask::renderToFbo(ofFbo& target) const {
-    if (!enabled) return;
-    
-    target.begin();
-    
-    ofClear(0, 0, 0, 0);
-    
-    // Set up for mask rendering
-    ofSetColor(255, 255, 255, opacity * 255 / 100.0f);
-    ofFill();
-    
-    // Render the mask path
-    renderPath(path);
-    
-    target.end();
-    
-    // Apply feather if needed
-    if (feather.outer > 0 || feather.inner > 0) {
-        applyFeather(target);
-    }
+	if (!enabled) return;
+
+	target.begin();
+
+	ofClear(0, 0, 0, 0);
+
+	ofSetColor(255, 255, 255, opacity * 255 / 100.0f);
+	ofFill();
+
+	renderPath(path);
+
+	target.end();
+
+	if (feather.outer > 0 || feather.inner > 0) {
+		applyFeather(target);
+	}
 }
 
 void Mask::renderPath(const MaskPath& path) const {
-    if (path.getVertexCount() < 2) return;
-    
-    ofPolyline polyline;
-    path.generatePolyline(polyline);
-    
-    if (polyline.getVertices().size() > 2) {
-        ofBeginShape();
-        for (const auto& vertex : polyline.getVertices()) {
-            ofVertex(vertex.x, vertex.y);
-        }
-        ofEndShape(path.isClosed());
-    }
+	if (path.getVertexCount() < 2) return;
+
+	ofPolyline polyline;
+	path.generatePolyline(polyline);
+
+	if (polyline.getVertices().size() > 2) {
+		ofBeginShape();
+		for (const auto& vertex : polyline.getVertices()) {
+			ofVertex(vertex.x, vertex.y);
+		}
+		ofEndShape(path.isClosed());
+	}
 }
 
 void Mask::applyFeather(ofFbo& target) const {
-    // Placeholder for feather implementation
-    // In a full implementation, this would apply gaussian blur
-    // based on the feather settings
+	// Placeholder for feather implementation
+	// In a full implementation, this would apply gaussian blur
+	// based on the feather settings
 }
 
 ofRectangle Mask::getBounds() const {
-    if (path.getVertexCount() == 0) {
-        return ofRectangle(0, 0, 0, 0);
-    }
-    
-    float minX = FLT_MAX, minY = FLT_MAX;
-    float maxX = -FLT_MAX, maxY = -FLT_MAX;
-    
-    for (const auto& vertex : path.getVertices()) {
-        minX = std::min(minX, vertex.position.x);
-        minY = std::min(minY, vertex.position.y);
-        maxX = std::max(maxX, vertex.position.x);
-        maxY = std::max(maxY, vertex.position.y);
-    }
-    
-    return ofRectangle(minX, minY, maxX - minX, maxY - minY);
+	if (path.getVertexCount() == 0) {
+		return ofRectangle(0, 0, 0, 0);
+	}
+
+	float minX = FLT_MAX, minY = FLT_MAX;
+	float maxX = -FLT_MAX, maxY = -FLT_MAX;
+
+	for (const auto& vertex : path.getVertices()) {
+		minX = std::min(minX, vertex.position.x);
+		minY = std::min(minY, vertex.position.y);
+		maxX = std::max(maxX, vertex.position.x);
+		maxY = std::max(maxY, vertex.position.y);
+	}
+
+	return ofRectangle(minX, minY, maxX - minX, maxY - minY);
 }
 
 bool Mask::containsPoint(const glm::vec2& point) const {
-    // Simple point-in-polygon test
-    // This is a basic implementation - a full version would handle bezier curves
-    if (path.getVertexCount() < 3) return false;
-    
-    bool inside = false;
-    const auto& vertices = path.getVertices();
-    
-    for (size_t i = 0, j = vertices.size() - 1; i < vertices.size(); j = i++) {
-        const glm::vec2& vi = vertices[i].position;
-        const glm::vec2& vj = vertices[j].position;
-        
-        if (((vi.y > point.y) != (vj.y > point.y)) &&
-            (point.x < (vj.x - vi.x) * (point.y - vi.y) / (vj.y - vi.y) + vi.x)) {
-            inside = !inside;
-        }
-    }
-    
-    return inside;
-}
+	if (path.getVertexCount() < 3) return false;
 
-//--------------------------------------------------------------
-// MaskCollection Implementation
-//--------------------------------------------------------------
+	bool inside = false;
+	const auto& vertices = path.getVertices();
+
+	for (size_t i = 0, j = vertices.size() - 1; i < vertices.size(); j = i++) {
+		const glm::vec2& vi = vertices[i].position;
+		const glm::vec2& vj = vertices[j].position;
+
+		if (((vi.y > point.y) != (vj.y > point.y)) &&
+			(point.x < (vj.x - vi.x) * (point.y - vi.y) / (vj.y - vi.y) + vi.x)) {
+			inside = !inside;
+		}
+	}
+
+	return inside;
+}
 
 MaskCollection::MaskCollection() {
 }
@@ -175,93 +155,88 @@ MaskCollection::~MaskCollection() {
 }
 
 void MaskCollection::addMask(const Mask& mask) {
-    masks.push_back(mask);
+	masks.push_back(mask);
 }
 
 void MaskCollection::removeMask(size_t index) {
-    if (index < masks.size()) {
-        masks.erase(masks.begin() + index);
-    }
+	if (index < masks.size()) {
+		masks.erase(masks.begin() + index);
+	}
 }
 
 void MaskCollection::clear() {
-    masks.clear();
+	masks.clear();
 }
 
 bool MaskCollection::hasActiveMasks() const {
-    for (const auto& mask : masks) {
-        if (mask.isEnabled()) {
-            return true;
-        }
-    }
-    return false;
+	for (const auto& mask : masks) {
+		if (mask.isEnabled()) {
+			return true;
+		}
+	}
+	return false;
 }
 
 void MaskCollection::renderCombined(ofFbo& target, int width, int height) const {
-    if (masks.empty()) {
-        target.begin();
-        ofClear(255, 255, 255, 255); // Full white = no mask
-        target.end();
-        return;
-    }
-    
-    target.begin();
-    ofClear(0, 0, 0, 0); // Start with transparent
-    target.end();
-    
-    bool isFirst = true;
-    for (const auto& mask : masks) {
-        if (mask.isEnabled()) {
-            combineMasks(target, mask, isFirst);
-            isFirst = false;
-        }
-    }
-    
-    // If no masks were active, fill with white
-    if (isFirst) {
-        target.begin();
-        ofClear(255, 255, 255, 255);
-        target.end();
-    }
+	if (masks.empty()) {
+		target.begin();
+		ofClear(255, 255, 255, 255);
+		target.end();
+		return;
+	}
+
+	target.begin();
+	ofClear(0, 0, 0, 0);
+	target.end();
+
+	bool isFirst = true;
+	for (const auto& mask : masks) {
+		if (mask.isEnabled()) {
+			combineMasks(target, mask, isFirst);
+			isFirst = false;
+		}
+	}
+
+	if (isFirst) {
+		target.begin();
+		ofClear(255, 255, 255, 255);
+		target.end();
+	}
 }
 
 void MaskCollection::combineMasks(ofFbo& target, const Mask& mask, bool isFirst) const {
-    ofFbo maskFbo;
-    maskFbo.allocate(target.getWidth(), target.getHeight(), GL_RGBA);
-    
-    // Render this mask
-    mask.renderToFbo(maskFbo);
-    
-    target.begin();
-    
-    if (isFirst) {
-        // First mask - just copy
-        ofSetColor(255);
-        maskFbo.draw(0, 0);
-    } else {
-        // Combine with existing masks based on mode
-        switch (mask.getMode()) {
-            case MaskMode::ADD:
-                ofEnableBlendMode(OF_BLENDMODE_ADD);
-                break;
-            case MaskMode::SUBTRACT:
-                ofEnableBlendMode(OF_BLENDMODE_SUBTRACT);
-                break;
-            case MaskMode::INTERSECT:
-                ofEnableBlendMode(OF_BLENDMODE_MULTIPLY);
-                break;
-            default:
-                ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-                break;
-        }
-        
-        ofSetColor(255);
-        maskFbo.draw(0, 0);
-        ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-    }
-    
-    target.end();
+	ofFbo maskFbo;
+	maskFbo.allocate(target.getWidth(), target.getHeight(), GL_RGBA);
+
+	mask.renderToFbo(maskFbo);
+
+	target.begin();
+
+	if (isFirst) {
+		ofSetColor(255);
+		maskFbo.draw(0, 0);
+	} else {
+		switch (mask.getMode()) {
+			case MaskMode::ADD:
+				ofEnableBlendMode(OF_BLENDMODE_ADD);
+				break;
+			case MaskMode::SUBTRACT:
+				ofEnableBlendMode(OF_BLENDMODE_SUBTRACT);
+				break;
+			case MaskMode::INTERSECT:
+				ofEnableBlendMode(OF_BLENDMODE_MULTIPLY);
+				break;
+			default:
+				ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+				break;
+		}
+
+		ofSetColor(255);
+		maskFbo.draw(0, 0);
+		ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+	}
+
+	target.end();
 }
 
-} // namespace ae
-} // namespace ofx
+}} // namespace ae::ofx

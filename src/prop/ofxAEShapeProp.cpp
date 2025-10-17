@@ -39,7 +39,6 @@ GroupProp::GroupProp() {
 			success = false;
 		}
 
-		// Extract child shapes into GroupData::data
 		if (!getProperty<ShapeProp>("/shape")->tryExtract(g.data)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract group shape data, using empty";
 			g.data.clear();

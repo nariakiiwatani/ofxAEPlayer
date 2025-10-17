@@ -77,8 +77,6 @@ std::unique_ptr<LayerSource> Layer::resolveSource(const ofJson& json, const std:
 			return source;
 		}
 	}
-	
-	ofLogVerbose("Layer") << "No resolver could handle source for layer: " << name_;
 	return nullptr;
 }
 
@@ -126,7 +124,6 @@ bool Layer::setFrame(int frame)
 		TransformData t;
 		if (!transform_.tryExtract(t)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract TransformData, using defaults";
-			t = TransformData::getDefault();
 		}
 		TransformNode::setAnchorPoint(t.anchor);
 		setTranslation(t.position);

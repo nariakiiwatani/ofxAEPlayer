@@ -4,10 +4,6 @@
 
 namespace ofx { namespace ae {
 
-/**
- * After Effects compatible blend modes
- * Basic implementation for essential blending operations
- */
 enum class BlendMode {
     NORMAL = 0,
     ADD = 1,
@@ -25,11 +21,6 @@ enum class BlendMode {
     EXCLUSION = 13
 };
 
-/**
- * RenderContext encapsulates all rendering parameters for a LayerSource.
- * This provides a clean interface for passing rendering state and enables
- * future extensions without breaking the LayerSource interface.
- */
 struct RenderContext {
 	struct Style {
 		ofFloatColor color{1,1,1,1};

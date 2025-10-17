@@ -82,11 +82,9 @@ public:
 		ret.first = json["frame"].get<int>();
 		ret.second.value = parse(json["value"]);
 		
-		// Parse interpolation data
 		if(json.contains("interpolation")) {
 			const auto &interp = json["interpolation"];
 			
-			// Parse interpolation types
 			if(interp.contains("inType")) {
 				std::string inType = interp["inType"].get<std::string>();
 				ret.second.interpolation.in_type = parseInterpolationType(inType);
@@ -96,7 +94,6 @@ public:
 				ret.second.interpolation.out_type = parseInterpolationType(outType);
 			}
 			
-			// Parse roving and continuous flags
 			if(interp.contains("roving")) {
 				ret.second.interpolation.roving = interp["roving"].get<bool>();
 			}
@@ -104,7 +101,6 @@ public:
 				ret.second.interpolation.continuous = interp["continuous"].get<bool>();
 			}
 			
-			// Parse temporal ease data
 			if(interp.contains("temporalEase")) {
 				const auto &tempEase = interp["temporalEase"];
 				if(tempEase.contains("inEase")) {
@@ -128,7 +124,6 @@ public:
 			}
 		}
 		
-		// Parse spatial tangents data
 		if(json.contains("spatialTangents")) {
 			const auto &spatialTangents = json["spatialTangents"];
 			if(spatialTangents.contains("inTangent") && spatialTangents["inTangent"].is_array()) {

@@ -11,18 +11,12 @@ struct TransformData {
 	float rotateZ;
 	float opacity;
 	
-	// Default constructor
 	TransformData()
 		: anchor(0.0f, 0.0f, 0.0f)
 		, position(0.0f, 0.0f, 0.0f)
 		, scale(1.0f, 1.0f, 1.0f)
 		, rotateZ(0.0f)
 		, opacity(1.0f) {}
-	
-	// Static default factory method
-	static TransformData getDefault() {
-		return TransformData();
-	}
 };
 class TransformProp : public PropertyGroup
 {

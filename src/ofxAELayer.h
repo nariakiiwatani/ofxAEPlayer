@@ -17,19 +17,10 @@ namespace ofx { namespace ae {
 
 class LayerSource;
 
-// Forward declaration for SourceResolver
-class SourceResolver;
-
 class Layer : public TransformNode, public ofBaseDraws, public ofBaseUpdates
 {
 public:
 	using SourceResolver = std::function<std::unique_ptr<LayerSource>(const ofJson &json, const std::filesystem::path& base_dir)>;
-
-private:
-	static std::vector<SourceResolver> resolvers_;
-
-public:
-	// Static methods for resolver registration
 	static void registerResolver(SourceResolver resolver);
 	static void clearResolvers();
 
@@ -75,12 +66,12 @@ private:
 	int in_, out_;
 	int current_frame_;
 
+	TransformProp transform_;
 	float opacity_=1;
 	BlendMode blendMode_;
 
-	TransformProp transform_;
-	
-	// Helper method for source resolution
+
+	static std::vector<SourceResolver> resolvers_;
 	std::unique_ptr<LayerSource> resolveSource(const ofJson& json, const std::filesystem::path& base_dir);
 };
 

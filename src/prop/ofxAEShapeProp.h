@@ -4,7 +4,6 @@
 
 namespace ofx { namespace ae {
 
-// Forward declaration for Visitor pattern
 class ShapeVisitor;
 
 struct ShapeDataBase {
@@ -16,11 +15,6 @@ struct EllipseData : public ShapeDataBase {
 	glm::vec2 size{0,0};
 	glm::vec2 position{0,0};
 	int direction{1}; // 1 = clockwise, -1 = counterclockwise
-
-	// Static default factory method
-	static EllipseData getDefault() {
-		return EllipseData();
-	}
 };
 
 struct RectangleData : public ShapeDataBase {
@@ -29,11 +23,6 @@ struct RectangleData : public ShapeDataBase {
 	glm::vec2 position{0,0};
 	float roundness{0};
 	int direction{1}; // 1 = clockwise, -1 = counterclockwise
-
-	// Static default factory method
-	static RectangleData getDefault() {
-		return RectangleData();
-	}
 };
 
 struct PolygonData : public ShapeDataBase {
@@ -47,11 +36,6 @@ struct PolygonData : public ShapeDataBase {
 	float outerRadius{100};
 	float innerRoundness{0};
 	float outerRoundness{0};
-	
-	// Static default factory method
-	static PolygonData getDefault() {
-		return PolygonData();
-	}
 };
 
 struct FillData : public ShapeDataBase {
@@ -61,11 +45,6 @@ struct FillData : public ShapeDataBase {
 	int rule{1}; // Fill rule
 	int blendMode{1};
 	int compositeOrder{1};
-
-	// Static default factory method
-	static FillData getDefault() {
-		return FillData();
-	}
 };
 
 struct StrokeData : public ShapeDataBase {
@@ -78,35 +57,17 @@ struct StrokeData : public ShapeDataBase {
 	float miterLimit{4};
 	int blendMode{1};
 	int compositeOrder{1};
-
-	// Static default factory method
-	static StrokeData getDefault() {
-		return StrokeData();
-	}
 };
 
 using ShapeData = std::vector<std::unique_ptr<ShapeDataBase>>;
-
-// Static method for ShapeData default
-namespace ShapeDataHelper {
-	static ShapeData getDefault() {
-		return ShapeData(); // Returns empty vector
-	}
-}
 
 struct GroupData : public ShapeDataBase {
 	void accept(ShapeVisitor& visitor) const override;
 	int blendMode{1};
 	ShapeData data{};
-
-	// Static default factory method
-	static GroupData getDefault() {
-		return GroupData();
-	}
 };
 
 
-// ShapeVisitor interface for Visitor pattern
 class ShapeVisitor {
 public:
 	virtual ~ShapeVisitor() = default;
