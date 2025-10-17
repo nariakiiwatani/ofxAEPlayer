@@ -270,41 +270,25 @@ KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyfram
     // Find the first keyframe with frame > target frame using efficient O(log n) lookup
     auto upper = keyframes.upper_bound(frame);
     
-    // If frame is before all keyframes, use first two keyframes for extrapolation
+    // If frame is before all keyframes, use first keyframe
     if (upper == keyframes.begin()) {
         auto first = keyframes.begin();
-        auto second = std::next(first);
         result.keyframe_a = &first->second;
-        result.keyframe_b = &second->second;
+        result.keyframe_b = &first->second;
         result.frame_a = first->first;
-        result.frame_b = second->first;
-        
-        // Calculate ratio (can be negative for extrapolation)
-        if (result.frame_b != result.frame_a) {
-            result.ratio = static_cast<float>(frame - result.frame_a) /
-                          static_cast<float>(result.frame_b - result.frame_a);
-        } else {
-            result.ratio = 0.0f;
-        }
+        result.frame_b = first->first;
+		result.ratio = 0.0f;
         return result;
     }
     
-    // If frame is after all keyframes, use last two keyframes for extrapolation
+    // If frame is after all keyframes, use last keyframe
     if (upper == keyframes.end()) {
         auto last = std::prev(keyframes.end());
-        auto second_last = std::prev(last);
-        result.keyframe_a = &second_last->second;
+        result.keyframe_a = &last->second;
         result.keyframe_b = &last->second;
-        result.frame_a = second_last->first;
+        result.frame_a = last->first;
         result.frame_b = last->first;
-        
-        // Calculate ratio (can be > 1.0 for extrapolation)
-        if (result.frame_b != result.frame_a) {
-            result.ratio = static_cast<float>(frame - result.frame_a) /
-                          static_cast<float>(result.frame_b - result.frame_a);
-        } else {
-            result.ratio = 0.0f;
-        }
+		result.ratio = 0.0f;
         return result;
     }
     

@@ -32,6 +32,7 @@ public:
 	bool setup(const ofJson &json, const std::filesystem::path &base_dir);
 	bool setFrame(int frame);
 	void update() override;
+	using ofBaseDraws::draw;
 	void draw(float x, float y, float w, float h) const override;
 	float getHeight() const override;
 	float getWidth() const override;

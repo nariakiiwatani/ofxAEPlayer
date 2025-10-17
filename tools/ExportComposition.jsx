@@ -1099,10 +1099,11 @@ var PROPERTY_MAPPING_CONFIG = {
             var markerValue = markers.keyValue(i);
             var frame = Math.floor(time * fps) - offsetFrame;
             var lengthFrames = Math.floor(markerValue.duration * fps);
+            var comment = markerValue.comment ? markerValue.comment.replace(/[\r\n]+/g, '\n') : "";
             
             var markerInfo = {
                 frame: frame,
-                comment: markerValue.comment || "",
+                comment: comment,
                 length: lengthFrames
             };
             
