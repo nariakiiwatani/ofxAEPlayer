@@ -12,6 +12,7 @@
 #include "ofxAELayerSource.h"
 #include "TransformNode.h"
 #include "Hierarchical.h"
+#include "ofxAEContentVisitor.h"
 
 namespace ofx { namespace ae {
 
@@ -25,6 +26,7 @@ public:
 	static void clearResolvers();
 
 	Layer();
+	void accept(ContentVisitor &visitor) { visitor.visit(*this); }
 
 	bool load(const std::string& base_dir);
 	bool setup(const ofJson& json, const std::filesystem::path &source_dir="");

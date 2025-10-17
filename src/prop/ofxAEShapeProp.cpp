@@ -26,6 +26,10 @@ void GroupData::accept(ShapeVisitor& visitor) const {
 	visitor.visit(*this);
 }
 
+void ShapeData::accept(ShapeVisitor& visitor) const {
+	visitor.visit(*this);
+}
+
 GroupProp::GroupProp() {
 	registerProperty<IntProp>("/blendMode");
 	registerProperty<ShapeProp>("/shape");

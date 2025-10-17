@@ -6,6 +6,7 @@
 #include "ofxAERenderContext.h"
 #include <string>
 #include <memory>
+#include "ofxAEContentVisitor.h"
 
 namespace ofx { namespace ae {
 
@@ -29,6 +30,8 @@ public:
     };
 
 	virtual ~LayerSource() = default;
+
+	virtual void accept(ContentVisitor &visitor) { visitor.visit(*this); }
 
 	virtual bool setup(const ofJson &json) { return false; }
 	virtual bool load(const std::filesystem::path &filepath) { return setup(ofLoadJson(filepath)); }

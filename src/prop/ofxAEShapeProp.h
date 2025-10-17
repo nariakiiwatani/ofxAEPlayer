@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofxAEProperty.h"
+#include "ofxAEContentVisitor.h"
 
 namespace ofx { namespace ae {
 
@@ -59,16 +60,17 @@ struct StrokeData : public ShapeDataBase {
 	int compositeOrder{1};
 };
 
-using ShapeData = std::vector<std::unique_ptr<ShapeDataBase>>;
-
-struct GroupData : public ShapeDataBase {
+struct ShapeData : public ShapeDataBase {
+	void accept(ShapeVisitor& visitor) const override;
+	std::vector<std::unique_ptr<ShapeDataBase>> data{};
+};
+struct GroupData : public ShapeData {
 	void accept(ShapeVisitor& visitor) const override;
 	int blendMode{1};
-	ShapeData data{};
 };
 
 
-class ShapeVisitor {
+class ShapeVisitor : public ContentVisitor {
 public:
 	virtual ~ShapeVisitor() = default;
 	virtual void visit(const EllipseData& ellipse) = 0;
@@ -76,7 +78,16 @@ public:
 	virtual void visit(const PolygonData& polygon) = 0;
 	virtual void visit(const FillData& fill) = 0;
 	virtual void visit(const StrokeData& stroke) = 0;
-	virtual void visit(const GroupData& group) = 0;
+	virtual void visit(const GroupData& group) {
+		for (auto &&shapePtr : group.data) {
+			shapePtr->accept(*this);
+		}
+	}
+	virtual void visit(const ShapeData& shape) {
+		for (auto &&shapePtr : shape.data) {
+			shapePtr->accept(*this);
+		}
+	}
 };
 
 class EllipseProp : public PropertyGroup
@@ -359,7 +370,8 @@ public:
 	ShapeProp() {
 		registerExtractor<ShapeData>([this](ShapeData& t) -> bool {
 			try {
-				t.clear();
+				auto &data = t.data;
+				data.clear();
 				for (const auto& prop : properties_) {
 					if (auto ellipseProp = dynamic_cast<const EllipseProp*>(prop.get())) {
 						auto ellipse = std::make_unique<EllipseData>();
@@ -367,7 +379,7 @@ public:
 							ofLogWarning("PropertyExtraction") << "Failed to extract EllipseData, skipping";
 							continue; // Skip this shape component
 						}
-						t.push_back(std::move(ellipse));
+						data.push_back(std::move(ellipse));
 					}
 					else if (auto rectProp = dynamic_cast<const RectangleProp*>(prop.get())) {
 						auto rectangle = std::make_unique<RectangleData>();
@@ -375,7 +387,7 @@ public:
 							ofLogWarning("PropertyExtraction") << "Failed to extract RectangleData, skipping";
 							continue; // Skip this shape component
 						}
-						t.push_back(std::move(rectangle));
+						data.push_back(std::move(rectangle));
 					}
 					else if (auto fillProp = dynamic_cast<const FillProp*>(prop.get())) {
 						auto fill = std::make_unique<FillData>();
@@ -383,7 +395,7 @@ public:
 							ofLogWarning("PropertyExtraction") << "Failed to extract FillData, skipping";
 							continue; // Skip this shape component
 						}
-						t.push_back(std::move(fill));
+						data.push_back(std::move(fill));
 					}
 					else if (auto strokeProp = dynamic_cast<const StrokeProp*>(prop.get())) {
 						auto stroke = std::make_unique<StrokeData>();
@@ -391,7 +403,7 @@ public:
 							ofLogWarning("PropertyExtraction") << "Failed to extract StrokeData, skipping";
 							continue; // Skip this shape component
 						}
-						t.push_back(std::move(stroke));
+						data.push_back(std::move(stroke));
 					}
 					else if (auto polygonProp = dynamic_cast<const PolygonProp*>(prop.get())) {
 						auto polygon = std::make_unique<PolygonData>();
@@ -399,7 +411,7 @@ public:
 							ofLogWarning("PropertyExtraction") << "Failed to extract PolygonData, skipping";
 							continue; // Skip this shape component
 						}
-						t.push_back(std::move(polygon));
+						data.push_back(std::move(polygon));
 					}
 					else if (auto groupProp = dynamic_cast<const GroupProp*>(prop.get())) {
 						auto group = std::make_unique<GroupData>();
@@ -407,7 +419,7 @@ public:
 							ofLogWarning("PropertyExtraction") << "Failed to extract GroupData, skipping";
 							continue; // Skip this shape component
 						}
-						t.push_back(std::move(group));
+						data.push_back(std::move(group));
 					}
 				}
 				return true;

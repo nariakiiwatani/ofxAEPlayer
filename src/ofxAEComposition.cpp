@@ -107,10 +107,8 @@ const Composition::Info& Composition::getInfo() const {
 }
 
 std::shared_ptr<Layer> Composition::getLayer(const std::string &name) const {
-	for (const auto &layer : layers_) {
-		if (layer && layer->getName() == name) {
-			return layer;
-		}
+	for(auto &&[n,l] : name_layers_map_) {
+		if(n == name) return l.lock();
 	}
 	return nullptr;
 }

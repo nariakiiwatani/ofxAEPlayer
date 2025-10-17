@@ -31,6 +31,10 @@ struct Context : public ShapeVisitor {
 			auto p = path;
 			ofFloatColor c = fill.color;
 			c.a = fill.opacity*alpha;
+			switch(fill.rule) {
+				case 1: p.setPolyWindingMode(OF_POLY_WINDING_NONZERO);
+				case 2: p.setPolyWindingMode(OF_POLY_WINDING_ODD);
+			}
 			p.setFillColor(c);
 			p.setFilled(true);
 			p.setStrokeWidth(0);
@@ -227,6 +231,11 @@ bool ShapeSource::setFrame(int frame) {
     return shape_props_.setFrame(frame);
 }
 
+bool ShapeSource::tryExtract(ShapeData &dst) const
+{
+	return shape_props_.tryExtract(dst);
+}
+
 void ShapeSource::draw(float x, float y, float w, float h) const {
     try {
         ShapeData data;
@@ -235,7 +244,7 @@ void ShapeSource::draw(float x, float y, float w, float h) const {
         }
         
 		renderer::Context context(RenderContext::getCurrentStyle().color.a);
-        for (const auto& shapePtr : data) {
+        for (const auto& shapePtr : data.data) {
             if (shapePtr) {
                 shapePtr->accept(context);
             }
@@ -254,7 +263,7 @@ float ShapeSource::getWidth() const {
     }
     
     float maxWidth = 0.0f;
-    for (const auto& shapePtr : data) {
+    for (const auto& shapePtr : data.data) {
         if (!shapePtr) continue;
         
         if (auto ellipse = dynamic_cast<const EllipseData*>(shapePtr.get())) {
@@ -278,7 +287,7 @@ float ShapeSource::getHeight() const {
     }
     
     float maxHeight = 0.0f;
-    for (const auto& shapePtr : data) {
+    for (const auto& shapePtr : data.data) {
         if (!shapePtr) continue;
         
         if (auto ellipse = dynamic_cast<const EllipseData*>(shapePtr.get())) {
