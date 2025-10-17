@@ -8,9 +8,53 @@
 
 namespace ofx { namespace ae {
 
-// ========================================================================
-// Constructor & Destructor
-// ========================================================================
+namespace {
+std::vector<Layer::SourceResolver> BUILTIN_RESOLVERS = {
+	[](const ofJson& json, const std::filesystem::path& base_dir) -> std::unique_ptr<LayerSource> {
+		std::string sourceType = json.value("sourceType", "none");
+		auto source = LayerSource::createSourceOfType(sourceType);
+
+		if (!source) {
+			ofLogWarning("SourceTypeResolver") << "No source created for sourceType: " << sourceType;
+			return nullptr;
+		}
+
+		if (json.contains("source") && json["source"].is_string()) {
+			std::string sourcePath = json["source"].get<std::string>();
+			if (!source->load(base_dir / sourcePath)) {
+				ofLogWarning("SourceTypeResolver") << "Failed to load source: " << sourcePath;
+				return nullptr;
+			}
+		}
+
+		return source;
+	},
+	[](const ofJson& json, const std::filesystem::path& base_dir) -> std::unique_ptr<LayerSource> {
+		auto source = LayerSource::createSourceOfType("shape");
+		if (!source) {
+			ofLogError("ShapeResolver") << "Failed to create shape source";
+			return nullptr;
+		}
+
+		if (!source->setup(json)) {
+			ofLogError("ShapeResolver") << "Failed to setup shape source";
+			return nullptr;
+		}
+
+		return source;
+	}
+};
+}
+
+std::vector<Layer::SourceResolver> Layer::resolvers_;
+
+void Layer::registerResolver(SourceResolver resolver) {
+	resolvers_.push_back(resolver);
+}
+
+void Layer::clearResolvers() {
+	resolvers_.clear();
+}
 
 Layer::Layer()
 : TransformNode()
@@ -23,6 +67,21 @@ Layer::Layer()
 }
 
 
+std::unique_ptr<LayerSource> Layer::resolveSource(const ofJson& json, const std::filesystem::path& base_dir)
+{
+	std::vector<SourceResolver> resolvers = BUILTIN_RESOLVERS;
+	std::copy(resolvers_.begin(), resolvers_.end(), std::back_inserter(resolvers));
+
+	for(const auto& resolver : resolvers) {
+		if(auto source = resolver(json, base_dir)) {
+			return source;
+		}
+	}
+	
+	ofLogVerbose("Layer") << "No resolver could handle source for layer: " << name_;
+	return nullptr;
+}
+
 bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 #define EXTRACT(n) json::extract(json, #n, n)
 #define EXTRACT_(n) json::extract(json, #n, n##_)
@@ -34,29 +93,12 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 		transform_.setup(json["transform"], kf);
 	}
 
-    std::string sourceType = "unknown";
-	if(EXTRACT(sourceType)) {
-		auto source = LayerSource::createSourceOfType(sourceType);
-		if (!source) {
-			ofLogWarning("Layer") << "No source created for layer: " << name_;
-		} else {
-			setSource(std::move(source));
-			if (json.contains("source") && json["source"].is_string()) {
-				std::string sourcePath = json["source"].get<std::string>();
-				source_->load(base_dir / sourcePath);
-			}
-		}
-	}
-	else if(json.contains("shape")) {
-		auto source = LayerSource::createSourceOfType("shape");
-		if (source) {
-			// Setup the shape source with the complete JSON data
-			if (source->setup(json)) {
-				setSource(std::move(source));
-			} else {
-				ofLogError("Layer") << "Failed to setup shape source for layer: " << name_;
-			}
-		}
+	// Use resolver chain to create source
+	auto source = resolveSource(json, base_dir);
+	if (source) {
+		setSource(std::move(source));
+	} else {
+		ofLogVerbose("Layer") << "No source resolved for layer: " << name_;
 	}
 
 	current_frame_ = -1;

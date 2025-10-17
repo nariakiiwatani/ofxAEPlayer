@@ -2,9 +2,9 @@
 #include "ofxAESolidSource.h"
 #include "ofxAECompositionSource.h"
 #include "ofxAEShapeSource.h"
-#include "media/ofxAEStillSource.h"
-#include "media/ofxAEVideoSource.h"
-#include "media/ofxAESequenceSource.h"
+#include "ofxAEStillSource.h"
+#include "ofxAEVideoSource.h"
+#include "ofxAESequenceSource.h"
 #include "ofLog.h"
 
 namespace ofx { namespace ae {

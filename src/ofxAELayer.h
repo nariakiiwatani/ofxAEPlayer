@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <string>
 #include <memory>
+#include <vector>
 #include "ofGraphicsBaseTypes.h"
 #include "ofJson.h"
 #include "ofxAEMarker.h"
@@ -16,9 +17,21 @@ namespace ofx { namespace ae {
 
 class LayerSource;
 
+// Forward declaration for SourceResolver
+class SourceResolver;
+
 class Layer : public TransformNode, public ofBaseDraws, public ofBaseUpdates
 {
 public:
+	using SourceResolver = std::function<std::unique_ptr<LayerSource>(const ofJson &json, const std::filesystem::path& base_dir)>;
+
+private:
+	static std::vector<SourceResolver> resolvers_;
+
+public:
+	// Static methods for resolver registration
+	static void registerResolver(SourceResolver resolver);
+	static void clearResolvers();
 
 	Layer();
 
@@ -66,6 +79,9 @@ private:
 	BlendMode blendMode_;
 
 	TransformProp transform_;
+	
+	// Helper method for source resolution
+	std::unique_ptr<LayerSource> resolveSource(const ofJson& json, const std::filesystem::path& base_dir);
 };
 
 }} // namespace ofx::ae

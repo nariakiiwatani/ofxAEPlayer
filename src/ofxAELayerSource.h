@@ -21,14 +21,11 @@ public:
         ADJUSTMENT,   // Adjustment layers (effects only)
         TEXT,         // Text layers with typography
         NULL_OBJECT,  // Null objects for hierarchy/parenting
-        
-        // New media source types
         STILL,        // Still images via TexturePlayer
         VIDEO,        // Video files via ofVideoPlayer
         SEQUENCE,     // Image sequences via SequencePlayer
-        
- UNKNOWN,
- NUM_TYPES
+		 UNKNOWN,
+		 NUM_TYPES
     };
 
 	virtual ~LayerSource() = default;
