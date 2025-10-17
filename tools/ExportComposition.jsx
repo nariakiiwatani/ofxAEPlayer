@@ -1530,7 +1530,7 @@ var PROPERTY_MAPPING_CONFIG = {
                     case "still":
                     case "video":
                     case "audio":
-                        source = layer.source.mainSource.name;
+                        source = layer.source.mainSource.file.name;
                         break;
                     default:
                         debugLog("extractPropertiesForAllLayers", "Unknown source type for layer: " + layer.name, { matchName: layer.matchName }, "warning");
