@@ -32,8 +32,8 @@ struct Context : public ShapeVisitor {
 			ofFloatColor c = fill.color;
 			c.a = fill.opacity*alpha;
 			switch(fill.rule) {
-				case 1: p.setPolyWindingMode(OF_POLY_WINDING_NONZERO);
-				case 2: p.setPolyWindingMode(OF_POLY_WINDING_ODD);
+				case 1: p.setPolyWindingMode(OF_POLY_WINDING_NONZERO); break;
+				case 2: p.setPolyWindingMode(OF_POLY_WINDING_ODD); break;
 			}
 			p.setFillColor(c);
 			p.setFilled(true);
@@ -109,35 +109,54 @@ private:
 	void appendCommand(std::function<void()> fn) { work.top().command.push_back(fn); }
 	void prependCommand(std::function<void()> fn) { work.top().command.push_front(fn); }
 
-	// Helper methods for creating paths from shape data
-	ofPath createEllipsePath(const EllipseData &ellipse) {
-		ofPath path;
-		float ellipseX = ellipse.position.x - ellipse.size.x * 0.5f;
-		float ellipseY = ellipse.position.y - ellipse.size.y * 0.5f;
-		path.ellipse(ellipseX + ellipse.size.x * 0.5f, ellipseY + ellipse.size.y * 0.5f, ellipse.size.x, ellipse.size.y);
-		
-		if (ellipse.direction < 0) {
-			path = reversePath(path);
+	static float signedArea(const ofPolyline& pl){
+		const auto& v = pl.getVertices();
+		if(v.size() < 3) return 0.f;
+		double a = 0.0;
+		for(size_t i=0, j=v.size()-1; i<v.size(); j=i++){
+			a += (double)v[j].x * v[i].y - (double)v[i].x * v[j].y;
 		}
-		return path;
+		return (float)(0.5 * a); // >0 ならCCW
 	}
-	
-	ofPath createRectanglePath(const RectangleData &rectangle) {
-		ofPath path;
-		float rectX = rectangle.position.x - rectangle.size.x * 0.5f;
-		float rectY = rectangle.position.y - rectangle.size.y * 0.5f;
-		
-		if (rectangle.roundness > 0) {
-			path.rectRounded(rectX, rectY, rectangle.size.x, rectangle.size.y, rectangle.roundness);
-		} else {
-			path.rectangle(rectX, rectY, rectangle.size.x, rectangle.size.y);
+
+	static ofPath enforceWinding(const ofPath& src, int direction){
+		int desiredSign = 1;
+		switch(direction){
+		  case 2: desiredSign = 1; break;
+		  case 3: desiredSign = -1; break;
 		}
-		
-		if (rectangle.direction < 0) {
-			path = reversePath(path);
+		ofPath out;
+		out.setMode(src.getMode());
+		out.setCurveResolution(src.getCurveResolution());
+		for(const auto& poly : src.getOutline()){
+			auto v = poly.getVertices();
+			if(v.size() < 3) continue;
+			bool ccw = signedArea(poly) > 0;
+			if((ccw ? +1 : -1) != desiredSign){
+				std::reverse(v.begin(), v.end());
+			}
+			out.moveTo(v[0]);
+			for(size_t i=1;i<v.size();++i) out.lineTo(v[i]);
+			out.close();
 		}
-		return path;
+		return out;
 	}
+	ofPath createEllipsePath(const EllipseData &e){
+		ofPath path;
+		const float cx=e.position.x, cy=e.position.y;
+		path.ellipse(cx, cy, e.size.x, e.size.y);
+		return enforceWinding(path, e.direction);
+	}
+
+	ofPath createRectanglePath(const RectangleData &r){
+		ofPath path;
+		float x=r.position.x - r.size.x*0.5f;
+		float y=r.position.y - r.size.y*0.5f;
+		if(r.roundness>0) path.rectRounded(x,y,r.size.x,r.size.y,r.roundness);
+		else              path.rectangle(x,y,r.size.x,r.size.y);
+		return enforceWinding(path, r.direction);
+	}
+
 	
 	ofPath createPolygonPath(const PolygonData &polygon) {
 		ofPath path;
@@ -177,30 +196,8 @@ private:
 		}
 		path.close();
 		
-		if (polygon.direction < 0) {
-			path = reversePath(path);
-		}
+		path = enforceWinding(path, polygon.direction);
 		return path;
-	}
-	
-	ofPath reversePath(const ofPath &path) {
-		ofPath reversedPath;
-		const auto& outlines = path.getOutline();
-		
-		for (const auto& outline : outlines) {
-			if (outline.size() < 2) continue;
-			
-			auto vertices = outline.getVertices();
-			if (vertices.empty()) continue;
-			
-			reversedPath.moveTo(vertices.back());
-			for (int i = vertices.size() - 2; i >= 0; i--) {
-				reversedPath.lineTo(vertices[i]);
-			}
-			reversedPath.close();
-		}
-		
-		return reversedPath;
 	}
 };
 }
