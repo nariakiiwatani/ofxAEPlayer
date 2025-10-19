@@ -76,12 +76,6 @@ var PROPERTY_MAPPING_CONFIG = {
     "ADBE Vector Scale": {
         wrapInObject: "scale"
     },
-    "ADBE Vector Skew": {
-        wrapInObject: "skew"
-    },
-    "ADBE Vector Skew Axis": {
-        wrapInObject: "skewAxis"
-    },
     "ADBE Vector Rotation": {
         wrapInObject: "rotateZ"
     },
@@ -229,7 +223,10 @@ var PROPERTY_MAPPING_CONFIG = {
     "ADBE Effect Parade": { ignored: true },
     "ADBE Time Remapping": { ignored: true },
     "ADBE MTrackers": { ignored: true },
-    "ADBE Vector Materials Group": { ignored: true }
+    "ADBE Vector Materials Group": { ignored: true },
+    "ADBE Vector Skew": { ignored: true },
+    "ADBE Vector Skew Axis": { ignored: true }
+
 };
 
 
