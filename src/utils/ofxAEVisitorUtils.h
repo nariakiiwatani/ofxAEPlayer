@@ -62,12 +62,15 @@ private:
 
 class PathExtractionVisitor : public Visitor {
 public:
+	PathExtractionVisitor();
+	~PathExtractionVisitor()=default;
     void visit(const Layer& layer) override;
     void visit(const EllipseData& ellipse) override;
     void visit(const RectangleData& rectangle) override;
     void visit(const PolygonData& polygon) override;
     void visit(const FillData& fill) override;
     void visit(const StrokeData& stroke) override;
+	void visit(const GroupData& group) override;
 
     const std::deque<ofPath>& getPaths() const { return result_; }
 
@@ -75,20 +78,24 @@ public:
 
 protected:
     void applyTransform(ofPath& path) const;
-    void pushTransform(const TransformData& transform);
-    void popTransform();
 
 private:
     std::deque<ofPath> result_;
-	struct Transform {
-		ofMatrix4x4 mat;
-		float opacity;
-		Transform operator*(const TransformData &t) const {
-			return {mat*t.toOf(), opacity*t.opacity};
+	struct Context {
+		ofPath path{};
+		ofMatrix4x4 mat=ofMatrix4x4::newIdentityMatrix();
+		float opacity=1;
+
+		void transform(const TransformData &t) {
+			mat = t.toOf()*mat;
+			opacity = t.opacity*opacity;
 		}
 	};
-    std::stack<Transform> transform_;
-    ofPath path_;
+    std::stack<Context> ctx_;
+	void pushContext();
+	void popContext();
+	const Context& getContext() const;
+	Context& getContext();
 };
 
 template<typename T>

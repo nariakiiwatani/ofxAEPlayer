@@ -17,8 +17,8 @@ private:
 	
 	// Grid system for collision testing
 	std::vector<glm::vec2> gridPoints_;
-	int gridResolution_ = 15;
-	
+	int gridResolution_ = 20;
+
 	// Methods
 	void setupGrid();
 };

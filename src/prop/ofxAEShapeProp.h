@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofxAEProperty.h"
+#include "ofxAETransformProp.h"
 
 namespace ofx { namespace ae {
 
@@ -66,6 +67,7 @@ struct ShapeData : public ShapeDataBase {
 struct GroupData : public ShapeData {
 	void accept(Visitor& visitor) const override;
 	int blendMode{1};
+	TransformData transform;
 };
 
 class EllipseProp : public PropertyGroup
@@ -219,12 +221,6 @@ public:
 	}
 };
 
-class GroupProp : public PropertyGroup
-{
-public:
-	GroupProp();
-};
-
 class FillProp : public PropertyGroup
 {
 public:
@@ -345,93 +341,20 @@ public:
 class ShapeProp : public PropertyArray
 {
 public:
-	ShapeProp() {
-		registerExtractor<ShapeData>([this](ShapeData& t) -> bool {
-			try {
-				auto &data = t.data;
-				data.clear();
-				for (const auto& prop : properties_) {
-					if (auto ellipseProp = dynamic_cast<const EllipseProp*>(prop.get())) {
-						auto ellipse = std::make_unique<EllipseData>();
-						if (!ellipseProp->tryExtract(*ellipse)) {
-							ofLogWarning("PropertyExtraction") << "Failed to extract EllipseData, skipping";
-							continue; // Skip this shape component
-						}
-						data.push_back(std::move(ellipse));
-					}
-					else if (auto rectProp = dynamic_cast<const RectangleProp*>(prop.get())) {
-						auto rectangle = std::make_unique<RectangleData>();
-						if (!rectProp->tryExtract(*rectangle)) {
-							ofLogWarning("PropertyExtraction") << "Failed to extract RectangleData, skipping";
-							continue; // Skip this shape component
-						}
-						data.push_back(std::move(rectangle));
-					}
-					else if (auto fillProp = dynamic_cast<const FillProp*>(prop.get())) {
-						auto fill = std::make_unique<FillData>();
-						if (!fillProp->tryExtract(*fill)) {
-							ofLogWarning("PropertyExtraction") << "Failed to extract FillData, skipping";
-							continue; // Skip this shape component
-						}
-						data.push_back(std::move(fill));
-					}
-					else if (auto strokeProp = dynamic_cast<const StrokeProp*>(prop.get())) {
-						auto stroke = std::make_unique<StrokeData>();
-						if (!strokeProp->tryExtract(*stroke)) {
-							ofLogWarning("PropertyExtraction") << "Failed to extract StrokeData, skipping";
-							continue; // Skip this shape component
-						}
-						data.push_back(std::move(stroke));
-					}
-					else if (auto polygonProp = dynamic_cast<const PolygonProp*>(prop.get())) {
-						auto polygon = std::make_unique<PolygonData>();
-						if (!polygonProp->tryExtract(*polygon)) {
-							ofLogWarning("PropertyExtraction") << "Failed to extract PolygonData, skipping";
-							continue; // Skip this shape component
-						}
-						data.push_back(std::move(polygon));
-					}
-					else if (auto groupProp = dynamic_cast<const GroupProp*>(prop.get())) {
-						auto group = std::make_unique<GroupData>();
-						if (!groupProp->tryExtract(*group)) {
-							ofLogWarning("PropertyExtraction") << "Failed to extract GroupData, skipping";
-							continue; // Skip this shape component
-						}
-						data.push_back(std::move(group));
-					}
-				}
-				return true;
-			} catch (const std::exception& ex) {
-				return false;
-			}
-		});
-	}
-	
-	void setup(const ofJson &base, const ofJson &keyframes) override {
-		clear();
-
-		if (base.is_array()) {
-			for(int i = 0; i < base.size(); ++i) {
-				auto b = base[i];
-				if(b.is_null()) continue;
-				ofJson k = i < keyframes.size() ? keyframes[i] : ofJson{};
-				if(auto p = addPropertyForType(b["shapeType"])) {
-					p->setup(b, k);
-				}
-			}
-		}
-	}
+	ShapeProp();
+	virtual void setup(const ofJson &base, const ofJson &keyframes) override;
 
 private:
-	PropertyBase* addPropertyForType(std::string type) {
-		if (type == "ellipse") return addProperty<EllipseProp>();
-		if (type == "rectangle") return addProperty<RectangleProp>();
-		if (type == "fill") return addProperty<FillProp>();
-		if (type == "stroke") return addProperty<StrokeProp>();
-		if (type == "polygon") return addProperty<PolygonProp>();
-		if (type == "group") return addProperty<GroupProp>();
-		return nullptr;
-	}
+	PropertyBase* addPropertyForType(std::string type);
 };
+
+class GroupProp : public PropertyGroup
+{
+public:
+	GroupProp();
+	void setup(const ofJson &base, const ofJson &keyframes) override;
+};
+
+
 
 }}

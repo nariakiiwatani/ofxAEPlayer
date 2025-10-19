@@ -68,7 +68,7 @@ void ofApp::draw(){
 			return isHit(p,point);
 		});
 		ofSetColor(hit ? ofColor::red : ofColor::white);
-		ofDrawCircle(point.x, point.y, hit ? 10 : 5);
+		ofDrawCircle(point.x, point.y, hit ? 4 : 2);
 	}
 }
 

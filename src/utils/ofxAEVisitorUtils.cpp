@@ -4,34 +4,45 @@
 
 namespace ofx { namespace ae { namespace utils {
 
+PathExtractionVisitor::PathExtractionVisitor()
+{
+	pushContext();
+}
+
 void PathExtractionVisitor::visit(const Layer& layer) {
+	pushContext();
 	TransformData t;
 	if(layer.tryExtractTransform(t)) {
-		pushTransform(t);
-	} else {
-		pushTransform(TransformData());
+		getContext().transform(t);
 	}
 	Visitor::visit(layer);
-	popTransform();
+	popContext();
 }
 
 void PathExtractionVisitor::visit(const EllipseData& ellipse) {
-	path_.append(utils::ShapePathGenerator::createEllipsePath(ellipse));
+
+	auto p = utils::ShapePathGenerator::createEllipsePath(ellipse);
+	applyTransform(p);
+	getContext().path.append(p);
 	Visitor::visit(ellipse);
 }
 
 void PathExtractionVisitor::visit(const RectangleData& rectangle) {
-	path_.append(utils::ShapePathGenerator::createRectanglePath(rectangle));
+	auto p = utils::ShapePathGenerator::createRectanglePath(rectangle);
+	applyTransform(p);
+	getContext().path.append(p);
 	Visitor::visit(rectangle);
 }
 
 void PathExtractionVisitor::visit(const PolygonData& polygon) {
-	path_.append(utils::ShapePathGenerator::createPolygonPath(polygon));
+	auto p = utils::ShapePathGenerator::createPolygonPath(polygon);
+	applyTransform(p);
+	getContext().path.append(p);
 	Visitor::visit(polygon);
 }
 
 void PathExtractionVisitor::visit(const FillData& fill) {
-	ofPath p = path_;
+	ofPath p = getContext().path;
 
 	p.setFillColor(fill.color);
 	p.setFilled(true);
@@ -43,8 +54,6 @@ void PathExtractionVisitor::visit(const FillData& fill) {
 		default: p.setPolyWindingMode(OF_POLY_WINDING_NONZERO); break;
 	}
 
-	applyTransform(p);
-
 	if (fill.compositeOrder == 1) {
 		result_.push_front(p);
 	} else {
@@ -54,13 +63,11 @@ void PathExtractionVisitor::visit(const FillData& fill) {
 }
 
 void PathExtractionVisitor::visit(const StrokeData& stroke) {
-	ofPath p = path_;
+	ofPath p = getContext().path;
 
 	p.setStrokeColor(stroke.color);
 	p.setStrokeWidth(stroke.width);
 	p.setFilled(false);
-
-	applyTransform(p);
 
 	if (stroke.compositeOrder == 1) {
 		result_.push_front(p);
@@ -70,20 +77,28 @@ void PathExtractionVisitor::visit(const StrokeData& stroke) {
 	Visitor::visit(stroke);
 }
 
+void PathExtractionVisitor::visit(const GroupData& group) {
+	pushContext();
+	getContext().transform(group.transform);
+	Visitor::visit(group);
+	popContext();
+}
+
+
 void PathExtractionVisitor::clear() {
 	result_.clear();
-	path_.clear();
-	transform_ = std::stack<Transform>();
+	ctx_ = std::stack<Context>();
+	ctx_.push(Context());
 }
 
 void PathExtractionVisitor::applyTransform(ofPath& path) const {
-	if (transform_.empty()) return;
+	if (ctx_.empty()) return;
 
-	float opacity = transform_.top().opacity;
+	float opacity = getContext().opacity;
 	auto fc = path.getFillColor(); fc.a *= opacity; path.setFillColor(fc);
 	auto sc = path.getStrokeColor(); sc.a *= opacity; path.setStrokeColor(sc);
 
-	const ofMatrix4x4& transform = transform_.top().mat;
+	const ofMatrix4x4& transform = ctx_.top().mat;
 	if (transform.isIdentity()) {
 		return;
 	}
@@ -98,19 +113,29 @@ void PathExtractionVisitor::applyTransform(ofPath& path) const {
 	path.translate(trans);
 }
 
-void PathExtractionVisitor::pushTransform(const TransformData& t) {
-	if (transform_.empty()) {
-		transform_.push({t.toOf(), t.opacity});
-	} else {
-		transform_.push(transform_.top()*t);
+void PathExtractionVisitor::pushContext()
+{
+	if(ctx_.empty()) {
+		ctx_.push(Context{});
+	}
+	else {
+		Context new_top = getContext();
+		new_top.path.clear();
+		ctx_.push(new_top);
 	}
 }
-
-void PathExtractionVisitor::popTransform() {
-	if (transform_.size() > 1) {
-		transform_.pop();
-	}
-	// Always keep at least the identity transform
+void PathExtractionVisitor::popContext()
+{
+	auto path = getContext().path;
+	ctx_.pop();
+	getContext().path.append(path);
 }
-
+PathExtractionVisitor::Context& PathExtractionVisitor::getContext()
+{
+	return ctx_.top();
+}
+const PathExtractionVisitor::Context& PathExtractionVisitor::getContext() const
+{
+	return ctx_.top();
+}
 }}} // namespace ofx::ae::utils

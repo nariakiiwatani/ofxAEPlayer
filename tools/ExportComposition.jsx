@@ -64,6 +64,31 @@ var PROPERTY_MAPPING_CONFIG = {
         merge: {shapeType: "group"},
         preserveIndexes: true
     },
+    "ADBE Vector Transform Group": {
+        wrapInObject: "transform"
+    },
+    "ADBE Vector Anchor": {
+        wrapInObject: "anchor"
+    },
+    "ADBE Vector Position": {
+        wrapInObject: "position"
+    },
+    "ADBE Vector Scale": {
+        wrapInObject: "scale"
+    },
+    "ADBE Vector Skew": {
+        wrapInObject: "skew"
+    },
+    "ADBE Vector Skew Axis": {
+        wrapInObject: "skewAxis"
+    },
+    "ADBE Vector Rotation": {
+        wrapInObject: "rotateZ"
+    },
+    "ADBE Vector Group Opacity": {
+        wrapInObject: "opacity"
+    },
+
     "ADBE Vectors Group": {
         wrapInObject: "shape",
         preserveIndexes: true
@@ -203,7 +228,8 @@ var PROPERTY_MAPPING_CONFIG = {
     "ADBE Mask Parade": { ignored: true },
     "ADBE Effect Parade": { ignored: true },
     "ADBE Time Remapping": { ignored: true },
-    "ADBE MTrackers": { ignored: true }
+    "ADBE MTrackers": { ignored: true },
+    "ADBE Vector Materials Group": { ignored: true }
 };
 
 
