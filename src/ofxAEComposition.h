@@ -3,16 +3,16 @@
 #include "ofGraphicsBaseTypes.h"
 #include "ofJson.h"
 #include "ofxAEMarker.h"
-#include "ofxAEContentVisitor.h"
 
 namespace ofx { namespace ae {
 
+class Visitor;
 class Layer;
 
 class Composition : public ofBaseDraws, public ofBaseUpdates
 {
 public:
-	void accept(ContentVisitor &visitor) { visitor.visit(*this); }
+	void accept(Visitor& visitor);
 	struct Info {
 		int duration;
 		float fps;

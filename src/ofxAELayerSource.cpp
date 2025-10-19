@@ -5,6 +5,7 @@
 #include "ofxAEStillSource.h"
 #include "ofxAEVideoSource.h"
 #include "ofxAESequenceSource.h"
+#include "ofxAEVisitor.h"
 #include "ofLog.h"
 
 namespace ofx { namespace ae {
@@ -30,6 +31,10 @@ std::unique_ptr<LayerSource> LayerSource::createSourceOfType(SourceType type)
 //		case NULL_OBJECT: return "null";
 //		default: return "unknown";
 	}
+}
+
+void LayerSource::accept(Visitor& visitor) {
+	visitor.visit(*this);
 }
 
 }} // namespace ofx::ae

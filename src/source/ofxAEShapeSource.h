@@ -2,14 +2,15 @@
 
 #include "ofxAELayerSource.h"
 #include "ofxAEShapeProp.h"
-#include "ofxAEContentVisitor.h"
 
 namespace ofx { namespace ae {
+
+class Visitor;
 
 class ShapeSource : public LayerSource
 {
 public:
-	void accept(ContentVisitor &visitor) override { visitor.visit(*this); }
+	void accept(Visitor& visitor) override;
 
 	bool setup(const ofJson &json) override;
 	void update() override;

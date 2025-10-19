@@ -1,15 +1,17 @@
 #pragma once
 
-
 #include "ofxAELayerSource.h"
 #include "ofJson.h"
 #include "ofxAERenderContext.h"
 
 namespace ofx { namespace ae {
 
+class Visitor;
+
 class SolidSource : public LayerSource
 {
 public:
+	void accept(Visitor& visitor) override;
 	bool setup(const ofJson &json) override {
 		// TODO: error handling
 		size_.x = json["width"];

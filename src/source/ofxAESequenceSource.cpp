@@ -1,4 +1,5 @@
 #include "ofxAESequenceSource.h"
+#include "ofxAEVisitor.h"
 #include "ofLog.h"
 
 namespace ofx { namespace ae {
@@ -35,4 +36,9 @@ bool SequenceSource::setFrame(int frame)
 	texture_ = tex;
 	return true;
 }
+
+void SequenceSource::accept(Visitor& visitor) {
+	visitor.visit(*this);
+}
+
 }} // namespace ofx::ae

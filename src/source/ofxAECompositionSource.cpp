@@ -1,4 +1,5 @@
 #include "ofxAECompositionSource.h"
+#include "ofxAEVisitor.h"
 #include <sstream>
 
 namespace ofx { namespace ae {
@@ -54,6 +55,10 @@ std::string CompositionSource::getDebugInfo() const {
     }
     ss << "]";
     return ss.str();
+}
+
+void CompositionSource::accept(Visitor& visitor) {
+	visitor.visit(*this);
 }
 
 }}

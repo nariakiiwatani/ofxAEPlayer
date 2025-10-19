@@ -6,9 +6,10 @@
 #include "ofxAERenderContext.h"
 #include <string>
 #include <memory>
-#include "ofxAEContentVisitor.h"
 
 namespace ofx { namespace ae {
+
+class Visitor;
 
 class LayerSource : public ofBaseDraws, public ofBaseUpdates
 {
@@ -31,7 +32,7 @@ public:
 
 	virtual ~LayerSource() = default;
 
-	virtual void accept(ContentVisitor &visitor) { visitor.visit(*this); }
+	virtual void accept(Visitor& visitor);
 
 	virtual bool setup(const ofJson &json) { return false; }
 	virtual bool load(const std::filesystem::path &filepath) { return setup(ofLoadJson(filepath)); }
@@ -57,9 +58,9 @@ public:
             case ADJUSTMENT: return "adjustment";
             case TEXT: return "text";
             case NULL_OBJECT: return "null";
-            case STILL: return "still";      // NEW
-            case VIDEO: return "video";      // NEW
-            case SEQUENCE: return "sequence"; // NEW
+            case STILL: return "still";
+            case VIDEO: return "video";
+            case SEQUENCE: return "sequence";
             default: return "unknown";
         }
     }

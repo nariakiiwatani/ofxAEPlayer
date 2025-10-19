@@ -1,34 +1,33 @@
 #pragma once
 
 #include "ofxAEProperty.h"
-#include "ofxAEContentVisitor.h"
 
 namespace ofx { namespace ae {
 
-class ShapeVisitor;
+class Visitor;
 
 struct ShapeDataBase {
 	virtual ~ShapeDataBase() = default;
-	virtual void accept(ShapeVisitor& visitor) const = 0;
+	virtual void accept(Visitor& visitor) const = 0;
 };
 struct EllipseData : public ShapeDataBase {
-	void accept(ShapeVisitor& visitor) const override;
+	void accept(Visitor& visitor) const override;
 	glm::vec2 size{0,0};
 	glm::vec2 position{0,0};
-	int direction{1}; // 1 = clockwise, -1 = counterclockwise
+	int direction{1}; // 1 = defalt(clockwise) 2 = clockwise, 3 = counterclockwise
 };
 
 struct RectangleData : public ShapeDataBase {
-	void accept(ShapeVisitor& visitor) const override;
+	void accept(Visitor& visitor) const override;
 	glm::vec2 size{0,0};
 	glm::vec2 position{0,0};
 	float roundness{0};
-	int direction{1}; // 1 = clockwise, -1 = counterclockwise
+	int direction{1}; // 1 = defalt(clockwise) 2 = clockwise, 3 = counterclockwise
 };
 
 struct PolygonData : public ShapeDataBase {
-	void accept(ShapeVisitor& visitor) const override;
-	int direction{1};
+	void accept(Visitor& visitor) const override;
+	int direction{1}; // 1 = defalt(clockwise) 2 = clockwise, 3 = counterclockwise
 	int type{1}; // 1 = polygon, 2 = star
 	int points{5};
 	glm::vec2 position{0,0};
@@ -40,7 +39,7 @@ struct PolygonData : public ShapeDataBase {
 };
 
 struct FillData : public ShapeDataBase {
-	void accept(ShapeVisitor& visitor) const override;
+	void accept(Visitor& visitor) const override;
 	ofFloatColor color{1,1,1,1};
 	float opacity{1};
 	int rule{1}; // Fill rule
@@ -49,7 +48,7 @@ struct FillData : public ShapeDataBase {
 };
 
 struct StrokeData : public ShapeDataBase {
-	void accept(ShapeVisitor& visitor) const override;
+	void accept(Visitor& visitor) const override;
 	ofFloatColor color{1,1,1,1};
 	float opacity{1};
 	float width{1};
@@ -61,33 +60,12 @@ struct StrokeData : public ShapeDataBase {
 };
 
 struct ShapeData : public ShapeDataBase {
-	void accept(ShapeVisitor& visitor) const override;
+	void accept(Visitor& visitor) const override;
 	std::vector<std::unique_ptr<ShapeDataBase>> data{};
 };
 struct GroupData : public ShapeData {
-	void accept(ShapeVisitor& visitor) const override;
+	void accept(Visitor& visitor) const override;
 	int blendMode{1};
-};
-
-
-class ShapeVisitor : public ContentVisitor {
-public:
-	virtual ~ShapeVisitor() = default;
-	virtual void visit(const EllipseData& ellipse) = 0;
-	virtual void visit(const RectangleData& rectangle) = 0;
-	virtual void visit(const PolygonData& polygon) = 0;
-	virtual void visit(const FillData& fill) = 0;
-	virtual void visit(const StrokeData& stroke) = 0;
-	virtual void visit(const GroupData& group) {
-		for (auto &&shapePtr : group.data) {
-			shapePtr->accept(*this);
-		}
-	}
-	virtual void visit(const ShapeData& shape) {
-		for (auto &&shapePtr : shape.data) {
-			shapePtr->accept(*this);
-		}
-	}
 };
 
 class EllipseProp : public PropertyGroup

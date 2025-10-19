@@ -1,5 +1,6 @@
 #include "ofxAELayer.h"
 #include "ofxAEKeyframe.h"
+#include "ofxAEVisitor.h"
 #include "ofLog.h"
 #include "ofUtils.h"
 #include <fstream>
@@ -114,6 +115,12 @@ void Layer::update()
 	}
 }
 
+bool Layer::tryExtractTransform(TransformData &transform) const
+{
+	return transform_.tryExtract(transform);
+}
+
+
 bool Layer::setFrame(int frame)
 {
 	if(current_frame_ == frame) {
@@ -203,5 +210,9 @@ bool Layer::load(const std::string &filepath) {
 	ofJson json = ofLoadJson(filepath);
 	auto base_dir = ofFilePath::getEnclosingDirectory(filepath);
 	return setup(json, base_dir);
+}
+
+void Layer::accept(Visitor& visitor) {
+	visitor.visit(*this);
 }
 }} // namespace ofx::ae

@@ -1,5 +1,6 @@
 #include "ofxAEComposition.h"
 #include "ofxAELayer.h"
+#include "ofxAEVisitor.h"
 #include "ofLog.h"
 #include "ofUtils.h"
 #include <fstream>
@@ -115,5 +116,9 @@ std::shared_ptr<Layer> Composition::getLayer(const std::string &name) const {
 
 std::vector<std::shared_ptr<Layer>> Composition::getLayers() const {
 	return layers_;
+}
+
+void Composition::accept(Visitor& visitor) {
+	visitor.visit(*this);
 }
 }}

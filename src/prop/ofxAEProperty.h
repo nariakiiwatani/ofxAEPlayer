@@ -11,9 +11,13 @@
 
 namespace ofx { namespace ae {
 
+class Visitor;
+
 class PropertyBase
 {
 public:
+	virtual ~PropertyBase() = default;
+	virtual void accept(Visitor& visitor);
 	virtual bool hasAnimation() const { return false; }
 	virtual bool setFrame(int frame) { return false; }
 	virtual void setup(const ofJson &base, const ofJson &keyframes={}) {}
@@ -172,6 +176,7 @@ public:
 	class PropertyGroup : public PropertyBase
 	{
 	public:
+		void accept(Visitor& visitor) override;
 		template<typename T>
 		T* registerProperty(std::string key) {
 			auto result = props_.insert(std::make_pair(key, std::make_unique<T>()));
@@ -219,6 +224,7 @@ public:
 	class PropertyArray : public PropertyBase
 	{
 	public:
+		void accept(Visitor& visitor) override;
 		void clear() { properties_.clear(); }
 		template<typename T>
 		T* addProperty() {

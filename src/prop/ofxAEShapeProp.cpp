@@ -1,32 +1,33 @@
 #include "ofxAEShapeProp.h"
+#include "ofxAEVisitor.h"
 
 namespace ofx { namespace ae {
 
-void EllipseData::accept(ShapeVisitor& visitor) const {
+void EllipseData::accept(Visitor& visitor) const {
 	visitor.visit(*this);
 }
 
-void RectangleData::accept(ShapeVisitor& visitor) const {
+void RectangleData::accept(Visitor& visitor) const {
 	visitor.visit(*this);
 }
 
-void PolygonData::accept(ShapeVisitor& visitor) const {
+void PolygonData::accept(Visitor& visitor) const {
 	visitor.visit(*this);
 }
 
-void FillData::accept(ShapeVisitor& visitor) const {
+void FillData::accept(Visitor& visitor) const {
 	visitor.visit(*this);
 }
 
-void StrokeData::accept(ShapeVisitor& visitor) const {
+void StrokeData::accept(Visitor& visitor) const {
 	visitor.visit(*this);
 }
 
-void GroupData::accept(ShapeVisitor& visitor) const {
+void GroupData::accept(Visitor& visitor) const {
 	visitor.visit(*this);
 }
 
-void ShapeData::accept(ShapeVisitor& visitor) const {
+void ShapeData::accept(Visitor& visitor) const {
 	visitor.visit(*this);
 }
 

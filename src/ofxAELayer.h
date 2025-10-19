@@ -12,7 +12,10 @@
 #include "ofxAELayerSource.h"
 #include "TransformNode.h"
 #include "Hierarchical.h"
-#include "ofxAEContentVisitor.h"
+
+namespace ofx { namespace ae {
+class Visitor;
+}}
 
 namespace ofx { namespace ae {
 
@@ -26,7 +29,7 @@ public:
 	static void clearResolvers();
 
 	Layer();
-	void accept(ContentVisitor &visitor) { visitor.visit(*this); }
+	void accept(Visitor& visitor);
 
 	bool load(const std::string& base_dir);
 	bool setup(const ofJson& json, const std::filesystem::path &source_dir="");
@@ -37,6 +40,8 @@ public:
 	void draw(float x, float y, float w, float h) const override;
 	float getHeight() const override;
 	float getWidth() const override;
+
+	bool tryExtractTransform(TransformData &transform) const;
 
 	void setSource(std::unique_ptr<LayerSource> source);
 	LayerSource* getSource() const { return source_.get(); }
