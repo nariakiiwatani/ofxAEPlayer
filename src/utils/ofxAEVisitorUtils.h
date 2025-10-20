@@ -73,6 +73,7 @@ public:
 	void visit(const GroupData& group) override;
 
     const std::deque<ofPath>& getPaths() const { return result_; }
+	const ofPath& getPlainPath() const { return getContext().path; }
 
     void clear();
 
@@ -82,9 +83,17 @@ protected:
 private:
     std::deque<ofPath> result_;
 	struct Context {
-		ofPath path{};
-		ofMatrix4x4 mat=ofMatrix4x4::newIdentityMatrix();
-		float opacity=1;
+		ofPath path;
+		ofMatrix4x4 mat;
+		float opacity;
+		Context():
+			path{},
+			mat(ofMatrix4x4::newIdentityMatrix()),
+			opacity(1)
+		{
+			path.setStrokeWidth(0);
+			path.setFilled(false);
+		}
 
 		void transform(const TransformData &t) {
 			mat = t.toOf()*mat;

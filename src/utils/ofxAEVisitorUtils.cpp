@@ -46,7 +46,6 @@ void PathExtractionVisitor::visit(const FillData& fill) {
 
 	p.setFillColor(fill.color);
 	p.setFilled(true);
-	p.setStrokeWidth(0);
 
 	switch(fill.rule) {
 		case 1: p.setPolyWindingMode(OF_POLY_WINDING_NONZERO); break;
@@ -67,7 +66,6 @@ void PathExtractionVisitor::visit(const StrokeData& stroke) {
 
 	p.setStrokeColor(stroke.color);
 	p.setStrokeWidth(stroke.width);
-	p.setFilled(false);
 
 	if (stroke.compositeOrder == 1) {
 		result_.push_front(p);
