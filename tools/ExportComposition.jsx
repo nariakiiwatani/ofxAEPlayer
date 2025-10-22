@@ -506,36 +506,15 @@ function blendingModeToString(mode) {
         myPanel.grp.spacing = 10;
 
 
-        // オプショングループ
-        var optionGroup = myPanel.grp.add("group");
-        optionGroup.orientation = "column";
-        optionGroup.alignment = "fill";
+        // 1. 書出しパス
+        var outputLabelGroup = myPanel.grp.add("group");
+        outputLabelGroup.orientation = "row";
+        outputLabelGroup.alignment = "fill";
+        
+        var outputLabel = outputLabelGroup.add("statictext", undefined, "出力先:");
+        outputLabel.alignment = "left";
 
-        var topRow = optionGroup.add("group");
-        topRow.orientation = "row";
-        topRow.alignment = "fill";
-
-
-        var decimalPlacesGroup = topRow.add("group");
-        decimalPlacesGroup.orientation = "row";
-        decimalPlacesGroup.alignment = "right";
-
-        var decLabel = decimalPlacesGroup.add("statictext", undefined, "小数桁:");
-        var decimalPlacesText = decimalPlacesGroup.add("edittext", undefined, "4");
-        decimalPlacesText.name = "decimalPlacesText";
-        decimalPlacesText.preferredSize.width = 40;
-
-        var useKeyframeExtractionCheck = optionGroup.add("checkbox", undefined, "キーフレーム抽出を使用（推奨：高速で詳細な補間情報付き）");
-        useKeyframeExtractionCheck.name = "useKeyframeExtractionCheck";
-        useKeyframeExtractionCheck.value = true;
-        useKeyframeExtractionCheck.alignment = "left";
-
-        // 保存グループ
-        var saveGroup = myPanel.grp.add("group");
-        saveGroup.orientation = "column";
-        saveGroup.alignment = "fill";
-
-        var outputGroup = saveGroup.add("group");
+        var outputGroup = myPanel.grp.add("group");
         outputGroup.orientation = "row";
         outputGroup.alignment = "fill";
 
@@ -547,7 +526,8 @@ function blendingModeToString(mode) {
         var selectOutputFolderButton = outputGroup.add("button", undefined, "選択");
         selectOutputFolderButton.alignment = "right";
 
-        var assetGroup = saveGroup.add("group");
+        // 2. 共有アセット関連
+        var assetGroup = myPanel.grp.add("group");
         assetGroup.orientation = "column";
         assetGroup.alignment = "fill";
 
@@ -561,10 +541,13 @@ function blendingModeToString(mode) {
         sharedAssetsCheck.value = false;
         sharedAssetsCheck.alignment = "left";
 
-        // 共有アセットパス設定
+        // 共有アセットパス設定（インデント）
         var sharedAssetsPathGroup = assetGroup.add("group");
         sharedAssetsPathGroup.orientation = "row";
         sharedAssetsPathGroup.alignment = "fill";
+
+        var indentSpacer = sharedAssetsPathGroup.add("statictext", undefined, "");
+        indentSpacer.preferredSize.width = 20; // インデント用スペース
 
         var sharedAssetsLabel = sharedAssetsPathGroup.add("statictext", undefined, "共有アセットパス:");
         sharedAssetsLabel.preferredSize.width = 100;
@@ -577,6 +560,26 @@ function blendingModeToString(mode) {
         var selectSharedAssetsFolderButton = sharedAssetsPathGroup.add("button", undefined, "選択");
         selectSharedAssetsFolderButton.alignment = "right";
 
+        // 3. 小数桁（左揃え）
+        var decimalPlacesGroup = myPanel.grp.add("group");
+        decimalPlacesGroup.orientation = "row";
+        decimalPlacesGroup.alignment = "fill";
+
+        var decLabel = decimalPlacesGroup.add("statictext", undefined, "小数桁:");
+        var decimalPlacesText = decimalPlacesGroup.add("edittext", undefined, "4");
+        decimalPlacesText.name = "decimalPlacesText";
+        decimalPlacesText.preferredSize.width = 40;
+
+        // 4. フルフレーム関連
+        var optionGroup = myPanel.grp.add("group");
+        optionGroup.orientation = "column";
+        optionGroup.alignment = "fill";
+
+        var useFullFrameAnimationCheck = optionGroup.add("checkbox", undefined, "フルフレームアニメーションで書き出し");
+        useFullFrameAnimationCheck.name = "useFullFrameAnimationCheck";
+        useFullFrameAnimationCheck.value = false;
+        useFullFrameAnimationCheck.alignment = "left";
+
         // ボタングループ
         var buttonGroup = myPanel.grp.add("group");
         buttonGroup.orientation = "row";
@@ -585,8 +588,6 @@ function blendingModeToString(mode) {
         var executeButton = buttonGroup.add("button", undefined, "実行");
         executeButton.alignment = "fill";
 
-        var resetButton = buttonGroup.add("button", undefined, "デフォルトに戻す");
-        resetButton.alignment = "fill";
         
         var debugButton = buttonGroup.add("button", undefined, "Debug");
         debugButton.alignment = "fill";
@@ -594,9 +595,6 @@ function blendingModeToString(mode) {
         
         // デバッグパネルを作成
         var debugPanel = createDebugPanel(myPanel.grp);
-
-        // 設定を読み込み
-        loadSettings(myPanel.grp);
 
         selectOutputFolderButton.onClick = function(){
             var selectedFolder = Folder.selectDialog("出力先のフォルダを選択してください");
@@ -608,6 +606,9 @@ function blendingModeToString(mode) {
             saveSettings(myPanel.grp);
         };
         sharedAssetsPathGroup.enabled = false; // 初期状態は無効
+
+        // 設定を読み込み（onClickハンドラー設定後）
+        loadSettings(myPanel.grp);
 
         selectSharedAssetsFolderButton.onClick = function(){
             var selectedFolder = Folder.selectDialog("共有アセットの保存先フォルダを選択してください");
@@ -647,7 +648,7 @@ function blendingModeToString(mode) {
                     useSharedAssets: useSharedAssets,
                     sharedAssetsPath: sharedAssetsPath,
                     decimalPlaces: decPlaces,
-                    useKeyframeExtraction: useKeyframeExtractionCheck.value
+                    useFullFrameAnimation: useFullFrameAnimationCheck.value
                 };
                 extractPropertiesForAllLayers(app.project.activeItem, options);
 
@@ -662,9 +663,6 @@ function blendingModeToString(mode) {
             }
         };
 
-        resetButton.onClick = function(){
-            if (confirm("設定をデフォルトに戻しますか？\nこの操作は取り消せません。")) resetSettings(myPanel.grp);
-        };
         
         debugButton.onClick = function(){
             if (debugPanel) {
@@ -711,6 +709,10 @@ function blendingModeToString(mode) {
     }
     
     function loadSettings(parentGroup){
+        var sharedAssetsCheck = null;
+        var sharedAssetsPathGroup = null;
+        
+        // 設定値を読み込み
         traverseUIElements(parentGroup, function(child) {
             if (child.name && app.settings.haveSetting(SETTINGS_SECTION, child.name)){
                 var value = app.settings.getSetting(SETTINGS_SECTION, child.name);
@@ -721,36 +723,49 @@ function blendingModeToString(mode) {
                     if (!isNaN(index) && index >= 0 && index < child.items.length) child.selection = index;
                 }
             }
+            
+            // UI要素の参照を取得
+            if (child.name === 'sharedAssetsCheck') {
+                sharedAssetsCheck = child;
+            }
         });
+        
+        // sharedAssetsPathGroupを探す
+        traverseUIElements(parentGroup, function(child) {
+            if (child.children && child.children.length > 0) {
+                for (var i = 0; i < child.children.length; i++) {
+                    var grandChild = child.children[i];
+                    if (grandChild.name === 'sharedAssetsPathText') {
+                        sharedAssetsPathGroup = child;
+                        break;
+                    }
+                }
+            }
+        });
+        
+        // 設定読み込み後にUI連動を更新
+        if (sharedAssetsCheck && sharedAssetsPathGroup) {
+            sharedAssetsPathGroup.enabled = sharedAssetsCheck.value;
+        }
     }
     
     function addChangeEventListeners(parentGroup){
         traverseUIElements(parentGroup, function(child, parentGroup) {
             if (child.name){
-                if (child instanceof EditText) (function(c){ c.onChange = function(){ saveSettings(parentGroup); }; })(child);
-                else if (child instanceof Checkbox) (function(c){ c.onClick = function(){ saveSettings(parentGroup); }; })(child);
-                else if (child instanceof DropDownList) (function(c){ c.onChange = function(){ saveSettings(parentGroup); }; })(child);
+                if (child instanceof EditText) {
+                    (function(c){ c.onChange = function(){ saveSettings(parentGroup); }; })(child);
+                } else if (child instanceof Checkbox) {
+                    // sharedAssetsCheckは既に専用のonClickハンドラーがあるのでスキップ
+                    if (child.name !== 'sharedAssetsCheck') {
+                        (function(c){ c.onClick = function(){ saveSettings(parentGroup); }; })(child);
+                    }
+                } else if (child instanceof DropDownList) {
+                    (function(c){ c.onChange = function(){ saveSettings(parentGroup); }; })(child);
+                }
             }
         });
     }
     
-    function resetSettings(parentGroup){
-        traverseUIElements(parentGroup, function(child) {
-            if (child.name){
-                if (child instanceof EditText){
-                    if (child.name === 'decimalPlacesText') child.text = '4';
-                    else if (child.name === 'sharedAssetsPathText') child.text = 'shared_assets';
-                }else if (child instanceof Checkbox){
-                    if (child.name === 'sharedAssetsCheck') child.value = false;
-                    else child.value = false;
-                }else if (child instanceof DropDownList){
-                    child.selection = null;
-                }
-            }
-        });
-        saveSettings(parentGroup);
-        parentGroup.layout.layout(true);
-    }
 
     // ===== path util =====
     function getRelativePath(fromPath, toPath){
@@ -1422,7 +1437,7 @@ function blendingModeToString(mode) {
 
         var result;
         if (options.keyframes) {
-            if (options.useKeyframeExtraction) {
+            if (!options.useFullFrameAnimation) {
                 result = extractKeyframeBasedProperty(prop, inPoint, fps, DEC);
             } else {
                 result = extractAnimatedProperty(prop, inPoint, duration, fps, DEC);
@@ -1664,7 +1679,7 @@ function blendingModeToString(mode) {
                         useSharedAssets: options.useSharedAssets,
                         sharedAssetsPath: options.sharedAssetsPath,
                         decimalPlaces: DEC,
-                        useKeyframeExtraction: options.useKeyframeExtraction
+                        useFullFrameAnimation: options.useFullFrameAnimation
                     };
                     extractPropertiesForAllLayers(layer.source, nestedOptions);
                     break;
