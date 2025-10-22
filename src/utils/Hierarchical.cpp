@@ -39,4 +39,3 @@ void Hierarchical::dirty(unsigned int flag)
 }
 
 
-/* EOF */

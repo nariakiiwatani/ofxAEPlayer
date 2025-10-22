@@ -13,7 +13,6 @@ class SolidSource : public LayerSource
 public:
 	void accept(Visitor& visitor) override;
 	bool setup(const ofJson &json) override {
-		// TODO: error handling
 		size_.x = json["width"];
 		size_.y = json["height"];
 		color_.r = json["color"][0];

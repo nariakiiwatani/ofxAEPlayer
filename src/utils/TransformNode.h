@@ -1,5 +1,3 @@
-/*!
-*/
 #pragma once
 
 #include "ofMatrix4x4.h"
@@ -124,4 +122,3 @@ private:
 };
 
 
-/* EOF */

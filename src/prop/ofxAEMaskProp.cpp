@@ -3,14 +3,10 @@
 
 namespace ofx { namespace ae {
 
-// MaskAtomData implementation
 void MaskAtomData::accept(Visitor& visitor) const {
     visitor.visit(*this);
 }
 
-// PathShapeProp::parse() removed - using PathDataProp::parse() from ofxAEShapeProp.cpp instead
-
-// MaskAtomProp implementation
 MaskAtomProp::MaskAtomProp() {
     registerProperty<PathDataProp>("/shape");
     registerProperty<VecProp<2>>("/feather");
@@ -106,7 +102,6 @@ void MaskProp::setupMaskAtom(const ofJson &atomBase, const ofJson &atomKeyframes
     if (atomBase.contains("atom")) {
         const auto& atom = atomBase["atom"];
         
-        // Setup shape property
         ofJson shapeBase = atom.contains("shape") ? atom["shape"] : ofJson::object();
         ofJson shapeKeyframes = ofJson::object();
         
@@ -116,7 +111,6 @@ void MaskProp::setupMaskAtom(const ofJson &atomBase, const ofJson &atomKeyframes
         
         maskAtom->getProperty<PathDataProp>("/shape")->setup(shapeBase, shapeKeyframes);
         
-        // Setup other properties
         ofJson featherBase = atom.contains("feather") ? atom["feather"] : ofJson::array({0, 0});
         float opacityBase = atom.contains("opacity") ? atom["opacity"].get<float>() : 100.0f;
         float offsetBase = atom.contains("offset") ? atom["offset"].get<float>() : 0.0f;

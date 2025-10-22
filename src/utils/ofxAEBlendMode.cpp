@@ -13,6 +13,7 @@ void applyBlendMode(BlendMode mode) {
 		case BlendMode::LIGHTEN:  ofEnableBlendMode(OF_BLENDMODE_MAX);     return;
 		case BlendMode::DARKEN:   ofEnableBlendMode(OF_BLENDMODE_MIN);     return;
 
+		// TODO: Add support for additional blend modes beyond basic set
 		default:
 			ofEnableBlendMode(OF_BLENDMODE_ALPHA);
 			return;

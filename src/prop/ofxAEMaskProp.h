@@ -19,7 +19,6 @@ struct MaskAtomData {
     void accept(Visitor& visitor) const;
 };
 
-// PathShapeProp removed - using PathDataProp from ofxAEShapeProp.h instead
 
 class MaskAtomProp : public PropertyGroup
 {

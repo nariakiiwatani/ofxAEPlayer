@@ -92,13 +92,11 @@ ofPath MaskPath::toOfPath() const {
 		return path;
 	}
 	
-	// Start the path
 	path.moveTo(vertices[0].position);
 	
 	for (size_t i = 0; i < vertices.size(); ++i) {
 		size_t nextIndex = (i + 1) % vertices.size();
 		
-		// For closed paths, connect to next vertex; for open paths, stop at last vertex
 		if (!closed && nextIndex == 0) {
 			break;
 		}
@@ -106,20 +104,16 @@ ofPath MaskPath::toOfPath() const {
 		const glm::vec2& currentVertex = vertices[i].position;
 		const glm::vec2& nextVertex = vertices[nextIndex].position;
 		
-		// Get tangents for current and next vertices
 		glm::vec2 outTangent = vertices[i].outTangent;
 		glm::vec2 inTangent = vertices[nextIndex].inTangent;
 		
-		// Check if we need to create a curve or just a line
 		bool hasCurve = (glm::length(outTangent) > 0.001f || glm::length(inTangent) > 0.001f);
 		
 		if (hasCurve) {
-			// Create Bezier curve
 			glm::vec2 cp1 = currentVertex + outTangent;
 			glm::vec2 cp2 = nextVertex + inTangent;
 			path.bezierTo(cp1, cp2, nextVertex);
 		} else {
-			// Create straight line
 			path.lineTo(nextVertex);
 		}
 	}
@@ -164,7 +158,6 @@ void Mask::renderToFbo(ofFbo& target) const {
 void Mask::renderPath(const MaskPath& path) const {
 	if (path.getVertexCount() < 2) return;
 
-	// Use the new ofPath-based rendering for better Bezier curve support
 	ofPath pathObj = path.toOfPath();
 	pathObj.draw();
 }
@@ -180,9 +173,6 @@ void Mask::setFromMaskAtomData(const MaskAtomData& atomData) {
 }
 
 void Mask::applyFeather(ofFbo& target) const {
-	// Placeholder for feather implementation
-	// In a full implementation, this would apply gaussian blur
-	// based on the feather settings
 }
 
 ofRectangle Mask::getBounds() const {

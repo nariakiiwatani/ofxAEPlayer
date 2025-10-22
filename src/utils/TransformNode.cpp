@@ -1,6 +1,3 @@
-/*!
-*/
-
 #include "TransformNode.h"
 #include "ofGraphics.h"
 
@@ -447,4 +444,3 @@ void TransformNode::addAnchorPointZ(float z)
 
 
 
-/* EOF */

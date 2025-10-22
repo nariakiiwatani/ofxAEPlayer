@@ -191,13 +191,11 @@ void Layer::draw(float x, float y, float w, float h) const
 
 void Layer::updateLayerFBO(float w, float h)
 {
-	// Allocate FBOs if needed
 	if (layer_fbo_.getWidth() != w || layer_fbo_.getHeight() != h) {
 		layer_fbo_.allocate(w, h, GL_RGBA);
 		mask_fbo_.allocate(w, h, GL_RGBA);
 	}
 	
-	// Render source content to layer FBO
 	layer_fbo_.begin();
 	ofClear(0, 0, 0, 0);
 	if(source_) {
@@ -205,14 +203,11 @@ void Layer::updateLayerFBO(float w, float h)
 	}
 	layer_fbo_.end();
 	
-	// Render masks to mask FBO
 	mask_fbo_.begin();
 	ofPushStyle();
 	ofClear(0, 0, 0, 0);
 	ofSetColor(255, 255, 255, 255);
 	
-	// Render all masks - for now just additive blending
-	// TODO: Implement proper mask modes (Add, Subtract, Intersect, etc.)
 	for (const auto& mask : mask_collection_) {
 		ofPath maskPath = mask.toOfPath();
 		maskPath.setFilled(true);
@@ -225,7 +220,6 @@ void Layer::updateLayerFBO(float w, float h)
 	layer_fbo_.begin();
 	ofPushStyle();
 	glBlendFunc(GL_ZERO, GL_SRC_COLOR);
-//	ofEnableBlendMode(OF_BLENDMODE_SUBTRACT);
 	mask_fbo_.draw(0, 0);
 	ofPopStyle();
 	layer_fbo_.end();

@@ -47,16 +47,13 @@ struct PathData : public ShapeDataBase {
 	bool closed{true};
 	int direction{1}; // 1 = default(clockwise) 2 = clockwise, 3 = counterclockwise
 	
-	// Interpolation operators for keyframe animation
 	PathData operator+(const PathData& other) const;
 	PathData operator-(const PathData& other) const;
 	PathData operator*(float t) const;
 	
-	// Method to convert to ofPath for rendering
 	ofPath toOfPath() const;
 };
 
-// Specialized property class for PathData
 class PathDataProp : public Property<PathData>
 {
 public:
@@ -253,7 +250,6 @@ public:
 	PathProp() {
 		registerProperty<IntProp>("/direction");
 		
-		// Register a property for the path shape that supports keyframe animation
 		registerProperty<PathDataProp>("/shape");
 		
 		registerExtractor<PathData>([this](PathData& p) -> bool {
@@ -278,7 +274,6 @@ public:
 	void setup(const ofJson &base, const ofJson &keyframes) override {
 		PropertyGroup::setup(base, keyframes);
 		
-		// Setup the shape property with keyframe support
 		if (base.contains("shape")) {
 			auto shapeBase = base["shape"];
 			auto shapeKeyframes = keyframes.contains("shape") ? keyframes["shape"] : ofJson{};

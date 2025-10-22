@@ -3,7 +3,6 @@
 
 namespace ofx { namespace ae {
 
-// PathDataProp implementation
 PathData PathDataProp::parse(const ofJson& json) const {
     PathData pathData;
     
@@ -115,13 +114,11 @@ ofPath PathData::toOfPath() const {
 	size_t numInTangents = inTangents.size();
 	size_t numOutTangents = outTangents.size();
 	
-	// Start with the first vertex
 	path.moveTo(vertices[0]);
 	
 	for (size_t i = 0; i < numVertices; i++) {
 		size_t nextIndex = (i + 1) % numVertices;
 		
-		// If this is the last iteration and the path is not closed, break
 		if (!closed && nextIndex == 0) {
 			break;
 		}
@@ -129,23 +126,18 @@ ofPath PathData::toOfPath() const {
 		glm::vec2 currentVertex = vertices[i];
 		glm::vec2 nextVertex = vertices[nextIndex];
 		
-		// Get tangent vectors if available
 		glm::vec2 outTangent = (i < numOutTangents) ? outTangents[i] : glm::vec2(0, 0);
 		glm::vec2 inTangent = (nextIndex < numInTangents) ? inTangents[nextIndex] : glm::vec2(0, 0);
 		
-		// Control points for the Bezier curve
 		glm::vec2 cp1 = currentVertex + outTangent;
 		glm::vec2 cp2 = nextVertex + inTangent;
 		
-		// Check if we have actual curve data (non-zero tangents)
 		bool hasCurve = (outTangent.x != 0 || outTangent.y != 0 ||
 		                inTangent.x != 0 || inTangent.y != 0);
 		
 		if (hasCurve) {
-			// Create a Bezier curve
 			path.bezierTo(cp1, cp2, nextVertex);
 		} else {
-			// Straight line
 			path.lineTo(nextVertex);
 		}
 	}
@@ -172,7 +164,7 @@ ShapeProp::ShapeProp()
 					auto ellipse = std::make_unique<EllipseData>();
 					if (!ellipseProp->tryExtract(*ellipse)) {
 						ofLogWarning("PropertyExtraction") << "Failed to extract EllipseData, skipping";
-						continue; // Skip this shape component
+						continue;
 					}
 					data.push_back(std::move(ellipse));
 				}
@@ -180,7 +172,7 @@ ShapeProp::ShapeProp()
 					auto rectangle = std::make_unique<RectangleData>();
 					if (!rectProp->tryExtract(*rectangle)) {
 						ofLogWarning("PropertyExtraction") << "Failed to extract RectangleData, skipping";
-						continue; // Skip this shape component
+						continue;
 					}
 					data.push_back(std::move(rectangle));
 				}
@@ -188,7 +180,7 @@ ShapeProp::ShapeProp()
 					auto fill = std::make_unique<FillData>();
 					if (!fillProp->tryExtract(*fill)) {
 						ofLogWarning("PropertyExtraction") << "Failed to extract FillData, skipping";
-						continue; // Skip this shape component
+						continue;
 					}
 					data.push_back(std::move(fill));
 				}
@@ -196,7 +188,7 @@ ShapeProp::ShapeProp()
 					auto stroke = std::make_unique<StrokeData>();
 					if (!strokeProp->tryExtract(*stroke)) {
 						ofLogWarning("PropertyExtraction") << "Failed to extract StrokeData, skipping";
-						continue; // Skip this shape component
+						continue;
 					}
 					data.push_back(std::move(stroke));
 				}
@@ -204,7 +196,7 @@ ShapeProp::ShapeProp()
 					auto path = std::make_unique<PathData>();
 					if (!pathProp->tryExtract(*path)) {
 						ofLogWarning("PropertyExtraction") << "Failed to extract PathData, skipping";
-						continue; // Skip this shape component
+						continue;
 					}
 					data.push_back(std::move(path));
 				}
@@ -212,7 +204,7 @@ ShapeProp::ShapeProp()
 					auto polygon = std::make_unique<PolygonData>();
 					if (!polygonProp->tryExtract(*polygon)) {
 						ofLogWarning("PropertyExtraction") << "Failed to extract PolygonData, skipping";
-						continue; // Skip this shape component
+						continue;
 					}
 					data.push_back(std::move(polygon));
 				}
@@ -220,7 +212,7 @@ ShapeProp::ShapeProp()
 					auto group = std::make_unique<GroupData>();
 					if (!groupProp->tryExtract(*group)) {
 						ofLogWarning("PropertyExtraction") << "Failed to extract GroupData, skipping";
-						continue; // Skip this shape component
+						continue;
 					}
 					data.push_back(std::move(group));
 				}

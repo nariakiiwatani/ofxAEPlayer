@@ -1,6 +1,7 @@
 #include "ofxAEVisitorUtils.h"
 #include "ofxAELayer.h"
 #include "ofxAETransformProp.h"
+#include "ofxAEFillRule.h"
 
 namespace ofx { namespace ae { namespace utils {
 
@@ -54,11 +55,10 @@ void PathExtractionVisitor::visit(const FillData& fill) {
 	p.setFillColor(fill.color);
 	p.setFilled(true);
 
-	switch(fill.rule) {
-		case 1: p.setPolyWindingMode(OF_POLY_WINDING_NONZERO); break;
-		case 2: p.setPolyWindingMode(OF_POLY_WINDING_ODD); break;
-		default: p.setPolyWindingMode(OF_POLY_WINDING_NONZERO); break;
-	}
+	FillRule rule = static_cast<FillRule>(fill.rule);
+	ofPolyWindingMode mode = (rule == FillRule::EVEN_ODD) ?
+		OF_POLY_WINDING_ODD : OF_POLY_WINDING_NONZERO;
+	p.setPolyWindingMode(mode);
 
 	if (fill.compositeOrder == 1) {
 		result_.push_front(p);

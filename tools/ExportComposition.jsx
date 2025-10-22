@@ -314,6 +314,21 @@ function blendingModeToString(mode) {
     map[BlendingMode.LIGHTEN_COLOR_BURN] = "LIGHTEN_COLOR_BURN";
     return map.hasOwnProperty(mode) ? map[mode] : "UNKNOWN";
 }
+
+function windingDirectionToString(direction) {
+    var map = {};
+    map[1] = "DEFAULT";
+    map[2] = "COUNTER_CLOCKWISE";
+    map[3] = "CLOCKWISE";
+    return map.hasOwnProperty(direction) ? map[direction] : "DEFAULT";
+}
+
+function fillRuleToString(rule) {
+    var map = {};
+    map[1] = "NON_ZERO";
+    map[2] = "EVEN_ODD";
+    return map.hasOwnProperty(rule) ? map[rule] : "NON_ZERO";
+}
 (function(me){
     // polyfills
     if (typeof String.prototype.trim !== 'function') {

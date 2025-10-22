@@ -7,12 +7,12 @@
 namespace ofx { namespace ae {
 
 enum class MaskMode {
-	ADD,        // Add mask
-	SUBTRACT,   // Subtract mask
-	INTERSECT,  // Intersect mask
-	LIGHTEN,    // Lighten mask
-	DARKEN,     // Darken mask
-	DIFFERENCE  // Difference mask
+	ADD,
+	SUBTRACT,
+	INTERSECT,
+	LIGHTEN,
+	DARKEN,
+	DIFFERENCE
 };
 
 struct MaskFeather {
@@ -53,7 +53,6 @@ public:
 	glm::vec2 evaluateAt(float t) const;
 	void generatePolyline(ofPolyline& polyline, int resolution = 100) const;
 	
-	// Create from PathData
 	void setFromPathData(const PathData& pathData);
 	ofPath toOfPath() const;
 
@@ -86,7 +85,6 @@ public:
 	const MaskPath& getPath() const { return path; }
 	MaskPath& getPath() { return path; }
 	
-	// Set from MaskAtomData
 	void setFromMaskAtomData(const MaskAtomData& atomData);
 
 	void setExpansion(float expansion) { this->expansion = expansion; }
@@ -111,7 +109,6 @@ private:
 	void applyFeather(ofFbo& target) const;
 };
 
-// Mask collection for layers
 class MaskCollection {
 public:
 	MaskCollection();
@@ -129,7 +126,6 @@ public:
 
 	void renderCombined(ofFbo& target, int width, int height) const;
 	
-	// Setup from mask property data
 	void setupFromMaskProp(const MaskProp& maskProp);
 	bool empty() const { return masks.empty(); }
 	auto begin() const { return masks.begin(); }

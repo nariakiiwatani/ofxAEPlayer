@@ -12,7 +12,6 @@ void Visitor::visit(const Layer& layer) {
 	if (visit_sources_) {
 		const LayerSource* source = layer.getSource();
 		if (source) {
-			// Dispatch to specific source type
 			switch (source->getSourceType()) {
 				case LayerSource::SHAPE: {
 					if (const ShapeSource* shapeSource = dynamic_cast<const ShapeSource*>(source)) {
@@ -51,7 +50,6 @@ void Visitor::visit(const Layer& layer) {
 					break;
 				}
 				default:
-					// Visit as generic LayerSource for unknown types
 					visit(*source);
 					break;
 			}
@@ -92,7 +90,6 @@ void Visitor::visit(const ShapeSource& source) {
 void Visitor::visitChildren(const Composition& composition) {
     if (!visit_children_) return;
     
-    // Visit all layers in the composition
     auto layers = composition.getLayers();
     for (const auto& layer : layers) {
         visit(*layer);
@@ -102,7 +99,6 @@ void Visitor::visitChildren(const Composition& composition) {
 void Visitor::visitChildren(const ShapeSource& source) {
     if (!visit_children_) return;
     
-    // Extract shape data and visit if available
     ShapeData shapeData;
     if (source.tryExtract(shapeData)) {
         visit(shapeData);
@@ -110,18 +106,13 @@ void Visitor::visitChildren(const ShapeSource& source) {
 }
 
 void Visitor::visitChildren(const CompositionSource& source) {
-    // CompositionSource contains a nested composition
-    // This would require access to the internal composition, which may not be publicly accessible
-    // Implementation would depend on CompositionSource providing access to its composition
 }
 
 void Visitor::visitChildren(const ShapeData& shape) {
     if (!visit_children_) return;
     
-    // Visit all shape data elements
     for (const auto& shapePtr : shape.data) {
         if (shapePtr) {
-            // Dispatch to specific shape data type
             if (const EllipseData* ellipse = dynamic_cast<const EllipseData*>(shapePtr.get())) {
                 visit(*ellipse);
             }
@@ -148,24 +139,15 @@ void Visitor::visitChildren(const ShapeData& shape) {
 }
 
 void Visitor::visitChildren(const GroupData& group) {
-    // GroupData inherits from ShapeData, so delegate to ShapeData traversal
     visitChildren(static_cast<const ShapeData&>(group));
 }
 
 void Visitor::visitChildren(const PropertyGroup& group) {
     if (!visit_properties_ || !visit_children_) return;
-    
-    // PropertyGroup doesn't provide public access to its properties
-    // This would require extending PropertyGroup to provide iteration capabilities
-    // or making this visitor a friend class
 }
 
 void Visitor::visitChildren(const PropertyArray& array) {
     if (!visit_properties_ || !visit_children_) return;
-    
-    // PropertyArray doesn't provide public iteration over properties
-    // This would require extending PropertyArray to provide iteration capabilities
-    // or making this visitor a friend class
 }
 
 }} // namespace ofx::ae

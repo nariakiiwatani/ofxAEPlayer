@@ -30,4 +30,3 @@ private:
 	unsigned int dirty_flags_;
 };
 
-/* EOF */

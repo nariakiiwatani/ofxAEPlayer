@@ -22,14 +22,9 @@ std::unique_ptr<LayerSource> LayerSource::createSourceOfType(SourceType type)
 		case VIDEO: return std::make_unique<VideoSource>();
 		case SEQUENCE: return std::make_unique<SequenceSource>();
 		
+		// TODO: Implement support for CAMERA, LIGHT, ADJUSTMENT, TEXT, NULL_OBJECT source types
 		default:
 			return nullptr;
-//		case CAMERA: return "camera";
-//		case LIGHT: return "light";
-//		case ADJUSTMENT: return "adjustment";
-//		case TEXT: return "text";
-//		case NULL_OBJECT: return "null";
-//		default: return "unknown";
 	}
 }
 
