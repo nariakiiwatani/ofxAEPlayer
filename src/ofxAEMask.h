@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxAEMaskProp.h"
 #include <vector>
 
 namespace ofx { namespace ae {
@@ -51,6 +52,10 @@ public:
 
 	glm::vec2 evaluateAt(float t) const;
 	void generatePolyline(ofPolyline& polyline, int resolution = 100) const;
+	
+	// Create from MaskShapeData
+	void setFromMaskShapeData(const MaskShapeData& shapeData);
+	ofPath toOfPath() const;
 
 private:
 	std::vector<MaskVertex> vertices;
@@ -80,11 +85,15 @@ public:
 	void setPath(const MaskPath& path) { this->path = path; }
 	const MaskPath& getPath() const { return path; }
 	MaskPath& getPath() { return path; }
+	
+	// Set from MaskAtomData
+	void setFromMaskAtomData(const MaskAtomData& atomData);
 
 	void setExpansion(float expansion) { this->expansion = expansion; }
 	float getExpansion() const { return expansion; }
 
 	void renderToFbo(ofFbo& target) const;
+	ofPath toOfPath() const { return path.toOfPath(); }
 
 	ofRectangle getBounds() const;
 	bool containsPoint(const glm::vec2& point) const;
@@ -119,6 +128,12 @@ public:
 	bool hasActiveMasks() const;
 
 	void renderCombined(ofFbo& target, int width, int height) const;
+	
+	// Setup from mask property data
+	void setupFromMaskProp(const MaskProp& maskProp);
+	bool empty() const { return masks.empty(); }
+	auto begin() const { return masks.begin(); }
+	auto end() const { return masks.end(); }
 
 private:
 	std::vector<Mask> masks;

@@ -55,6 +55,26 @@ var PROPERTY_MAPPING_CONFIG = {
         wrapInObject: "opacity"
     },
 
+    "ADBE Mask Parade": {
+        wrapInObject: "mask",
+        preserveIndexes: true
+    },
+    "ADBE Mask Atom": {
+        wrapInObject: "atom",
+    },
+    "ADBE Mask Shape": {
+        wrapInObject: "shape",
+    },
+    "ADBE Mask Feather": {
+        wrapInObject: "feather",
+    },
+    "ADBE Mask Opacity": {
+        wrapInObject: "opacity",
+    },
+    "ADBE Mask Offset": {
+        wrapInObject: "offset",
+    },
+
     // Vector Layer系
     "ADBE Root Vectors Group": {
         wrapInObject: "shape",
@@ -220,7 +240,6 @@ var PROPERTY_MAPPING_CONFIG = {
     "ADBE Material Options Group": { ignored: true },
     "ADBE Source Options Group": { ignored: true },
     "ADBE Marker": { ignored: true },
-    "ADBE Mask Parade": { ignored: true },
     "ADBE Effect Parade": { ignored: true },
     "ADBE Time Remapping": { ignored: true },
     "ADBE MTrackers": { ignored: true },

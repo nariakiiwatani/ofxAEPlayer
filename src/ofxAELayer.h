@@ -10,6 +10,8 @@
 #include "ofxAEKeyframe.h"
 #include "ofxAETransformProp.h"
 #include "ofxAELayerSource.h"
+#include "ofxAEMaskProp.h"
+#include "ofxAEMask.h"
 #include "TransformNode.h"
 #include "Hierarchical.h"
 
@@ -67,6 +69,8 @@ public:
 	std::string getDebugInfo() const;
 
 private:
+	void updateLayerFBO(float w, float h);
+	
 	std::unique_ptr<LayerSource> source_;
 
 	std::string name_;
@@ -74,12 +78,23 @@ private:
 	int current_frame_;
 
 	TransformProp transform_;
+	MaskProp mask_;
+	MaskCollection mask_collection_;
+	mutable ofFbo layer_fbo_;
+	mutable ofFbo mask_fbo_;
 	float opacity_=1;
 	BlendMode blend_mode_;
 
-
 	static std::vector<SourceResolver> resolvers_;
 	std::unique_ptr<LayerSource> resolveSource(const ofJson& json, const std::filesystem::path& base_dir);
+	
+	void renderWithMasks(float x, float y, float w, float h) const;
+	void renderWithoutMasks(float x, float y, float w, float h) const;
+	void setupFbos(float w, float h) const;
+	
+	// Mask support
+	bool hasMasks() const;
+	void updateMasks();
 };
 
 }} // namespace ofx::ae

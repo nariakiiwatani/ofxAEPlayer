@@ -60,12 +60,83 @@ void MaskPath::generatePolyline(ofPolyline& polyline, int resolution) const {
 	}
 }
 
+void MaskPath::setFromMaskShapeData(const MaskShapeData& shapeData) {
+	clear();
+	closed = shapeData.closed;
+	
+	for (size_t i = 0; i < shapeData.vertices.size(); ++i) {
+		MaskVertex vertex;
+		vertex.position = shapeData.vertices[i];
+		
+		if (i < shapeData.inTangents.size()) {
+			vertex.inTangent = shapeData.inTangents[i];
+		}
+		if (i < shapeData.outTangents.size()) {
+			vertex.outTangent = shapeData.outTangents[i];
+		}
+		vertex.closed = closed;
+		
+		addVertex(vertex);
+	}
+}
+
+ofPath MaskPath::toOfPath() const {
+	ofPath path;
+	
+	if (vertices.empty()) {
+		return path;
+	}
+	
+	if (vertices.size() == 1) {
+		path.moveTo(vertices[0].position);
+		return path;
+	}
+	
+	// Start the path
+	path.moveTo(vertices[0].position);
+	
+	for (size_t i = 0; i < vertices.size(); ++i) {
+		size_t nextIndex = (i + 1) % vertices.size();
+		
+		// For closed paths, connect to next vertex; for open paths, stop at last vertex
+		if (!closed && nextIndex == 0) {
+			break;
+		}
+		
+		const glm::vec2& currentVertex = vertices[i].position;
+		const glm::vec2& nextVertex = vertices[nextIndex].position;
+		
+		// Get tangents for current and next vertices
+		glm::vec2 outTangent = vertices[i].outTangent;
+		glm::vec2 inTangent = vertices[nextIndex].inTangent;
+		
+		// Check if we need to create a curve or just a line
+		bool hasCurve = (glm::length(outTangent) > 0.001f || glm::length(inTangent) > 0.001f);
+		
+		if (hasCurve) {
+			// Create Bezier curve
+			glm::vec2 cp1 = currentVertex + outTangent;
+			glm::vec2 cp2 = nextVertex + inTangent;
+			path.bezierTo(cp1, cp2, nextVertex);
+		} else {
+			// Create straight line
+			path.lineTo(nextVertex);
+		}
+	}
+	
+	if (closed) {
+		path.close();
+	}
+	
+	return path;
+}
+
 Mask::Mask()
 : mode(MaskMode::ADD)
 , inverted(false)
 , enabled(true)
-, opacity(100.0f)
-, expansion(0.0f) {
+, opacity(1.f)
+, expansion(0.f) {
 }
 
 Mask::~Mask() {
@@ -78,7 +149,7 @@ void Mask::renderToFbo(ofFbo& target) const {
 
 	ofClear(0, 0, 0, 0);
 
-	ofSetColor(255, 255, 255, opacity * 255 / 100.0f);
+	ofSetColor(255, 255, 255, opacity * 255);
 	ofFill();
 
 	renderPath(path);
@@ -93,16 +164,19 @@ void Mask::renderToFbo(ofFbo& target) const {
 void Mask::renderPath(const MaskPath& path) const {
 	if (path.getVertexCount() < 2) return;
 
-	ofPolyline polyline;
-	path.generatePolyline(polyline);
+	// Use the new ofPath-based rendering for better Bezier curve support
+	ofPath pathObj = path.toOfPath();
+	pathObj.draw();
+}
 
-	if (polyline.getVertices().size() > 2) {
-		ofBeginShape();
-		for (const auto& vertex : polyline.getVertices()) {
-			ofVertex(vertex.x, vertex.y);
-		}
-		ofEndShape(path.isClosed());
-	}
+void Mask::setFromMaskAtomData(const MaskAtomData& atomData) {
+	MaskPath newPath;
+	newPath.setFromMaskShapeData(atomData.shape);
+	setPath(newPath);
+	
+	setFeather(MaskFeather(atomData.feather.x, atomData.feather.y));
+	setOpacity(atomData.opacity);
+	setExpansion(atomData.offset);
 }
 
 void Mask::applyFeather(ofFbo& target) const {
@@ -237,6 +311,20 @@ void MaskCollection::combineMasks(ofFbo& target, const Mask& mask, bool isFirst)
 	}
 
 	target.end();
+}
+
+void MaskCollection::setupFromMaskProp(const MaskProp& maskProp) {
+	clear();
+	
+	std::vector<MaskAtomData> atoms;
+	maskProp.tryExtract(atoms);
+	for (const auto& atomData : atoms) {
+		if (!atomData.shape.isEmpty()) {
+			Mask mask;
+			mask.setFromMaskAtomData(atomData);
+			addMask(mask);
+		}
+	}
 }
 
 }} // namespace ae::ofx

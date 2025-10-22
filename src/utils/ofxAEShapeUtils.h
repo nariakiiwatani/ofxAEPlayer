@@ -2,6 +2,7 @@
 
 #include "ofMain.h"
 #include "ofxAEShapeProp.h"
+#include "ofxAEMaskProp.h"
 
 namespace ofx { namespace ae { namespace utils {
 
@@ -12,6 +13,7 @@ public:
     static ofPath createEllipsePath(const EllipseData& data);
     static ofPath createRectanglePath(const RectangleData& data);
     static ofPath createPolygonPath(const PolygonData& data);
+    static ofPath createMaskPath(const MaskShapeData& data);
 };
 
 }}} // namespace ofx::ae::utils

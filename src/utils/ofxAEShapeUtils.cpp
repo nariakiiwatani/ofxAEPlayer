@@ -1,4 +1,5 @@
 #include "ofxAEShapeUtils.h"
+#include "ofxAEMaskProp.h"
 #include "ofMath.h"
 #include <algorithm>
 
@@ -92,6 +93,10 @@ ofPath ShapePathGenerator::createPolygonPath(const PolygonData& polygon) {
     
     path = enforceWinding(path, polygon.direction);
     return path;
+}
+
+ofPath ShapePathGenerator::createMaskPath(const MaskShapeData& data) {
+    return data.toOfPath();
 }
 
 }}} // namespace ofx::ae::utils

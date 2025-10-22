@@ -10,6 +10,7 @@
 #include "ofxAECompositionSource.h"
 #include "ofxAESolidSource.h"
 #include "ofxAEShapeProp.h"
+#include "ofxAEMaskProp.h"
 #include "ofxAEProperty.h"
 
 namespace ofx { namespace ae {
@@ -43,6 +44,7 @@ public:
     virtual void visit(const PolygonData& polygon) {}
     virtual void visit(const FillData& fill) {}
     virtual void visit(const StrokeData& stroke) {}
+    virtual void visit(const MaskAtomData& data) {}
 
     virtual void visit(const PropertyBase& property) {}
     virtual void visit(const PropertyGroup& group);

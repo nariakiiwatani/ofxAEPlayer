@@ -1,4 +1,5 @@
 #include "ofxAELayer.h"
+#include "utils/TransformNode.h"
 #include "ofxAEKeyframe.h"
 #include "ofxAEVisitor.h"
 #include "ofLog.h"
@@ -94,8 +95,13 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 		auto &&kf = json.value("/keyframes/transform"_json_pointer, ofJson{});
 		transform_.setup(json["transform"], kf);
 	}
+	
+	if(json.contains("mask")) {
+		auto &&mask_kf = json.value("/keyframes/mask"_json_pointer, ofJson{});
+		mask_.setup(json["mask"], mask_kf);
+		mask_collection_.setupFromMaskProp(mask_);
+	}
 
-	// Use resolver chain to create source
 	auto source = resolveSource(json, base_dir);
 	if (source) {
 		setSource(std::move(source));
@@ -130,36 +136,99 @@ bool Layer::setFrame(int frame)
 		return false;
 	}
 	bool ret = false;
+	bool need_mask_update = false;
 	if(transform_.setFrame(frame)) {
 		TransformData t;
 		if (!transform_.tryExtract(t)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract TransformData, using defaults";
 		}
 		TransformNode::setAnchorPoint(t.anchor);
-		setTranslation(t.position);
-		setScale(t.scale);
-		setRotationZ(t.rotateZ);
+		TransformNode::setTranslation(t.position);
+		TransformNode::setScale(t.scale);
+		TransformNode::setRotationZ(t.rotateZ);
 		opacity_ = t.opacity;
 		ret |= true;
 	}
+
+	if(mask_.setFrame(frame)) {
+		mask_collection_.setupFromMaskProp(mask_);
+		ret |= true;
+		need_mask_update |= true;
+	}
+	
 	if(source_) {
 		ret |= source_->setFrame(frame);
+		need_mask_update |= true;
 	}
 	current_frame_ = frame;
+
+	if (need_mask_update && !mask_collection_.empty()) {
+		float w = getWidth();
+		float h = getHeight();
+		updateLayerFBO(w, h);
+	}
 	return ret;
 }
 
 void Layer::draw(float x, float y, float w, float h) const
 {
-	pushMatrix();
+	TransformNode::pushMatrix();
 	RenderContext::push();
 	RenderContext::setOpacity(opacity_);
 	RenderContext::setBlendMode(blend_mode_);
-	if(source_) {
-		source_->draw(x,y,w,h);
+	
+	if (!mask_collection_.empty()) {
+		layer_fbo_.draw(x, y);
+	} else {
+		if(source_) {
+			source_->draw(x,y,w,h);
+		}
 	}
+	
 	RenderContext::pop();
-	popMatrix();
+	TransformNode::popMatrix();
+}
+
+void Layer::updateLayerFBO(float w, float h)
+{
+	// Allocate FBOs if needed
+	if (layer_fbo_.getWidth() != w || layer_fbo_.getHeight() != h) {
+		layer_fbo_.allocate(w, h, GL_RGBA);
+		mask_fbo_.allocate(w, h, GL_RGBA);
+	}
+	
+	// Render source content to layer FBO
+	layer_fbo_.begin();
+	ofClear(0, 0, 0, 0);
+	if(source_) {
+		source_->draw(0, 0, w, h);
+	}
+	layer_fbo_.end();
+	
+	// Render masks to mask FBO
+	mask_fbo_.begin();
+	ofPushStyle();
+	ofClear(0, 0, 0, 0);
+	ofSetColor(255, 255, 255, 255);
+	
+	// Render all masks - for now just additive blending
+	// TODO: Implement proper mask modes (Add, Subtract, Intersect, etc.)
+	for (const auto& mask : mask_collection_) {
+		ofPath maskPath = mask.toOfPath();
+		maskPath.setFilled(true);
+		maskPath.setColor(ofColor(255, 255, 255, mask.getOpacity() * 255));
+		maskPath.draw();
+	}
+	ofPopStyle();
+	mask_fbo_.end();
+	
+	layer_fbo_.begin();
+	ofPushStyle();
+	glBlendFunc(GL_ZERO, GL_SRC_COLOR);
+//	ofEnableBlendMode(OF_BLENDMODE_SUBTRACT);
+	mask_fbo_.draw(0, 0);
+	ofPopStyle();
+	layer_fbo_.end();
 }
 
 
