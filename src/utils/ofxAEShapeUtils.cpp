@@ -95,7 +95,11 @@ ofPath ShapePathGenerator::createPolygonPath(const PolygonData& polygon) {
     return path;
 }
 
-ofPath ShapePathGenerator::createMaskPath(const MaskShapeData& data) {
+ofPath ShapePathGenerator::createPath(const PathData& data) {
+    return data.toOfPath();
+}
+
+ofPath ShapePathGenerator::createMaskPath(const PathData& data) {
     return data.toOfPath();
 }
 

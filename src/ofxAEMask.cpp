@@ -60,19 +60,19 @@ void MaskPath::generatePolyline(ofPolyline& polyline, int resolution) const {
 	}
 }
 
-void MaskPath::setFromMaskShapeData(const MaskShapeData& shapeData) {
+void MaskPath::setFromPathData(const PathData& pathData) {
 	clear();
-	closed = shapeData.closed;
+	closed = pathData.closed;
 	
-	for (size_t i = 0; i < shapeData.vertices.size(); ++i) {
+	for (size_t i = 0; i < pathData.vertices.size(); ++i) {
 		MaskVertex vertex;
-		vertex.position = shapeData.vertices[i];
+		vertex.position = pathData.vertices[i];
 		
-		if (i < shapeData.inTangents.size()) {
-			vertex.inTangent = shapeData.inTangents[i];
+		if (i < pathData.inTangents.size()) {
+			vertex.inTangent = pathData.inTangents[i];
 		}
-		if (i < shapeData.outTangents.size()) {
-			vertex.outTangent = shapeData.outTangents[i];
+		if (i < pathData.outTangents.size()) {
+			vertex.outTangent = pathData.outTangents[i];
 		}
 		vertex.closed = closed;
 		
@@ -171,7 +171,7 @@ void Mask::renderPath(const MaskPath& path) const {
 
 void Mask::setFromMaskAtomData(const MaskAtomData& atomData) {
 	MaskPath newPath;
-	newPath.setFromMaskShapeData(atomData.shape);
+	newPath.setFromPathData(atomData.shape);
 	setPath(newPath);
 	
 	setFeather(MaskFeather(atomData.feather.x, atomData.feather.y));
@@ -319,7 +319,7 @@ void MaskCollection::setupFromMaskProp(const MaskProp& maskProp) {
 	std::vector<MaskAtomData> atoms;
 	maskProp.tryExtract(atoms);
 	for (const auto& atomData : atoms) {
-		if (!atomData.shape.isEmpty()) {
+		if (!atomData.shape.vertices.empty()) {
 			Mask mask;
 			mask.setFromMaskAtomData(atomData);
 			addMask(mask);

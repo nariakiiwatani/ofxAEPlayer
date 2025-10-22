@@ -39,6 +39,32 @@ struct PolygonData : public ShapeDataBase {
 	float outerRoundness{0};
 };
 
+struct PathData : public ShapeDataBase {
+	void accept(Visitor& visitor) const override;
+	std::vector<glm::vec2> vertices{};
+	std::vector<glm::vec2> inTangents{};
+	std::vector<glm::vec2> outTangents{};
+	bool closed{true};
+	int direction{1}; // 1 = default(clockwise) 2 = clockwise, 3 = counterclockwise
+	
+	// Interpolation operators for keyframe animation
+	PathData operator+(const PathData& other) const;
+	PathData operator-(const PathData& other) const;
+	PathData operator*(float t) const;
+	
+	// Method to convert to ofPath for rendering
+	ofPath toOfPath() const;
+};
+
+// Specialized property class for PathData
+class PathDataProp : public Property<PathData>
+{
+public:
+	PathDataProp() : Property<PathData>() {}
+	
+	PathData parse(const ofJson &json) const override;
+};
+
 struct FillData : public ShapeDataBase {
 	void accept(Visitor& visitor) const override;
 	ofFloatColor color{1,1,1,1};
@@ -218,6 +244,46 @@ public:
 			
 			return success;
 		});
+	}
+};
+
+class PathProp : public PropertyGroup
+{
+public:
+	PathProp() {
+		registerProperty<IntProp>("/direction");
+		
+		// Register a property for the path shape that supports keyframe animation
+		registerProperty<PathDataProp>("/shape");
+		
+		registerExtractor<PathData>([this](PathData& p) -> bool {
+			bool success = true;
+			
+			if (!getProperty<PathDataProp>("/shape")->tryExtract(p)) {
+				ofLogWarning("PropertyExtraction") << "Failed to extract path shape data, using default";
+				p = PathData(); // Use default
+				success = false;
+			}
+			
+			if (!getProperty<IntProp>("/direction")->tryExtract(p.direction)) {
+				ofLogWarning("PropertyExtraction") << "Failed to extract path direction, using default";
+				p.direction = 1;
+				success = false;
+			}
+			
+			return success;
+		});
+	}
+	
+	void setup(const ofJson &base, const ofJson &keyframes) override {
+		PropertyGroup::setup(base, keyframes);
+		
+		// Setup the shape property with keyframe support
+		if (base.contains("shape")) {
+			auto shapeBase = base["shape"];
+			auto shapeKeyframes = keyframes.contains("shape") ? keyframes["shape"] : ofJson{};
+			getProperty<PathDataProp>("/shape")->setup(shapeBase, shapeKeyframes);
+		}
 	}
 };
 

@@ -41,6 +41,7 @@ public:
     virtual void visit(const GroupData& group);
     virtual void visit(const EllipseData& ellipse) {}
     virtual void visit(const RectangleData& rectangle) {}
+    virtual void visit(const PathData& path) {}
     virtual void visit(const PolygonData& polygon) {}
     virtual void visit(const FillData& fill) {}
     virtual void visit(const StrokeData& stroke) {}

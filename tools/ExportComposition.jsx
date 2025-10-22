@@ -119,7 +119,35 @@ var PROPERTY_MAPPING_CONFIG = {
     "ADBE Vector Shape - Group": {
         merge: {shapeType: "path"}
     },
-    
+
+    "ADBE Vector Shape": {
+        merge: {shapeType: "shape"}
+    },
+
+    "ADBE Vector Stroke Dash 1":   { wrapInObject: "dash1" },
+    "ADBE Vector Stroke Gap 1":    { wrapInObject: "gap1" },
+    "ADBE Vector Stroke Dash 2":   { wrapInObject: "dash2" },
+    "ADBE Vector Stroke Gap 2":    { wrapInObject: "gap2" },
+    "ADBE Vector Stroke Dash 3":   { wrapInObject: "dash3" },
+    "ADBE Vector Stroke Gap 3":    { wrapInObject: "gap3" },
+    "ADBE Vector Stroke Offset":   { wrapInObject: "dashOffset" },
+
+    // テーパー／ウェーブ詳細（Stroke Taper / Wave の子）
+    "ADBE Vector Taper Length Units": { wrapInObject: "taperLengthUnits" },
+    "ADBE Vector Taper Start Length": { wrapInObject: "taperStartLength" },
+    "ADBE Vector Taper End Length":   { wrapInObject: "taperEndLength" },
+    "ADBE Vector Taper StartWidthPx": { wrapInObject: "taperStartWidthPx" },
+    "ADBE Vector Taper EndWidthPx":   { wrapInObject: "taperEndWidthPx" },
+    "ADBE Vector Taper Start Width":  { wrapInObject: "taperStartWidth" },
+    "ADBE Vector Taper End Width":    { wrapInObject: "taperEndWidth" },
+    "ADBE Vector Taper Start Ease":   { wrapInObject: "taperStartEase" },
+    "ADBE Vector Taper End Ease":     { wrapInObject: "taperEndEase" },
+
+    "ADBE Vector Taper Wave Amount":  { wrapInObject: "waveAmount" },
+    "ADBE Vector Taper Wave Units":   { wrapInObject: "waveUnits" },
+    "ADBE Vector Taper Wavelength":   { wrapInObject: "wavelength" },
+    "ADBE Vector Taper Wave Cycles":  { wrapInObject: "waveCycles" },
+    "ADBE Vector Taper Wave Phase":   { wrapInObject: "wavePhase" },
     // Shape系
     "ADBE Vector Ellipse Size": {
         wrapInObject: "size"

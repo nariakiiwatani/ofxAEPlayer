@@ -53,8 +53,8 @@ public:
 	glm::vec2 evaluateAt(float t) const;
 	void generatePolyline(ofPolyline& polyline, int resolution = 100) const;
 	
-	// Create from MaskShapeData
-	void setFromMaskShapeData(const MaskShapeData& shapeData);
+	// Create from PathData
+	void setFromPathData(const PathData& pathData);
 	ofPath toOfPath() const;
 
 private:

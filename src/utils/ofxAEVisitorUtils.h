@@ -68,6 +68,7 @@ public:
     void visit(const EllipseData& ellipse) override;
     void visit(const RectangleData& rectangle) override;
     void visit(const PolygonData& polygon) override;
+    void visit(const PathData& pathData) override;
     void visit(const FillData& fill) override;
     void visit(const StrokeData& stroke) override;
 	void visit(const GroupData& group) override;

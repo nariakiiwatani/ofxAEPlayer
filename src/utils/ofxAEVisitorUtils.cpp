@@ -41,6 +41,13 @@ void PathExtractionVisitor::visit(const PolygonData& polygon) {
 	Visitor::visit(polygon);
 }
 
+void PathExtractionVisitor::visit(const PathData& pathData) {
+	auto p = utils::ShapePathGenerator::createPath(pathData);
+	applyTransform(p);
+	getContext().path.append(p);
+	Visitor::visit(pathData);
+}
+
 void PathExtractionVisitor::visit(const FillData& fill) {
 	ofPath p = getContext().path;
 

@@ -2,6 +2,7 @@
 *.xcodeproj
 *.app
 example*/bin/data
+example*/obj
 Makefile
 Project.xcconfig
 config.make
