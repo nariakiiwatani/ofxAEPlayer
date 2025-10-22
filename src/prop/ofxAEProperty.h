@@ -62,6 +62,16 @@ public:
 				keyframes_.insert(parseKeyframe(keyframes[i]));
 			}
 		}
+		else if(keyframes.is_object()) {
+			for(auto it = keyframes.begin(); it != keyframes.end(); ++it) {
+				auto &value = it.value();
+				int start = ofToInt(it.key());
+				int size = value.size();
+				for(int i = 0; i < size; ++i) {
+					addKeyframe(start+i, ofxAEKeyframe<T>(parse(value[i])));
+				}
+			}
+		}
 	}
 	void setBaseValue(const T &t) { base_ = t; }
 	void addKeyframe(int frame, const ofxAEKeyframe<T> &keyframe) {

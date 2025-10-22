@@ -42,6 +42,8 @@ public:
 
 	template<typename T>
 	struct Data {
+		Data(){}
+		Data(const T &t):value(t){}
 		T value;
 		InterpolationData interpolation;
 		SpatialTangents spatial_tangents;
