@@ -13,7 +13,7 @@ void ofApp::setup(){
 
 	comp_ = std::make_shared<ofx::ae::Composition>();
     // Load composition using CompositionManager singleton
-	if (comp_->load("sequence/comp.json")) {
+	if (comp_->load("interaction-test.json")) {
 		ofLogNotice("ofApp") << "Composition loaded successfully";
 		const auto& info = comp_->getInfo();
 		ofLogNotice("ofApp") << "Duration: " << info.duration;
@@ -24,6 +24,7 @@ void ofApp::setup(){
 		comp_.reset();
 	}
 	timeline_ = 0;
+	isPlaying = true;
 }
 
 //--------------------------------------------------------------
@@ -44,21 +45,7 @@ void ofApp::draw(){
     
     // Draw composition if loaded
     if (comp_) {
-        ofPushMatrix();
-        
-        // Center the composition on screen
-        float compWidth = comp_->getWidth();
-        float compHeight = comp_->getHeight();
-        float scale = std::min(ofGetWidth() / compWidth, ofGetHeight() / compHeight) * 0.8f;
-        
-        ofTranslate(ofGetWidth() / 2, ofGetHeight() / 2);
-        ofScale(scale, scale);
-        ofTranslate(-compWidth / 2, -compHeight / 2);
-        
-        // Draw composition
-		comp_->draw(0, 0, compWidth, compHeight);
-
-        ofPopMatrix();
+		comp_->draw(0,0);
     }
     
     // Draw controls and debug info

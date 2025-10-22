@@ -63,7 +63,7 @@ Layer::Layer()
 , name_("")
 , in_(0)
 , out_(0)
-, blendMode_(BlendMode::NORMAL)
+, blend_mode_(BlendMode::NORMAL)
 {
 }
 
@@ -87,6 +87,9 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 	EXTRACT_(name);
 	EXTRACT_(in);
 	EXTRACT_(out);
+	std::string blendingMode = "NORMAL";
+	EXTRACT(blendingMode);
+	blend_mode_ = blendModeFromString(blendingMode);
 	if(json.contains("transform")) {
 		auto &&kf = json.value("/keyframes/transform"_json_pointer, ofJson{});
 		transform_.setup(json["transform"], kf);
@@ -151,6 +154,7 @@ void Layer::draw(float x, float y, float w, float h) const
 	pushMatrix();
 	RenderContext::push();
 	RenderContext::setOpacity(opacity_);
+	RenderContext::setBlendMode(blend_mode_);
 	if(source_) {
 		source_->draw(x,y,w,h);
 	}

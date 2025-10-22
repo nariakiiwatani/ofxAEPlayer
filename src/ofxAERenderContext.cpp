@@ -59,7 +59,7 @@ void RenderContext::setBlendMode(BlendMode mode)
 {
 	auto &ctx = getTop();
 	ctx.blendMode = mode;
-	// TODO: apply blendMode
+	applyBlendMode(mode);
 }
 
 }}

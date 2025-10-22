@@ -144,9 +144,6 @@ var PROPERTY_MAPPING_CONFIG = {
     "ADBE Vector Shape Direction": {
         wrapInObject: "direction"
     },
-    "ADBE Vector Blend Mode": {
-        wrapInObject: "blendMode"
-    },
     "ADBE Vector Composite Order": {
         wrapInObject: "compositeOrder"
     },
@@ -207,13 +204,17 @@ var PROPERTY_MAPPING_CONFIG = {
         wrapInObject: "offset"
     },
 
+    // 将来的に対応予定のプロパティ
+    "ADBE Vector Blend Mode": { ignored: true },
+
+
     // 不要なプロパティを無効化
     "ADBE Audio Group": { ignored: true },
     "ADBE Data Group": { ignored: true },
     "ADBE Layer Overrides": { ignored: true },
     "ADBE Layer Sets": { ignored: true },
-    "ADBE Envir Appear in Reflect": { ignored: true },
     "ADBE Layer Styles": { ignored: true },
+    "ADBE Envir Appear in Reflect": { ignored: true },
     "ADBE Plane Options Group": { ignored: true },
     "ADBE Extrsn Options Group": { ignored: true },
     "ADBE Material Options Group": { ignored: true },
@@ -229,7 +230,43 @@ var PROPERTY_MAPPING_CONFIG = {
 
 };
 
-
+function blendingModeToString(mode) {
+    var map = {};
+    map[BlendingMode.NORMAL] = "NORMAL";
+    map[BlendingMode.DISSOLVE] = "DISSOLVE";
+    map[BlendingMode.DANCING_DISSOLVE] = "DANCING_DISSOLVE";
+    map[BlendingMode.DARKEN] = "DARKEN";
+    map[BlendingMode.MULTIPLY] = "MULTIPLY";
+    map[BlendingMode.COLOR_BURN] = "COLOR_BURN";
+    map[BlendingMode.LINEAR_BURN] = "LINEAR_BURN";
+    map[BlendingMode.DARKER_COLOR] = "DARKER_COLOR";
+    map[BlendingMode.LIGHTEN] = "LIGHTEN";
+    map[BlendingMode.SCREEN] = "SCREEN";
+    map[BlendingMode.COLOR_DODGE] = "COLOR_DODGE";
+    map[BlendingMode.LINEAR_DODGE] = "LINEAR_DODGE";
+    map[BlendingMode.LIGHTER_COLOR] = "LIGHTER_COLOR";
+    map[BlendingMode.OVERLAY] = "OVERLAY";
+    map[BlendingMode.SOFT_LIGHT] = "SOFT_LIGHT";
+    map[BlendingMode.HARD_LIGHT] = "HARD_LIGHT";
+    map[BlendingMode.VIVID_LIGHT] = "VIVID_LIGHT";
+    map[BlendingMode.LINEAR_LIGHT] = "LINEAR_LIGHT";
+    map[BlendingMode.PIN_LIGHT] = "PIN_LIGHT";
+    map[BlendingMode.HARD_MIX] = "HARD_MIX";
+    map[BlendingMode.DIFFERENCE] = "DIFFERENCE";
+    map[BlendingMode.EXCLUSION] = "EXCLUSION";
+    map[BlendingMode.SUBTRACT] = "SUBTRACT";
+    map[BlendingMode.DIVIDE] = "DIVIDE";
+    map[BlendingMode.HUE] = "HUE";
+    map[BlendingMode.SATURATION] = "SATURATION";
+    map[BlendingMode.COLOR] = "COLOR";
+    map[BlendingMode.LUMINOSITY] = "LUMINOSITY";
+    map[BlendingMode.ADD] = "ADD";
+    map[BlendingMode.CLASSIC_COLOR_DODGE] = "CLASSIC_COLOR_DODGE";
+    map[BlendingMode.CLASSIC_COLOR_BURN] = "CLASSIC_COLOR_BURN";
+    map[BlendingMode.LIGHTEN_COLOR_DODGE] = "LIGHTEN_COLOR_DODGE";
+    map[BlendingMode.LIGHTEN_COLOR_BURN] = "LIGHTEN_COLOR_BURN";
+    return map.hasOwnProperty(mode) ? map[mode] : "UNKNOWN";
+}
 (function(me){
     // polyfills
     if (typeof String.prototype.trim !== 'function') {
@@ -478,10 +515,6 @@ var PROPERTY_MAPPING_CONFIG = {
         topRow.orientation = "row";
         topRow.alignment = "fill";
 
-        var exportNestedCompCheck = topRow.add("checkbox", undefined, "ネストされたコンポジションを再帰的に出力");
-        exportNestedCompCheck.name = "exportNestedCompCheck";
-        exportNestedCompCheck.value = false;
-        exportNestedCompCheck.alignment = "left";
 
         var decimalPlacesGroup = topRow.add("group");
         decimalPlacesGroup.orientation = "row";
@@ -491,11 +524,6 @@ var PROPERTY_MAPPING_CONFIG = {
         var decimalPlacesText = decimalPlacesGroup.add("edittext", undefined, "4");
         decimalPlacesText.name = "decimalPlacesText";
         decimalPlacesText.preferredSize.width = 40;
-
-        var recordUnsupportedPropsCheck = optionGroup.add("checkbox", undefined, "未対応プロパティを記録");
-        recordUnsupportedPropsCheck.name = "recordUnsupportedPropsCheck";
-        recordUnsupportedPropsCheck.value = false;
-        recordUnsupportedPropsCheck.alignment = "left";
 
         var useKeyframeExtractionCheck = optionGroup.add("checkbox", undefined, "キーフレーム抽出を使用（推奨：高速で詳細な補間情報付き）");
         useKeyframeExtractionCheck.name = "useKeyframeExtractionCheck";
@@ -519,20 +547,35 @@ var PROPERTY_MAPPING_CONFIG = {
         var selectOutputFolderButton = outputGroup.add("button", undefined, "選択");
         selectOutputFolderButton.alignment = "right";
 
-        var footageGroup = saveGroup.add("group");
-        footageGroup.orientation = "row";
-        footageGroup.alignment = "fill";
+        var assetGroup = saveGroup.add("group");
+        assetGroup.orientation = "column";
+        assetGroup.alignment = "fill";
 
-        var footageLabelText = footageGroup.add("statictext", undefined, "フッテージパス（default: 出力先/comp名/sources)");
-        footageLabelText.alignment = "left";
+        // 共有アセット使用チェックボックス
+        var sharedAssetsGroup = assetGroup.add("group");
+        sharedAssetsGroup.orientation = "row";
+        sharedAssetsGroup.alignment = "fill";
 
-        var footagePathText = footageGroup.add("edittext");
-        footagePathText.name = "footagePathText";
-        footagePathText.text = "";
-        footagePathText.alignment = "fill";
+        var sharedAssetsCheck = sharedAssetsGroup.add("checkbox", undefined, "共有アセットフォルダを使用");
+        sharedAssetsCheck.name = "sharedAssetsCheck";
+        sharedAssetsCheck.value = false;
+        sharedAssetsCheck.alignment = "left";
 
-        var selectFootageFolderButton = footageGroup.add("button", undefined, "選択");
-        selectFootageFolderButton.alignment = "right";
+        // 共有アセットパス設定
+        var sharedAssetsPathGroup = assetGroup.add("group");
+        sharedAssetsPathGroup.orientation = "row";
+        sharedAssetsPathGroup.alignment = "fill";
+
+        var sharedAssetsLabel = sharedAssetsPathGroup.add("statictext", undefined, "共有アセットパス:");
+        sharedAssetsLabel.preferredSize.width = 100;
+
+        var sharedAssetsPathText = sharedAssetsPathGroup.add("edittext");
+        sharedAssetsPathText.name = "sharedAssetsPathText";
+        sharedAssetsPathText.text = "shared_assets";
+        sharedAssetsPathText.alignment = "fill";
+
+        var selectSharedAssetsFolderButton = sharedAssetsPathGroup.add("button", undefined, "選択");
+        selectSharedAssetsFolderButton.alignment = "right";
 
         // ボタングループ
         var buttonGroup = myPanel.grp.add("group");
@@ -559,9 +602,19 @@ var PROPERTY_MAPPING_CONFIG = {
             var selectedFolder = Folder.selectDialog("出力先のフォルダを選択してください");
             if (selectedFolder){ outputPathText.text = decodeURI(selectedFolder.fsName); saveSettings(myPanel.grp); }
         };
-        selectFootageFolderButton.onClick = function(){
-            var selectedFolder = Folder.selectDialog("フッテージの保存先フォルダを選択してください");
-            if (selectedFolder){ footagePathText.text = decodeURI(selectedFolder.fsName); saveSettings(myPanel.grp); }
+        // UI制御
+        sharedAssetsCheck.onClick = function() {
+            sharedAssetsPathGroup.enabled = this.value;
+            saveSettings(myPanel.grp);
+        };
+        sharedAssetsPathGroup.enabled = false; // 初期状態は無効
+
+        selectSharedAssetsFolderButton.onClick = function(){
+            var selectedFolder = Folder.selectDialog("共有アセットの保存先フォルダを選択してください");
+            if (selectedFolder){
+                sharedAssetsPathText.text = decodeURI(selectedFolder.fsName);
+                saveSettings(myPanel.grp);
+            }
         };
 
         executeButton.onClick = function(){
@@ -570,31 +623,30 @@ var PROPERTY_MAPPING_CONFIG = {
                 // 実行ボタンを押すたびにログをクリア
                 clearDebugLogs();
                 
-                var outputFolderPath  = outputPathText.text.trim();
-                var footageFolderPath = footagePathText.text.trim();
-                
+                var outputFolderPath = outputPathText.text.trim();
+                var useSharedAssets = sharedAssetsCheck.value;
+                var sharedAssetsPath = sharedAssetsPathText.text.trim();
+
                 var decPlacesText = decimalPlacesText.text;
                 var decPlaces = Math.max(0, Math.min(10, parseInt(decPlacesText,10) || 4));
 
                 if (outputFolderPath===''){ alert("出力先のフォルダを指定してください。"); return; }
                 if (app.project.activeItem==null || !(app.project.activeItem instanceof CompItem)){ alert("コンポジションを選択してください。"); return; }
 
-                var procNestedComp = exportNestedCompCheck.value;
 
                 debugLog("ExecuteSystem", "Starting property extraction process", {
                     outputFolder: outputFolderPath,
-                    footageFolder: footageFolderPath,
-                    nestedComp: procNestedComp,
+                    useSharedAssets: useSharedAssets,
+                    sharedAssetsPath: sharedAssetsPath,
                     decimalPlaces: decPlaces
                 }, "notice");
 
                 app.beginUndoGroup("プロパティ抽出"); undoOpen=true;
                 var options = {
                     outputFolderPath: outputFolderPath,
-                    footageFolderPath: footageFolderPath,
-                    procNestedComp: procNestedComp,
+                    useSharedAssets: useSharedAssets,
+                    sharedAssetsPath: sharedAssetsPath,
                     decimalPlaces: decPlaces,
-                    recordUnsupportedProps: recordUnsupportedPropsCheck.value,
                     useKeyframeExtraction: useKeyframeExtractionCheck.value
                 };
                 extractPropertiesForAllLayers(app.project.activeItem, options);
@@ -687,8 +739,10 @@ var PROPERTY_MAPPING_CONFIG = {
             if (child.name){
                 if (child instanceof EditText){
                     if (child.name === 'decimalPlacesText') child.text = '4';
+                    else if (child.name === 'sharedAssetsPathText') child.text = 'shared_assets';
                 }else if (child instanceof Checkbox){
-                    child.value = false;
+                    if (child.name === 'sharedAssetsCheck') child.value = false;
+                    else child.value = false;
                 }else if (child instanceof DropDownList){
                     child.selection = null;
                 }
@@ -715,6 +769,21 @@ var PROPERTY_MAPPING_CONFIG = {
     }
 
     function layerUniqueName(layer){ return layer.name.fsSanitized() + "(ID_" + layer.id + ")"; }
+
+    function determineAssetFolderPath(options, outputFolderPath, compName) {
+        if (options.useSharedAssets) {
+            var sharedPath = options.sharedAssetsPath || "shared_assets";
+            
+            // 絶対パス判定 (Windows: C:\ or C:/, Unix: /)
+            if (sharedPath.match(/^([A-Za-z]:[\\\/]|[\\\/])/)) {
+                return sharedPath;
+            } else {
+                return outputFolderPath + "/" + sharedPath;
+            }
+        } else {
+            return outputFolderPath + "/" + compName + "/assets";
+        }
+    }
 
     // ===== VALUE PROCESSING SYSTEM =====
     
@@ -1480,19 +1549,20 @@ var PROPERTY_MAPPING_CONFIG = {
     // ===== main extractor =====
     function extractPropertiesForAllLayers(comp, options){
         var compName = comp.name.fsSanitized();
+        var outputFolderPath = options.outputFolderPath;
 
-        var outputFolderPath  = options.outputFolderPath;
-        var outputFolder  = new Folder(outputFolderPath + "/" + compName);
-        var layerFolder   = new Folder(outputFolder.fsName + "/layers");
-        var footageFolderPath = options.footageFolderPath || (outputFolder.fsName + "/sources");
-        var footageFolder = new Folder(footageFolderPath);
+        // フラット構造
+        var outputFolder = new Folder(outputFolderPath);
+        var layerFolder = new Folder(outputFolderPath + "/" + compName + "/layers");
+        
+        // アセットフォルダパス決定
+        var assetFolderPath = determineAssetFolderPath(options, outputFolderPath, compName);
+        var assetFolder = new Folder(assetFolderPath);
 
-        var procNestedComp    = options.procNestedComp;
-        var DEC               = options.decimalPlaces || 4;
-
+        var DEC = options.decimalPlaces || 4;
 
         if (!outputFolder.exists && !outputFolder.create()){ alert("指定された出力先フォルダを作成できませんでした。" + outputFolder.fsName); return; }
-        if (!footageFolder.exists && !footageFolder.create()){ alert("指定されたフッテージ保存先フォルダを作成できませんでした。" + footageFolder.fsName); return; }
+        if (!assetFolder.exists && !assetFolder.create()){ alert("指定されたアセット保存先フォルダを作成できませんでした。" + assetFolder.fsName); return; }
         if (!layerFolder.exists) layerFolder.create();
 
         var fps = comp.frameRate;
@@ -1530,6 +1600,7 @@ var PROPERTY_MAPPING_CONFIG = {
             var resultData = {};
             resultData["name"] = layer.name;
             resultData["layerType"] = layer.matchName;
+            resultData["blendingMode"] = blendingModeToString(layer.blendingMode);
             var inPoint  = toFrame(layer.inPoint, true);
             var outPoint = toFrame(layer.outPoint, true);
             resultData["in"]  = inPoint;
@@ -1543,7 +1614,7 @@ var PROPERTY_MAPPING_CONFIG = {
                 var source = null;
                 switch(sourceType) {
                     case "composition":
-                        source = layer.source.name + "/comp.json";
+                        source = layer.source.name + ".json";
                         break;
                     case "sequence":
                         source = layer.source.name;
@@ -1561,7 +1632,7 @@ var PROPERTY_MAPPING_CONFIG = {
                         break;
                 }
                 if(source) {
-                    resultData["source"] = getRelativePath(layerFolder, footageFolder) + "/" + source;
+                    resultData["source"] = getRelativePath(layerFolder, assetFolder) + "/" + source;
                 }
             }
 
@@ -1587,18 +1658,15 @@ var PROPERTY_MAPPING_CONFIG = {
     
             switch(sourceType) {
                 case "composition":
-                    if (procNestedComp) {
-                        var nestedOptions = {
-                            outputFolderPath: footageFolderPath,
-                            footageFolderPath: options.footageFolderPath,
-                            procNestedComp: true,
-                            decimalPlaces: DEC,
-                            recordUnsupportedProps: options.recordUnsupportedProps,
-                            useKeyframeExtraction: options.useKeyframeExtraction
-
-                        };
-                        extractPropertiesForAllLayers(layer.source, nestedOptions);
-                    }
+                    // ネストされたコンポジションは常に処理する（新仕様）
+                    var nestedOptions = {
+                        outputFolderPath: outputFolderPath,
+                        useSharedAssets: options.useSharedAssets,
+                        sharedAssetsPath: options.sharedAssetsPath,
+                        decimalPlaces: DEC,
+                        useKeyframeExtraction: options.useKeyframeExtraction
+                    };
+                    extractPropertiesForAllLayers(layer.source, nestedOptions);
                     break;
                 case "solid":
                     var solidInfo = {
@@ -1608,7 +1676,7 @@ var PROPERTY_MAPPING_CONFIG = {
                         color: layer.source.mainSource.color
                     };
                     try {
-                        var solidFile = new File(footageFolder.fsName + "/" + layer.source.name + ".json");
+                        var solidFile = new File(assetFolder.fsName + "/" + layer.source.name + ".json");
                         solidFile.encoding = "UTF-8";
                         solidFile.open("w");
                         solidFile.write(JSON.stringify(solidInfo, null, 4));
@@ -1620,13 +1688,13 @@ var PROPERTY_MAPPING_CONFIG = {
                 case "still":
                 case "video":
                 case "audio":
-                    var destFile = new File(footageFolder.fsName + "/" + layer.source.mainSource.file.name);
+                    var destFile = new File(assetFolder.fsName + "/" + layer.source.mainSource.file.name);
                     try{ layer.source.mainSource.file.copy(destFile); }catch(e){ alert("ファイルのコピー中にエラー: " + e.message); }
                     break;
                 case "sequence":
                     var extMatch = (""+layer.source.mainSource.file.name).match(/(\.[^.]+)$/);
                     var ext = extMatch ? extMatch[1].toLowerCase() : "";
-                    var sequenceFolder = new Folder(footageFolder.fsName + "/" + layer.source.name);
+                    var sequenceFolder = new Folder(assetFolder.fsName + "/" + layer.source.name);
                     if (!sequenceFolder.exists) sequenceFolder.create();
                     var sequenceFiles = layer.source.mainSource.file.parent.getFiles(function(f){
                         return f instanceof File && ((""+f.name).toLowerCase().indexOf(ext)>=0);
@@ -1654,7 +1722,7 @@ var PROPERTY_MAPPING_CONFIG = {
         }
 
         try {
-            var compInfoFile = new File(outputFolder.fsName + "/comp.json");
+            var compInfoFile = new File(outputFolderPath + "/" + compName + ".json");
             compInfoFile.encoding = "UTF-8";
             compInfoFile.open("w");
             compInfoFile.write(JSON.stringify(compInfo, null, 4));

@@ -55,8 +55,8 @@ public:
 	void setName(const std::string& name) { name_ = name; }
 	const std::string& getName() const { return name_; }
 
-	void setBlendMode(BlendMode mode) { blendMode_ = mode; }
-	BlendMode getBlendMode() const { return blendMode_; }
+	void setBlendMode(BlendMode mode) { blend_mode_ = mode; }
+	BlendMode getBlendMode() const { return blend_mode_; }
 
 	bool isActiveAtFrame(int frame) const;
 	int getLocalFrame(int global) const;
@@ -75,7 +75,7 @@ private:
 
 	TransformProp transform_;
 	float opacity_=1;
-	BlendMode blendMode_;
+	BlendMode blend_mode_;
 
 
 	static std::vector<SourceResolver> resolvers_;

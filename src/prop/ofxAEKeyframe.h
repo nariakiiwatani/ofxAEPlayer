@@ -27,8 +27,8 @@ public:
 	};
 
 	struct InterpolationData {
-		InterpolationType in_type=LINEAR;
-		InterpolationType out_type=LINEAR;
+		InterpolationType in_type=HOLD;
+		InterpolationType out_type=HOLD;
 		bool roving=false;
 		bool continuous=false;
 		TemporalEase in_ease;
