@@ -98,7 +98,7 @@ float ShapeSource::getHeight() const {
 }
 
 void ShapeSource::accept(Visitor& visitor) {
- visitor.visit(*this);
+	visitor.visit(*this);
 }
 
 }} // namespace ofx::ae

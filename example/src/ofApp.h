@@ -2,7 +2,6 @@
 
 #include "ofMain.h"
 #include "ofxAEPlayer.h"
-#include "BlendModeTest.h"
 #include <algorithm>
 
 class ofApp : public ofBaseApp{
@@ -28,10 +27,8 @@ private:
 	std::shared_ptr<ofx::ae::Composition> comp_;
 	bool isPlaying;
 	bool showDebugInfo;
-	bool showBlendModeTest;
 
 	int timeline_;
-	BlendModeTest blendModeTest_;
 
 	// GUI controls
 	void drawControls();

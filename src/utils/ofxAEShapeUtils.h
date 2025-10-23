@@ -15,6 +15,11 @@ public:
 	static ofPath createPath(const RectangleData& data);
 	static ofPath createPath(const PolygonData& data);
 	static ofPath createPath(const PathData& data);
+
+	static std::optional<ofRectangle> getBoundingBox(const EllipseData& data);
+	static std::optional<ofRectangle> getBoundingBox(const RectangleData& data);
+	static std::optional<ofRectangle> getBoundingBox(const PolygonData& data);
+	static std::optional<ofRectangle> getBoundingBox(const PathData& data);
 };
 
 }}} // namespace ofx::ae::utils

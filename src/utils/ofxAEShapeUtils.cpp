@@ -2,6 +2,7 @@
 #include "ofxAEMaskProp.h"
 #include "ofMath.h"
 #include <algorithm>
+#include <limits>
 
 namespace ofx { namespace ae { namespace utils {
 
@@ -94,6 +95,121 @@ ofPath ShapePathGenerator::createPath(const PolygonData& polygon) {
 
 ofPath ShapePathGenerator::createPath(const PathData& data) {
     return data.toOfPath();
+}
+
+std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const EllipseData& data) {
+    // For ellipse: center at position, extends by size/2 in both directions
+    float halfWidth = data.size.x * 0.5f;
+    float halfHeight = data.size.y * 0.5f;
+    
+    return ofRectangle(
+        data.position.x - halfWidth,
+        data.position.y - halfHeight,
+        data.size.x,
+        data.size.y
+    );
+}
+
+std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const RectangleData& data) {
+    // For rectangle: center at position, extends by size/2 in both directions
+    float halfWidth = data.size.x * 0.5f;
+    float halfHeight = data.size.y * 0.5f;
+    
+    return ofRectangle(
+        data.position.x - halfWidth,
+        data.position.y - halfHeight,
+        data.size.x,
+        data.size.y
+    );
+}
+
+std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const PolygonData& data) {
+    if (data.points < 3) {
+        return std::nullopt; // Invalid polygon
+    }
+    
+    // For polygon/star: calculate all vertices and find min/max bounds
+    bool isStar = (data.type == 2);
+    float outerRadius = data.outerRadius;
+    float innerRadius = isStar ? data.innerRadius : outerRadius;
+    
+    float angleStep = TWO_PI / data.points;
+    float startAngle = data.rotation * DEG_TO_RAD;
+    
+    float minX = std::numeric_limits<float>::max();
+    float maxX = std::numeric_limits<float>::lowest();
+    float minY = std::numeric_limits<float>::max();
+    float maxY = std::numeric_limits<float>::lowest();
+    
+    // Check all outer vertices
+    for (int i = 0; i < data.points; i++) {
+        float angle = startAngle + i * angleStep;
+        float x = data.position.x + cos(angle) * outerRadius;
+        float y = data.position.y + sin(angle) * outerRadius;
+        
+        minX = std::min(minX, x);
+        maxX = std::max(maxX, x);
+        minY = std::min(minY, y);
+        maxY = std::max(maxY, y);
+        
+        // For stars, also check inner vertices
+        if (isStar) {
+            float innerAngle = angle + angleStep * 0.5f;
+            float innerX = data.position.x + cos(innerAngle) * innerRadius;
+            float innerY = data.position.y + sin(innerAngle) * innerRadius;
+            
+            minX = std::min(minX, innerX);
+            maxX = std::max(maxX, innerX);
+            minY = std::min(minY, innerY);
+            maxY = std::max(maxY, innerY);
+        }
+    }
+    
+    return ofRectangle(minX, minY, maxX - minX, maxY - minY);
+}
+
+std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const PathData& data) {
+    if (data.vertices.empty()) {
+        return std::nullopt; // No vertices to calculate bounds
+    }
+    
+    // Find min/max of all vertices
+    float minX = std::numeric_limits<float>::max();
+    float maxX = std::numeric_limits<float>::lowest();
+    float minY = std::numeric_limits<float>::max();
+    float maxY = std::numeric_limits<float>::lowest();
+    
+    for (const auto& vertex : data.vertices) {
+        minX = std::min(minX, vertex.x);
+        maxX = std::max(maxX, vertex.x);
+        minY = std::min(minY, vertex.y);
+        maxY = std::max(maxY, vertex.y);
+    }
+    
+    // Also consider control points for bezier curves
+    for (const auto& tangent : data.inTangents) {
+        // Note: tangents are relative to vertices, so we need to consider them
+        // in combination with vertices for accurate bounds of bezier curves
+        for (size_t i = 0; i < data.vertices.size() && i < data.inTangents.size(); i++) {
+            glm::vec2 controlPoint = data.vertices[i] + data.inTangents[i];
+            minX = std::min(minX, controlPoint.x);
+            maxX = std::max(maxX, controlPoint.x);
+            minY = std::min(minY, controlPoint.y);
+            maxY = std::max(maxY, controlPoint.y);
+        }
+    }
+    
+    for (const auto& tangent : data.outTangents) {
+        for (size_t i = 0; i < data.vertices.size() && i < data.outTangents.size(); i++) {
+            glm::vec2 controlPoint = data.vertices[i] + data.outTangents[i];
+            minX = std::min(minX, controlPoint.x);
+            maxX = std::max(maxX, controlPoint.x);
+            minY = std::min(minY, controlPoint.y);
+            maxY = std::max(maxY, controlPoint.y);
+        }
+    }
+    
+    return ofRectangle(minX, minY, maxX - minX, maxY - minY);
 }
 
 }}} // namespace ofx::ae::utils
