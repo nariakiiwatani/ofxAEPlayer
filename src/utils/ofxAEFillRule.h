@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <unordered_map>
+#include "ofGraphicsConstants.h"
 
 namespace ofx { namespace ae {
 
@@ -25,6 +26,14 @@ inline std::string toString(FillRule rule) {
         case FillRule::EVEN_ODD: return "EVEN_ODD";
         default: return "UNKNOWN";
     }
+}
+
+inline ofPolyWindingMode toOf(FillRule rule) {
+	switch(rule) {
+		case FillRule::NON_ZERO: return OF_POLY_WINDING_NONZERO;
+		case FillRule::EVEN_ODD: return OF_POLY_WINDING_ODD;
+		default: return OF_POLY_WINDING_NONZERO;
+	}
 }
 
 }}

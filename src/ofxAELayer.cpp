@@ -156,8 +156,8 @@ bool Layer::setFrame(int frame)
 		need_mask_update |= true;
 	}
 	
-	if(source_) {
-		ret |= source_->setFrame(frame);
+	if(source_ && source_->setFrame(frame)) {
+		ret |= true;
 		need_mask_update |= true;
 	}
 	current_frame_ = frame;

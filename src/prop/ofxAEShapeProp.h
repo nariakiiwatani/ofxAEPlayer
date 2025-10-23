@@ -3,6 +3,8 @@
 #include "ofxAEProperty.h"
 #include "ofxAETransformProp.h"
 #include "ofxAEBlendMode.h"
+#include "ofxAEFillRule.h"
+#include "ofxAEWindingDirection.h"
 #include "ofMain.h"
 #include <memory>
 
@@ -12,17 +14,43 @@ class Visitor;
 
 class BlendModeProp : public Property<BlendMode> {
 public:
-    BlendModeProp() : Property<BlendMode>() {}
-    
-    BlendMode parse(const ofJson& json) const override {
-        if (json.is_string()) {
-            std::string blendModeStr = json.get<std::string>();
-            return blendModeFromString(blendModeStr);
-        } else {
-            ofLogWarning("BlendModeProp") << "Expected string blend mode value, using NORMAL";
-            return BlendMode::NORMAL;
-        }
-    }
+	BlendModeProp() : Property<BlendMode>() {}
+
+	BlendMode parse(const ofJson& json) const override {
+		if (json.is_string()) {
+			std::string blendModeStr = json.get<std::string>();
+			return blendModeFromString(blendModeStr);
+		} else {
+			ofLogWarning("BlendModeProp") << "Expected string blend mode value, using NORMAL";
+			return BlendMode::NORMAL;
+		}
+	}
+};
+class FillRuleProp : public Property<FillRule> {
+public:
+	FillRuleProp() : Property<FillRule>() {}
+
+	FillRule parse(const ofJson& json) const override {
+		if (json.is_string()) {
+			return fillRuleFromString(json.get<std::string>());
+		} else {
+			ofLogWarning("FillRuleProp") << "Expected string fill rule value, using NON_ZERO";
+			return FillRule::NON_ZERO;
+		}
+	}
+};
+class WindingDirectionProp : public Property<WindingDirection> {
+public:
+	WindingDirectionProp() : Property<WindingDirection>() {}
+
+	WindingDirection parse(const ofJson& json) const override {
+		if (json.is_string()) {
+			return windingDirectionFromString(json.get<std::string>());
+		} else {
+			ofLogWarning("WindingDirectionProp") << "Expected string winding direction value, using DEFAULT";
+			return WindingDirection::DEFAULT;
+		}
+	}
 };
 
 struct ShapeDataBase {
@@ -34,7 +62,7 @@ struct EllipseData : public ShapeDataBase {
 	void accept(Visitor& visitor) const override;
 	glm::vec2 size{0,0};
 	glm::vec2 position{0,0};
-	int direction{1}; // 1 = defalt(clockwise) 2 = clockwise, 3 = counterclockwise
+	WindingDirection direction{WindingDirection::DEFAULT};
 };
 
 struct RectangleData : public ShapeDataBase {
@@ -42,12 +70,12 @@ struct RectangleData : public ShapeDataBase {
 	glm::vec2 size{0,0};
 	glm::vec2 position{0,0};
 	float roundness{0};
-	int direction{1}; // 1 = defalt(clockwise) 2 = clockwise, 3 = counterclockwise
+	WindingDirection direction{WindingDirection::DEFAULT};
 };
 
 struct PolygonData : public ShapeDataBase {
 	void accept(Visitor& visitor) const override;
-	int direction{1}; // 1 = defalt(clockwise) 2 = clockwise, 3 = counterclockwise
+	WindingDirection direction{WindingDirection::DEFAULT};
 	int type{1}; // 1 = polygon, 2 = star
 	int points{5};
 	glm::vec2 position{0,0};
@@ -64,8 +92,8 @@ struct PathData : public ShapeDataBase {
 	std::vector<glm::vec2> inTangents{};
 	std::vector<glm::vec2> outTangents{};
 	bool closed{true};
-	int direction{1}; // 1 = default(clockwise) 2 = clockwise, 3 = counterclockwise
-	
+	WindingDirection direction{WindingDirection::DEFAULT};
+
 	PathData operator+(const PathData& other) const;
 	PathData operator-(const PathData& other) const;
 	PathData operator*(float t) const;
@@ -85,7 +113,7 @@ struct FillData : public ShapeDataBase {
 	void accept(Visitor& visitor) const override;
 	ofFloatColor color{1,1,1,1};
 	float opacity{1};
-	int rule{1}; // Fill rule
+	FillRule rule{FillRule::NON_ZERO};
 	BlendMode blendMode{BlendMode::NORMAL};
 	int compositeOrder{1};
 };
@@ -107,15 +135,6 @@ struct GroupData : public ShapeDataBase {
 	std::vector<std::unique_ptr<ShapeDataBase>> data{};
 	BlendMode blendMode{BlendMode::NORMAL};
 	TransformData transform;
-	
-	// FBOキャッシュ機能
-	mutable std::unique_ptr<ofFbo> cached_fbo_;
-	mutable bool needs_update_{true};
-	mutable int cached_width_{0}, cached_height_{0};
-	
-	void markForUpdate() const { needs_update_ = true; }
-	bool requiresFBO() const { return blendMode != BlendMode::NORMAL; }
-	void ensureFBO(int width, int height) const;
 };
 
 struct ShapeData : public GroupData {
@@ -128,8 +147,8 @@ public:
 	EllipseProp() {
 		registerProperty<VecProp<2>>("/size");
 		registerProperty<VecProp<2>>("/position");
-		registerProperty<IntProp>("/direction");
-		
+		registerProperty<WindingDirectionProp>("/direction");
+
 		registerExtractor<EllipseData>([this](EllipseData& e) -> bool {
 			bool success = true;
 			
@@ -145,9 +164,9 @@ public:
 				success = false;
 			}
 			
-			if (!getProperty<IntProp>("/direction")->tryExtract(e.direction)) {
+			if (!getProperty<WindingDirectionProp>("/direction")->tryExtract(e.direction)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract ellipse direction, using default";
-				e.direction = 1;
+				e.direction = WindingDirection::DEFAULT;
 				success = false;
 			}
 			
@@ -163,8 +182,8 @@ public:
 		registerProperty<VecProp<2>>("/size");
 		registerProperty<VecProp<2>>("/position");
 		registerProperty<FloatProp>("/roundness");
-		registerProperty<IntProp>("/direction");
-		
+		registerProperty<WindingDirectionProp>("/direction");
+
 		registerExtractor<RectangleData>([this](RectangleData& r) -> bool {
 			bool success = true;
 			
@@ -186,9 +205,9 @@ public:
 				success = false;
 			}
 			
-			if (!getProperty<IntProp>("/direction")->tryExtract(r.direction)) {
+			if (!getProperty<WindingDirectionProp>("/direction")->tryExtract(r.direction)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract rectangle direction, using default";
-				r.direction = 1;
+				r.direction = WindingDirection::DEFAULT;
 				success = false;
 			}
 			
@@ -201,7 +220,7 @@ class PolygonProp : public PropertyGroup
 {
 public:
 	PolygonProp() {
-		registerProperty<IntProp>("/direction");
+		registerProperty<WindingDirectionProp>("/direction");
 		registerProperty<IntProp>("/type");
 		registerProperty<IntProp>("/points");
 		registerProperty<VecProp<2>>("/position");
@@ -214,9 +233,9 @@ public:
 		registerExtractor<PolygonData>([this](PolygonData& p) -> bool {
 			bool success = true;
 			
-			if (!getProperty<IntProp>("/direction")->tryExtract(p.direction)) {
+			if (!getProperty<WindingDirectionProp>("/direction")->tryExtract(p.direction)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract polygon direction, using default";
-				p.direction = 1;
+				p.direction = WindingDirection::DEFAULT;
 				success = false;
 			}
 			
@@ -290,9 +309,9 @@ public:
 				success = false;
 			}
 			
-			if (!getProperty<IntProp>("/direction")->tryExtract(p.direction)) {
+			if (!getProperty<WindingDirectionProp>("/direction")->tryExtract(p.direction)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract path direction, using default";
-				p.direction = 1;
+				p.direction = WindingDirection::DEFAULT;
 				success = false;
 			}
 			
@@ -317,7 +336,7 @@ public:
 	FillProp() {
 		registerProperty<ColorProp>("/color");
 		registerProperty<PercentProp>("/opacity");
-		registerProperty<IntProp>("/rule");
+		registerProperty<FillRuleProp>("/rule");
 		registerProperty<BlendModeProp>("/blendMode");
 		registerProperty<IntProp>("/compositeOrder");
 		
@@ -336,9 +355,9 @@ public:
 				success = false;
 			}
 			
-			if (!getProperty<IntProp>("/rule")->tryExtract(f.rule)) {
+			if (!getProperty<FillRuleProp>("/rule")->tryExtract(f.rule)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract fill rule, using default";
-				f.rule = 1;
+				f.rule = FillRule::NON_ZERO;
 				success = false;
 			}
 			

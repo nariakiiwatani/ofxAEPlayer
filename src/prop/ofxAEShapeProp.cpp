@@ -73,32 +73,6 @@ void ShapeData::accept(Visitor& visitor) const {
 	visitor.visit(*this);
 }
 
-void GroupData::ensureFBO(int width, int height) const {
-	// サイズ変更時またはFBOが未作成時に新しいFBOを作成
-	if (!cached_fbo_ || cached_width_ != width || cached_height_ != height) {
-		cached_fbo_ = std::make_unique<ofFbo>();
-		
-		// FBO設定
-		ofFboSettings settings;
-		settings.width = width;
-		settings.height = height;
-		settings.internalformat = GL_RGBA;
-		settings.useDepth = false;
-		settings.useStencil = false;
-		settings.textureTarget = GL_TEXTURE_2D;
-		settings.minFilter = GL_LINEAR;
-		settings.maxFilter = GL_LINEAR;
-		settings.wrapModeHorizontal = GL_CLAMP_TO_EDGE;
-		settings.wrapModeVertical = GL_CLAMP_TO_EDGE;
-		
-		cached_fbo_->allocate(settings);
-		
-		cached_width_ = width;
-		cached_height_ = height;
-		needs_update_ = true; // 新しいFBOは更新が必要
-	}
-}
-
 PathData PathData::operator+(const PathData& other) const {
 	PathData result = *this;
 	if (vertices.size() == other.vertices.size()) {
@@ -286,20 +260,12 @@ GroupProp::GroupProp()
 	registerExtractor<GroupData>([this](GroupData& g) -> bool {
 		bool success = true;
 
-		// 前のブレンドモードを保存して変更検出
-		BlendMode prevBlendMode = g.blendMode;
-		
 		if (!getProperty<BlendModeProp>("/blendMode")->tryExtract(g.blendMode)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract group blendMode, using default";
 			g.blendMode = BlendMode::NORMAL;
 			success = false;
 		}
 		
-		// ブレンドモードが変更された場合、更新フラグを設定
-		if (prevBlendMode != g.blendMode) {
-			g.markForUpdate();
-		}
-
 		if (!getProperty<ShapeProp>("/shape")->tryExtract((ShapeData&)g)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract group shape data, using empty";
 			g.data.clear();

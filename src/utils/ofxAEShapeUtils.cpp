@@ -35,24 +35,22 @@ ofPath ShapePathGenerator::enforceWinding(const ofPath& src, WindingDirection di
     return out;
 }
 
-ofPath ShapePathGenerator::createEllipsePath(const EllipseData& e) {
+ofPath ShapePathGenerator::createPath(const EllipseData& e) {
     ofPath path;
     path.ellipse(e.position, e.size.x, e.size.y);
-    WindingDirection dir = static_cast<WindingDirection>(e.direction);
-    return enforceWinding(path, dir);
+    return enforceWinding(path, e.direction);
 }
 
-ofPath ShapePathGenerator::createRectanglePath(const RectangleData& r) {
+ofPath ShapePathGenerator::createPath(const RectangleData& r) {
     ofPath path;
     float x=r.position.x - r.size.x*0.5f;
     float y=r.position.y - r.size.y*0.5f;
     if(r.roundness>0) path.rectRounded(x,y,r.size.x,r.size.y,r.roundness);
     else              path.rectangle(x,y,r.size.x,r.size.y);
-    WindingDirection dir = static_cast<WindingDirection>(r.direction);
-    return enforceWinding(path, dir);
+    return enforceWinding(path, r.direction);
 }
 
-ofPath ShapePathGenerator::createPolygonPath(const PolygonData& polygon) {
+ofPath ShapePathGenerator::createPath(const PolygonData& polygon) {
     ofPath path;
     
     int numPoints = polygon.points;
@@ -90,16 +88,11 @@ ofPath ShapePathGenerator::createPolygonPath(const PolygonData& polygon) {
     }
     path.close();
     
-    WindingDirection dir = static_cast<WindingDirection>(polygon.direction);
-    path = enforceWinding(path, dir);
+    path = enforceWinding(path, polygon.direction);
     return path;
 }
 
 ofPath ShapePathGenerator::createPath(const PathData& data) {
-    return data.toOfPath();
-}
-
-ofPath ShapePathGenerator::createMaskPath(const PathData& data) {
     return data.toOfPath();
 }
 

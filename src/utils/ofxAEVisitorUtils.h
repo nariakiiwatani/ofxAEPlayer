@@ -10,7 +10,7 @@
 #include "ofxAEShapeUtils.h"
 #include "ofxAEShapeProp.h"
 
-namespace ofx { namespace ae { namespace utils {
+namespace ofx { namespace ae {
 
 template<typename T, typename Predicate>
 class FindVisitor : public Visitor {
@@ -63,28 +63,9 @@ private:
 
 class PathExtractionVisitor : public Visitor {
 public:
-	struct Context {
-		ofPath path;
-		ofMatrix4x4 mat;
-		float opacity;
-		Context():
-			path{},
-			mat(ofMatrix4x4::newIdentityMatrix()),
-			opacity(1)
-		{
-			path.setStrokeWidth(0);
-			path.setFilled(false);
-		}
-
-		void transform(const TransformData &t) {
-			mat = t.toOf()*mat;
-			opacity = t.opacity*opacity;
-		}
-	};
-
 	PathExtractionVisitor();
+	PathExtractionVisitor(const GroupData &group);
 	~PathExtractionVisitor()=default;
-    void visit(const Layer& layer) override;
     void visit(const EllipseData& ellipse) override;
     void visit(const RectangleData& rectangle) override;
     void visit(const PolygonData& polygon) override;
@@ -93,35 +74,49 @@ public:
     void visit(const StrokeData& stroke) override;
 	void visit(const GroupData& group) override;
 
-    const std::deque<ofPath>& getPaths() const { return result_; }
-	const ofPath& getPlainPath() const { return getContext().path; }
-
-    void clear();
-
-protected:
-    void applyTransform(ofPath& path) const;
-
-protected:
-	void pushContext();
-	void popContext();
-	const Context& getContext() const;
-	Context& getContext();
+	struct RenderItem {
+		ofMatrix4x4 transform=ofMatrix4x4::newIdentityMatrix();
+		float opacity=1;
+		BlendMode blend_mode=BlendMode::NORMAL;
+		virtual void draw(float alpha=1) const =0;
+	};
+	struct RenderPathItem : public RenderItem {
+		RenderPathItem(const ofPath &p):path(p) {
+		}
+		void draw(float alpha=1) const;
+		ofPath path;
+	};
+	struct RenderGroupItem : public RenderItem {
+		void draw(float alpha=1) const;
+		std::deque<std::shared_ptr<RenderItem>> item;
+		bool needFbo() const;
+		mutable ofFbo fbo;
+	};
+	const RenderGroupItem& getRenderer() const { return renderer_; }
+	const ofPath& getPath() const { return path_; }
 
 private:
-    std::deque<ofPath> result_;
-    std::stack<Context> ctx_;
+	ofPath path_{};
+	RenderGroupItem renderer_;
+	RenderPathItem createPathItem(const ofPath &path) const {
+		RenderPathItem ret(path);
+		ret.transform = renderer_.transform;
+		ret.opacity = renderer_.opacity;
+		ret.blend_mode = renderer_.blend_mode;
+		return ret;
+	}
 };
 
-class BlendModeAwarePathVisitor : public PathExtractionVisitor {
+class RenderItemExtractionVisitor : public Visitor
+{
 public:
-	BlendModeAwarePathVisitor();
-	~BlendModeAwarePathVisitor() = default;
-	
 	void visit(const GroupData& group) override;
-	void drawGroup(const GroupData& group, int width, int height);
-	
+	ofPath getAccumulatedPath() const { return path_; }
 private:
-	void drawGroupContents(const GroupData& group);
+	ofPath path_;
+	ofMatrix4x4 transform_;
+	float opacity_=1;
+	BlendMode blend_mode_=BlendMode::NORMAL;
 };
 
 template<typename T>
@@ -133,4 +128,4 @@ auto makeCollectVisitor() {
 	return CollectVisitor<T>();
 }
 
-}}} // namespace ofx::ae::utils
+}} // namespace ofx::ae

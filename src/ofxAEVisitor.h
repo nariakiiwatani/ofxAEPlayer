@@ -37,8 +37,9 @@ public:
     virtual void visit(const CompositionSource& source) {}
     virtual void visit(const SolidSource& source) {}
 
-    virtual void visit(const ShapeData& shape);
+	virtual void visit(const ShapeData& shape);
     virtual void visit(const GroupData& group);
+	virtual void visit(const ShapeDataBase& shape) {}
     virtual void visit(const EllipseData& ellipse) {}
     virtual void visit(const RectangleData& rectangle) {}
     virtual void visit(const PathData& path) {}

@@ -190,7 +190,8 @@ var PROPERTY_MAPPING_CONFIG = {
     },
     
     "ADBE Vector Shape Direction": {
-        wrapInObject: "direction"
+        wrapInObject: "direction",
+        customProcessor: "windingDirection"
     },
     "ADBE Vector Composite Order": {
         wrapInObject: "compositeOrder"
@@ -201,7 +202,8 @@ var PROPERTY_MAPPING_CONFIG = {
         merge: {shapeType: "fill"}
     },
     "ADBE Vector Fill Rule": {
-        wrapInObject: "rule"
+        wrapInObject: "rule",
+        customProcessor: "fillRule"
     },
     "ADBE Vector Fill Color": {
         wrapInObject: "color"
@@ -1014,6 +1016,10 @@ function fillRuleToString(rule) {
                 switch(customProcessor) {
                     case "vectorBlendMode":
                         return vectorBlendModeToString(value);
+                    case "windingDirection":
+                        return windingDirectionToString(value);
+                    case "fillRule":
+                        return fillRuleToString(value);
                     default:
                         break;
                 }

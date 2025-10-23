@@ -109,37 +109,37 @@ void Visitor::visitChildren(const CompositionSource& source) {
 }
 
 void Visitor::visitChildren(const ShapeData& shape) {
-    if (!visit_children_) return;
-    
-    for (const auto& shapePtr : shape.data) {
-        if (shapePtr) {
-            if (const EllipseData* ellipse = dynamic_cast<const EllipseData*>(shapePtr.get())) {
-                visit(*ellipse);
-            }
-            else if (const RectangleData* rectangle = dynamic_cast<const RectangleData*>(shapePtr.get())) {
-                visit(*rectangle);
-            }
-            else if (const PolygonData* polygon = dynamic_cast<const PolygonData*>(shapePtr.get())) {
-                visit(*polygon);
-            }
-            else if (const FillData* fill = dynamic_cast<const FillData*>(shapePtr.get())) {
-                visit(*fill);
-            }
-            else if (const StrokeData* stroke = dynamic_cast<const StrokeData*>(shapePtr.get())) {
-                visit(*stroke);
-            }
-            else if (const GroupData* group = dynamic_cast<const GroupData*>(shapePtr.get())) {
-                visit(*group);
-            }
-            else if (const ShapeData* nestedShape = dynamic_cast<const ShapeData*>(shapePtr.get())) {
-                visit(*nestedShape);
-            }
-        }
-    }
+	visitChildren(static_cast<const GroupData&>(shape));
 }
 
 void Visitor::visitChildren(const GroupData& group) {
-    visitChildren(static_cast<const ShapeData&>(group));
+	if (!visit_children_) return;
+
+	for (const auto& shapePtr : group.data) {
+		if (shapePtr) {
+			if (const EllipseData* ellipse = dynamic_cast<const EllipseData*>(shapePtr.get())) {
+				visit(*ellipse);
+			}
+			else if (const RectangleData* rectangle = dynamic_cast<const RectangleData*>(shapePtr.get())) {
+				visit(*rectangle);
+			}
+			else if (const PolygonData* polygon = dynamic_cast<const PolygonData*>(shapePtr.get())) {
+				visit(*polygon);
+			}
+			else if (const FillData* fill = dynamic_cast<const FillData*>(shapePtr.get())) {
+				visit(*fill);
+			}
+			else if (const StrokeData* stroke = dynamic_cast<const StrokeData*>(shapePtr.get())) {
+				visit(*stroke);
+			}
+			else if (const GroupData* group = dynamic_cast<const GroupData*>(shapePtr.get())) {
+				visit(*group);
+			}
+			else if (const ShapeData* nestedShape = dynamic_cast<const ShapeData*>(shapePtr.get())) {
+				visit(*nestedShape);
+			}
+		}
+	}
 }
 
 void Visitor::visitChildren(const PropertyGroup& group) {

@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <map>
 #include "ofxAEBlendMode.h"
+#include "ofxAEFillRule.h"
+#include "ofxAEWindingDirection.h"
 
 namespace ofx { namespace ae {
 
@@ -216,6 +218,18 @@ T calculate(const Keyframe::Data<T>& keyframe_a,
 template<>
 inline BlendMode calculate(const Keyframe::Data<BlendMode>& keyframe_a,
 			const Keyframe::Data<BlendMode>& keyframe_b,
+			float ratio) {
+	return ratio < 0.5f ? keyframe_a.value : keyframe_b.value;
+}
+template<>
+inline FillRule calculate(const Keyframe::Data<FillRule>& keyframe_a,
+			const Keyframe::Data<FillRule>& keyframe_b,
+			float ratio) {
+	return ratio < 0.5f ? keyframe_a.value : keyframe_b.value;
+}
+template<>
+inline WindingDirection calculate(const Keyframe::Data<WindingDirection>& keyframe_a,
+			const Keyframe::Data<WindingDirection>& keyframe_b,
 			float ratio) {
 	return ratio < 0.5f ? keyframe_a.value : keyframe_b.value;
 }
