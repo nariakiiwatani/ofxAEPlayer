@@ -2,15 +2,34 @@
 
 #include "ofxAEProperty.h"
 #include "ofxAETransformProp.h"
+#include "ofxAEBlendMode.h"
+#include "ofMain.h"
+#include <memory>
 
 namespace ofx { namespace ae {
 
 class Visitor;
 
+class BlendModeProp : public Property<BlendMode> {
+public:
+    BlendModeProp() : Property<BlendMode>() {}
+    
+    BlendMode parse(const ofJson& json) const override {
+        if (json.is_string()) {
+            std::string blendModeStr = json.get<std::string>();
+            return blendModeFromString(blendModeStr);
+        } else {
+            ofLogWarning("BlendModeProp") << "Expected string blend mode value, using NORMAL";
+            return BlendMode::NORMAL;
+        }
+    }
+};
+
 struct ShapeDataBase {
 	virtual ~ShapeDataBase() = default;
 	virtual void accept(Visitor& visitor) const = 0;
 };
+
 struct EllipseData : public ShapeDataBase {
 	void accept(Visitor& visitor) const override;
 	glm::vec2 size{0,0};
@@ -67,7 +86,7 @@ struct FillData : public ShapeDataBase {
 	ofFloatColor color{1,1,1,1};
 	float opacity{1};
 	int rule{1}; // Fill rule
-	int blendMode{1};
+	BlendMode blendMode{BlendMode::NORMAL};
 	int compositeOrder{1};
 };
 
@@ -79,18 +98,28 @@ struct StrokeData : public ShapeDataBase {
 	int lineCap{1};
 	int lineJoin{1};
 	float miterLimit{4};
-	int blendMode{1};
+	BlendMode blendMode{BlendMode::NORMAL};
 	int compositeOrder{1};
 };
 
-struct ShapeData : public ShapeDataBase {
+struct GroupData : public ShapeDataBase {
 	void accept(Visitor& visitor) const override;
 	std::vector<std::unique_ptr<ShapeDataBase>> data{};
-};
-struct GroupData : public ShapeData {
-	void accept(Visitor& visitor) const override;
-	int blendMode{1};
+	BlendMode blendMode{BlendMode::NORMAL};
 	TransformData transform;
+	
+	// FBOキャッシュ機能
+	mutable std::unique_ptr<ofFbo> cached_fbo_;
+	mutable bool needs_update_{true};
+	mutable int cached_width_{0}, cached_height_{0};
+	
+	void markForUpdate() const { needs_update_ = true; }
+	bool requiresFBO() const { return blendMode != BlendMode::NORMAL; }
+	void ensureFBO(int width, int height) const;
+};
+
+struct ShapeData : public GroupData {
+	void accept(Visitor& visitor) const override;
 };
 
 class EllipseProp : public PropertyGroup
@@ -289,7 +318,7 @@ public:
 		registerProperty<ColorProp>("/color");
 		registerProperty<PercentProp>("/opacity");
 		registerProperty<IntProp>("/rule");
-		registerProperty<IntProp>("/blendMode");
+		registerProperty<BlendModeProp>("/blendMode");
 		registerProperty<IntProp>("/compositeOrder");
 		
 		registerExtractor<FillData>([this](FillData& f) -> bool {
@@ -313,9 +342,9 @@ public:
 				success = false;
 			}
 			
-			if (!getProperty<IntProp>("/blendMode")->tryExtract(f.blendMode)) {
+			if (!getProperty<BlendModeProp>("/blendMode")->tryExtract(f.blendMode)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract fill blendMode, using default";
-				f.blendMode = 1;
+				f.blendMode = BlendMode::NORMAL;
 				success = false;
 			}
 			
@@ -340,7 +369,7 @@ public:
 		registerProperty<IntProp>("/lineCap");
 		registerProperty<IntProp>("/lineJoin");
 		registerProperty<FloatProp>("/miterLimit");
-		registerProperty<IntProp>("/blendMode");
+		registerProperty<BlendModeProp>("/blendMode");
 		registerProperty<IntProp>("/compositeOrder");
 		
 		registerExtractor<StrokeData>([this](StrokeData& s) -> bool {
@@ -382,9 +411,9 @@ public:
 				success = false;
 			}
 			
-			if (!getProperty<IntProp>("/blendMode")->tryExtract(s.blendMode)) {
+			if (!getProperty<BlendModeProp>("/blendMode")->tryExtract(s.blendMode)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract stroke blendMode, using default";
-				s.blendMode = 1;
+				s.blendMode = BlendMode::NORMAL;
 				success = false;
 			}
 			

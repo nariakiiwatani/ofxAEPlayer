@@ -4,6 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <map>
+#include "ofxAEBlendMode.h"
 
 namespace ofx { namespace ae {
 
@@ -210,6 +211,13 @@ T calculate(const Keyframe::Data<T>& keyframe_a,
         default:
             return linear(keyframe_a.value, keyframe_b.value, ratio);
     }
+}
+
+template<>
+inline BlendMode calculate(const Keyframe::Data<BlendMode>& keyframe_a,
+			const Keyframe::Data<BlendMode>& keyframe_b,
+			float ratio) {
+	return ratio < 0.5f ? keyframe_a.value : keyframe_b.value;
 }
 
 } // namespace interpolation

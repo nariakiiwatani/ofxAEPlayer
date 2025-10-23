@@ -10,10 +10,11 @@ void ofApp::setup(){
     // Initialize variables
     isPlaying = false;
     showDebugInfo = true;
+    showBlendModeTest = false;
 
 	comp_ = std::make_shared<ofx::ae::Composition>();
     // Load composition using CompositionManager singleton
-	if (comp_->load("interaction-test.json")) {
+	if (comp_->load("blendmode.json")) {
 		ofLogNotice("ofApp") << "Composition loaded successfully";
 		const auto& info = comp_->getInfo();
 		ofLogNotice("ofApp") << "Duration: " << info.duration;
@@ -25,6 +26,9 @@ void ofApp::setup(){
 	}
 	timeline_ = 0;
 	isPlaying = true;
+	
+	// Setup blend mode test
+	blendModeTest_.setup();
 }
 
 //--------------------------------------------------------------
@@ -43,9 +47,15 @@ void ofApp::update(){
 void ofApp::draw(){
     ofClear(64, 64, 64);
     
-    // Draw composition if loaded
-    if (comp_) {
-		comp_->draw(0,0);
+    if (showBlendModeTest) {
+        // Draw blend mode test
+        blendModeTest_.update();
+        blendModeTest_.draw();
+    } else {
+        // Draw composition if loaded
+        if (comp_) {
+            comp_->draw(0,0);
+        }
     }
     
     // Draw controls and debug info
@@ -62,6 +72,7 @@ void ofApp::drawControls(){
     controls += "SPACE: Play/Pause\n";
     controls += "R: Reset to beginning\n";
     controls += "D: Toggle debug info\n";
+    controls += "B: Toggle blend mode test\n";
     controls += "LEFT/RIGHT: Seek -/+ 1 second";
     
     ofDrawBitmapString(controls, 20, 20);
@@ -128,6 +139,12 @@ void ofApp::keyPressed(int key){
         case 'd':
         case 'D':
             showDebugInfo = !showDebugInfo;
+            break;
+            
+        case 'b':
+        case 'B':
+            showBlendModeTest = !showBlendModeTest;
+            ofLogNotice("ofApp") << "Blend mode test " << (showBlendModeTest ? "enabled" : "disabled");
             break;
             
         case OF_KEY_LEFT:

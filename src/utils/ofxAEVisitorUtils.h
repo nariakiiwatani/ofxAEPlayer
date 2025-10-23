@@ -3,6 +3,7 @@
 #include <vector>
 #include <functional>
 #include <memory>
+#include <stack>
 #include "ofMain.h"
 #include "glm/glm.hpp"
 #include "ofxAEVisitor.h"
@@ -62,6 +63,25 @@ private:
 
 class PathExtractionVisitor : public Visitor {
 public:
+	struct Context {
+		ofPath path;
+		ofMatrix4x4 mat;
+		float opacity;
+		Context():
+			path{},
+			mat(ofMatrix4x4::newIdentityMatrix()),
+			opacity(1)
+		{
+			path.setStrokeWidth(0);
+			path.setFilled(false);
+		}
+
+		void transform(const TransformData &t) {
+			mat = t.toOf()*mat;
+			opacity = t.opacity*opacity;
+		}
+	};
+
 	PathExtractionVisitor();
 	~PathExtractionVisitor()=default;
     void visit(const Layer& layer) override;
@@ -81,31 +101,27 @@ public:
 protected:
     void applyTransform(ofPath& path) const;
 
-private:
-    std::deque<ofPath> result_;
-	struct Context {
-		ofPath path;
-		ofMatrix4x4 mat;
-		float opacity;
-		Context():
-			path{},
-			mat(ofMatrix4x4::newIdentityMatrix()),
-			opacity(1)
-		{
-			path.setStrokeWidth(0);
-			path.setFilled(false);
-		}
-
-		void transform(const TransformData &t) {
-			mat = t.toOf()*mat;
-			opacity = t.opacity*opacity;
-		}
-	};
-    std::stack<Context> ctx_;
+protected:
 	void pushContext();
 	void popContext();
 	const Context& getContext() const;
 	Context& getContext();
+
+private:
+    std::deque<ofPath> result_;
+    std::stack<Context> ctx_;
+};
+
+class BlendModeAwarePathVisitor : public PathExtractionVisitor {
+public:
+	BlendModeAwarePathVisitor();
+	~BlendModeAwarePathVisitor() = default;
+	
+	void visit(const GroupData& group) override;
+	void drawGroup(const GroupData& group, int width, int height);
+	
+private:
+	void drawGroupContents(const GroupData& group);
 };
 
 template<typename T>

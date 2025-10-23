@@ -251,9 +251,11 @@ var PROPERTY_MAPPING_CONFIG = {
     "ADBE Vector Filter - Trim Offset": {
         wrapInObject: "offset"
     },
+    "ADBE Vector Blend Mode": {
+        wrapInObject: "blendMode",
+        customProcessor: "vectorBlendMode"
+    },
 
-    // 将来的に対応予定のプロパティ
-    "ADBE Vector Blend Mode": { ignored: true },
 
 
     // 不要なプロパティを無効化
@@ -313,6 +315,40 @@ function blendingModeToString(mode) {
     map[BlendingMode.LIGHTEN_COLOR_DODGE] = "LIGHTEN_COLOR_DODGE";
     map[BlendingMode.LIGHTEN_COLOR_BURN] = "LIGHTEN_COLOR_BURN";
     return map.hasOwnProperty(mode) ? map[mode] : "UNKNOWN";
+}
+
+function vectorBlendModeToString(mode) {
+    var map = {};
+    map[1] = "NORMAL";
+
+    map[3] = "DARKER";
+    map[4] = "MULTIPLY";
+    map[5] = "COLOR_BURN";
+    map[6] = "LINEAR_BURN";
+    map[7] = "DARKER_COLOR";
+
+    map[9] = "LIGHTER";
+    map[10] = "SCREEN";
+    map[11] = "COLOR_DODGE";
+    map[12] = "LINEAR_DODGE";
+    map[13] = "LIGHTER_COLOR";
+
+    map[15] = "OVERLAY";
+    map[16] = "SOFT_LIGHT";
+    map[17] = "HARD_LIGHT";
+    map[18] = "LINEAR_LIGHT";
+    map[19] = "VIVID_LIGHT";
+    map[20] = "PIN_LIGHT";
+    map[21] = "HARD_MIX";
+
+    map[23] = "DIVIDE";
+    map[24] = "EXCLUSION";
+
+    map[26] = "HUE";
+    map[27] = "SATURATION";
+    map[28] = "COLOR";
+    map[29] = "BRIGHTNESS";
+    return map.hasOwnProperty(mode) ? map[mode] : "NORMAL";
 }
 
 function windingDirectionToString(direction) {
@@ -968,11 +1004,20 @@ function fillRuleToString(rule) {
     }
     
     // 型自動判定による値処理
-    function extractValue(prop, time, decimalPlaces) {
+    function extractValue(prop, time, decimalPlaces, customProcessor) {
         try {
             if (!prop) return null;
             
             var value = prop.valueAtTime(time, false);
+            
+            if (customProcessor) {
+                switch(customProcessor) {
+                    case "vectorBlendMode":
+                        return vectorBlendModeToString(value);
+                    default:
+                        break;
+                }
+            }
             
             // 型自動判定
             if (typeof value === 'number') {
@@ -1357,7 +1402,7 @@ function fillRuleToString(rule) {
 
 
     // キーフレームベースの抽出関数
-    function extractKeyframeBasedProperty(prop, inPoint, fps, decimalPlaces) {
+    function extractKeyframeBasedProperty(prop, inPoint, fps, decimalPlaces, customProcessor) {
         try {
             if (!prop) {
                 debugLog("extractKeyframeBasedProperty", "prop is null");
@@ -1385,7 +1430,7 @@ function fillRuleToString(rule) {
                     var keyTime = prop.keyTime(i);
                     var keyFrame = toFrame(keyTime) - inPoint;
                     
-                    var keyValue = extractValue(prop, keyTime, decimalPlaces);
+                    var keyValue = extractValue(prop, keyTime, decimalPlaces, customProcessor);
                     
                     // キーフレーム情報を構築
                     var keyframeInfo = {
@@ -1422,7 +1467,7 @@ function fillRuleToString(rule) {
         }
     }
     
-    function extractAnimatedProperty(prop, inPoint, duration, fps, decimalPlaces) {
+    function extractAnimatedProperty(prop, inPoint, duration, fps, decimalPlaces, customProcessor) {
         try {
             if (!prop) {
                 debugLog("extractAnimatedProperty", "prop is null");
@@ -1449,7 +1494,7 @@ function fillRuleToString(rule) {
             
             for (var frame = 0; frame <= duration; frame++) {
                 var time = toTime(frame + inPoint);
-                var extractedValue = extractValue(prop, time, decimalPlaces);
+                var extractedValue = extractValue(prop, time, decimalPlaces, customProcessor);
                                 
                 var hasChanged = (prevValue === null) || !valuesAreEqual(extractedValue, prevValue);
                 
@@ -1488,24 +1533,25 @@ function fillRuleToString(rule) {
         }
     }
 
-    function extractPropertyValue(prop, options, layer) {
+    function extractPropertyValue(prop, options, layer, config) {
         var fps = layer.containingComp.frameRate;
         var inPoint = Math.floor(layer.inPoint * fps);
         var outPoint = Math.floor(layer.outPoint * fps);
         var duration = outPoint - inPoint;
         var DEC = options.decimalPlaces || 4;
+        var customProcessor = config ? config.customProcessor : null;
 
         function toTime(f) { return f / fps; }
 
         var result;
         if (options.keyframes) {
             if (!options.useFullFrameAnimation) {
-                result = extractKeyframeBasedProperty(prop, inPoint, fps, DEC);
+                result = extractKeyframeBasedProperty(prop, inPoint, fps, DEC, customProcessor);
             } else {
-                result = extractAnimatedProperty(prop, inPoint, duration, fps, DEC);
+                result = extractAnimatedProperty(prop, inPoint, duration, fps, DEC, customProcessor);
             }
         } else {
-            result = extractValue(prop, toTime(inPoint), DEC);
+            result = extractValue(prop, toTime(inPoint), DEC, customProcessor);
         }
         return result;
     }
@@ -1547,7 +1593,7 @@ function fillRuleToString(rule) {
             var propType = property.propertyType;
             switch(propType) {
                 case PropertyType.PROPERTY:
-                    result = extractPropertyValue(property, options, layer);
+                    result = extractPropertyValue(property, options, layer, config);
                     break;
                 case PropertyType.INDEXED_GROUP:
                     result = [];

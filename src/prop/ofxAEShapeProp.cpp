@@ -53,6 +53,10 @@ void PolygonData::accept(Visitor& visitor) const {
 	visitor.visit(*this);
 }
 
+void PathData::accept(Visitor& visitor) const {
+	visitor.visit(*this);
+}
+
 void FillData::accept(Visitor& visitor) const {
 	visitor.visit(*this);
 }
@@ -65,8 +69,34 @@ void GroupData::accept(Visitor& visitor) const {
 	visitor.visit(*this);
 }
 
-void PathData::accept(Visitor& visitor) const {
+void ShapeData::accept(Visitor& visitor) const {
 	visitor.visit(*this);
+}
+
+void GroupData::ensureFBO(int width, int height) const {
+	// サイズ変更時またはFBOが未作成時に新しいFBOを作成
+	if (!cached_fbo_ || cached_width_ != width || cached_height_ != height) {
+		cached_fbo_ = std::make_unique<ofFbo>();
+		
+		// FBO設定
+		ofFboSettings settings;
+		settings.width = width;
+		settings.height = height;
+		settings.internalformat = GL_RGBA;
+		settings.useDepth = false;
+		settings.useStencil = false;
+		settings.textureTarget = GL_TEXTURE_2D;
+		settings.minFilter = GL_LINEAR;
+		settings.maxFilter = GL_LINEAR;
+		settings.wrapModeHorizontal = GL_CLAMP_TO_EDGE;
+		settings.wrapModeVertical = GL_CLAMP_TO_EDGE;
+		
+		cached_fbo_->allocate(settings);
+		
+		cached_width_ = width;
+		cached_height_ = height;
+		needs_update_ = true; // 新しいFBOは更新が必要
+	}
 }
 
 PathData PathData::operator+(const PathData& other) const {
@@ -147,10 +177,6 @@ ofPath PathData::toOfPath() const {
 	}
 	
 	return path;
-}
-
-void ShapeData::accept(Visitor& visitor) const {
-	visitor.visit(*this);
 }
 
 ShapeProp::ShapeProp()
@@ -253,20 +279,28 @@ PropertyBase* ShapeProp::addPropertyForType(std::string type) {
 
 GroupProp::GroupProp()
 {
-	registerProperty<IntProp>("/blendMode");
+	registerProperty<BlendModeProp>("/blendMode");
 	registerProperty<TransformProp>("/transform");
 	registerProperty<ShapeProp>("/shape");
 
 	registerExtractor<GroupData>([this](GroupData& g) -> bool {
 		bool success = true;
 
-		if (!getProperty<IntProp>("/blendMode")->tryExtract(g.blendMode)) {
+		// 前のブレンドモードを保存して変更検出
+		BlendMode prevBlendMode = g.blendMode;
+		
+		if (!getProperty<BlendModeProp>("/blendMode")->tryExtract(g.blendMode)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract group blendMode, using default";
-			g.blendMode = 1;
+			g.blendMode = BlendMode::NORMAL;
 			success = false;
 		}
+		
+		// ブレンドモードが変更された場合、更新フラグを設定
+		if (prevBlendMode != g.blendMode) {
+			g.markForUpdate();
+		}
 
-		if (!getProperty<IntProp>("/shape")->tryExtract((ShapeData&)g)) {
+		if (!getProperty<ShapeProp>("/shape")->tryExtract((ShapeData&)g)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract group shape data, using empty";
 			g.data.clear();
 			success = false;
@@ -287,7 +321,7 @@ void GroupProp::setup(const ofJson &base, const ofJson &keyframes)
 	PropertyGroup::setup(base, keyframes);
 	auto sb = base.contains("shape") ? base["shape"] : ofJson{};
 	auto sk = keyframes.contains("shape") ? keyframes["shape"] : ofJson{};
-	getProperty<IntProp>("/shape")->setup(sb, sk);
+	getProperty<ShapeProp>("/shape")->setup(sb, sk);
 }
 
 }}

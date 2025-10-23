@@ -143,4 +143,92 @@ const PathExtractionVisitor::Context& PathExtractionVisitor::getContext() const
 {
 	return ctx_.top();
 }
+
+// BlendModeAwarePathVisitor implementation
+BlendModeAwarePathVisitor::BlendModeAwarePathVisitor()
+	: PathExtractionVisitor()
+{
+}
+
+void BlendModeAwarePathVisitor::visit(const GroupData& group) {
+	if (group.requiresFBO()) {
+		// Special blend mode - requires FBO rendering
+		// This method is called when we need to handle group-level blend modes
+		// The actual drawing will be handled by drawGroup method
+		pushContext();
+		getContext().transform(group.transform);
+		Visitor::visit(group);
+		popContext();
+	} else {
+		// Normal mode - use inherited PathExtractionVisitor behavior
+		PathExtractionVisitor::visit(group);
+	}
+}
+
+void BlendModeAwarePathVisitor::drawGroup(const GroupData& group, int width, int height) {
+	if (group.blendMode == BlendMode::NORMAL) { // Normal mode
+		// Direct drawing path (no FBO needed)
+		pushContext();
+		getContext().transform(group.transform);
+		drawGroupContents(group);
+		popContext();
+	} else {
+		// Special blend mode - use FBO caching
+		group.ensureFBO(width, height);
+		
+		if (group.needs_update_) {
+			// Save current state
+			ofPushStyle();
+			ofPushMatrix();
+			
+			// Render group contents to FBO
+			group.cached_fbo_->begin();
+			ofClear(0, 0, 0, 0); // Clear with transparent background
+			
+			// Reset transform for FBO-local rendering
+			ofLoadIdentityMatrix();
+			
+			pushContext();
+			getContext().transform(group.transform);
+			
+			// Create a temporary visitor for FBO rendering
+			PathExtractionVisitor fboVisitor;
+			for (const auto& child : group.data) {
+				if (child) {
+					child->accept(fboVisitor);
+				}
+			}
+			
+			// Draw paths to FBO
+			auto fboPaths = fboVisitor.getPaths();
+			for(const auto& path : fboPaths) {
+				path.draw();
+			}
+			
+			popContext();
+			group.cached_fbo_->end();
+			group.needs_update_ = false;
+			
+			// Restore state
+			ofPopMatrix();
+			ofPopStyle();
+		}
+		
+		// The FBO is ready for blend mode application by the caller
+		// ShapeSource::drawWithBlendModes will handle the actual blend mode application
+	}
+}
+
+void BlendModeAwarePathVisitor::drawGroupContents(const GroupData& group) {
+	// For normal mode groups, process children and accumulate paths
+	for (const auto& child : group.data) {
+		if (child) {
+			child->accept(*this);
+		}
+	}
+	
+	// Paths are automatically accumulated in result_ by the base PathExtractionVisitor
+	// when child elements call visit methods for shapes, fills, and strokes
+}
+
 }}} // namespace ofx::ae::utils

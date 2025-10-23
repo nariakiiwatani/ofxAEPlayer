@@ -7,6 +7,10 @@ namespace ofx { namespace ae {
 
 class Visitor;
 
+namespace utils {
+    class BlendModeAwarePathVisitor;
+}
+
 class ShapeSource : public LayerSource
 {
 public:
@@ -25,6 +29,9 @@ public:
 
 private:
 	ShapeProp shape_props_;
+	
+	// Helper method for blend mode processing
+	void drawWithBlendModes(const ShapeData& data, utils::BlendModeAwarePathVisitor& visitor, int width, int height) const;
 };
 
 }} // namespace ofx::ae
