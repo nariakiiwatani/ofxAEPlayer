@@ -60,11 +60,7 @@ public:
 	void setBlendMode(BlendMode mode) { blend_mode_ = mode; }
 	BlendMode getBlendMode() const { return blend_mode_; }
 
-	bool isActiveAtFrame(int frame) const;
-	int getLocalFrame(int global) const;
-
-	bool shouldRender(int frame) const;
-	void prepareForRendering(int frame);
+	bool isActiveAtFrame(int frame) const { return in_ <= frame && frame < out_; }
 
 	std::string getDebugInfo() const;
 

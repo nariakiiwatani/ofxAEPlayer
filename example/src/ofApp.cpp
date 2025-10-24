@@ -13,7 +13,7 @@ void ofApp::setup(){
 
 	comp_ = std::make_shared<ofx::ae::Composition>();
     // Load composition using CompositionManager singleton
-	if (comp_->load("blendmode.json")) {
+	if (comp_->load("sequence.json")) {
 		ofLogNotice("ofApp") << "Composition loaded successfully";
 		const auto& info = comp_->getInfo();
 		ofLogNotice("ofApp") << "Duration: " << info.duration;

@@ -150,28 +150,32 @@ bool Layer::setFrame(int frame)
 		ret |= true;
 	}
 
-	if(mask_.setFrame(frame)) {
-		mask_collection_.setupFromMaskProp(mask_);
-		ret |= true;
-		need_mask_update |= true;
-	}
-	
-	if(source_ && source_->setFrame(frame)) {
-		ret |= true;
-		need_mask_update |= true;
+	if(isActiveAtFrame(frame)) {
+		if(mask_.setFrame(frame)) {
+			mask_collection_.setupFromMaskProp(mask_);
+			ret |= true;
+			need_mask_update |= true;
+		}
+
+		if(source_ && source_->setFrame(frame)) {
+			ret |= true;
+			need_mask_update |= true;
+		}
+
+		if (need_mask_update && !mask_collection_.empty()) {
+			float w = getWidth();
+			float h = getHeight();
+			updateLayerFBO(w, h);
+		}
 	}
 	current_frame_ = frame;
-
-	if (need_mask_update && !mask_collection_.empty()) {
-		float w = getWidth();
-		float h = getHeight();
-		updateLayerFBO(w, h);
-	}
 	return ret;
 }
 
 void Layer::draw(float x, float y, float w, float h) const
 {
+	if(!isActiveAtFrame(current_frame_)) return;
+
 	TransformNode::pushMatrix();
 	RenderContext::push();
 	RenderContext::setOpacity(opacity_);
@@ -179,7 +183,8 @@ void Layer::draw(float x, float y, float w, float h) const
 	
 	if (!mask_collection_.empty()) {
 		layer_fbo_.draw(x, y);
-	} else {
+	}
+	else {
 		if(source_) {
 			source_->draw(x,y,w,h);
 		}
@@ -252,19 +257,6 @@ LayerSource::SourceType Layer::getSourceType() const {
     
 	return LayerSource::UNKNOWN;
 }
-
-bool Layer::isActiveAtFrame(int frame) const {
-    return in_ <= frame && frame < out_;
-}
-
-int Layer::getLocalFrame(int global) const {
-    return global - in_;
-}
-
-bool Layer::shouldRender(int frame) const {
-    return isActiveAtFrame(frame) && source_;
-}
-
 
 std::string Layer::getDebugInfo() const {
     std::stringstream info;

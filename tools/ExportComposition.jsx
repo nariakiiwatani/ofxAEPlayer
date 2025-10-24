@@ -1313,12 +1313,13 @@ function fillRuleToString(rule) {
 
     // ===== marker extractors =====
     function extractMarkers(markers, fps, offsetFrame){
+        function toFrame(t){ return Math.round(t * fps); }
         var markerData = [];
         for (var i = 1; i <= markers.numKeys; i++) {
             var time = markers.keyTime(i);
             var markerValue = markers.keyValue(i);
-            var frame = Math.floor(time * fps) - offsetFrame;
-            var lengthFrames = Math.floor(markerValue.duration * fps);
+            var frame = toFrame(time) - offsetFrame;
+            var lengthFrames = toFrame(markerValue.duration);
             var comment = markerValue.comment ? markerValue.comment.replace(/[\r\n]+/g, '\n') : "";
             
             var markerInfo = {
@@ -1332,18 +1333,6 @@ function fillRuleToString(rule) {
         
         return markerData;
     }
-    function extractCompMarkers(comp){
-        var markers = comp.markerProperty;
-        var workAreaStartFrame = Math.floor(comp.workAreaStart * comp.frameRate);
-        return extractMarkers(markers, comp.frameRate, workAreaStartFrame);
-    }
-
-    function extractLayerMarkers(layer){
-        var markers = layer.marker;
-        var inPointFrame = Math.floor(layer.inPoint * layer.containingComp.frameRate);
-        return extractMarkers(markers, layer.containingComp.frameRate, inPointFrame);
-    }
-
     // ===== shape extractors =====
     // Legacy functions removed - now using unified configuration-driven system
 
@@ -1408,7 +1397,7 @@ function fillRuleToString(rule) {
 
 
     // キーフレームベースの抽出関数
-    function extractKeyframeBasedProperty(prop, inPoint, fps, decimalPlaces, customProcessor) {
+    function extractKeyframeBasedProperty(prop, offset, fps, decimalPlaces, customProcessor) {
         try {
             if (!prop) {
                 debugLog("extractKeyframeBasedProperty", "prop is null");
@@ -1418,7 +1407,7 @@ function fillRuleToString(rule) {
             debugLog("extractKeyframeBasedProperty", "Processing property: " + (prop.matchName || prop.name || "unnamed"));
             
 
-            function toFrame(t){ return Math.floor(t * fps); }
+            function toFrame(t){ return Math.round(t * fps); }
 
             var nk = (typeof prop.numKeys === 'number') ? prop.numKeys : 0;
 
@@ -1434,7 +1423,7 @@ function fillRuleToString(rule) {
             for (var i = 1; i <= nk; i++) {
                 try {
                     var keyTime = prop.keyTime(i);
-                    var keyFrame = toFrame(keyTime) - inPoint;
+                    var keyFrame = toFrame(keyTime) - offset;
                     
                     var keyValue = extractValue(prop, keyTime, decimalPlaces, customProcessor);
                     
@@ -1473,7 +1462,7 @@ function fillRuleToString(rule) {
         }
     }
     
-    function extractAnimatedProperty(prop, inPoint, duration, fps, decimalPlaces, customProcessor) {
+    function extractAnimatedProperty(prop, offset, duration, fps, decimalPlaces, customProcessor) {
         try {
             if (!prop) {
                 debugLog("extractAnimatedProperty", "prop is null");
@@ -1499,7 +1488,7 @@ function fillRuleToString(rule) {
             var groupValues = [];
             
             for (var frame = 0; frame <= duration; frame++) {
-                var time = toTime(frame + inPoint);
+                var time = toTime(frame + offset);
                 var extractedValue = extractValue(prop, time, decimalPlaces, customProcessor);
                                 
                 var hasChanged = (prevValue === null) || !valuesAreEqual(extractedValue, prevValue);
@@ -1539,31 +1528,32 @@ function fillRuleToString(rule) {
         }
     }
 
-    function extractPropertyValue(prop, options, layer, config) {
+    function extractPropertyValue(prop, options, layer, offset, config) {
         var fps = layer.containingComp.frameRate;
-        var inPoint = Math.floor(layer.inPoint * fps);
-        var outPoint = Math.floor(layer.outPoint * fps);
-        var duration = outPoint - inPoint;
+        function toTime(f) { return f / fps; }
+        function toFrame(t){ return Math.round(t * fps); }
         var DEC = options.decimalPlaces || 4;
         var customProcessor = config ? config.customProcessor : null;
 
-        function toTime(f) { return f / fps; }
-
         var result;
         if (options.keyframes) {
+            var nk = (typeof prop.numKeys === 'number') ? prop.numKeys : 0;
+            if(nk === 0) return null;
+            var start = toFrame(prop.keyTime(1));
+            var end = toFrame(prop.keyTime(nk));
             if (!options.useFullFrameAnimation) {
-                result = extractKeyframeBasedProperty(prop, inPoint, fps, DEC, customProcessor);
+                result = extractKeyframeBasedProperty(prop, offset, fps, DEC, customProcessor);
             } else {
-                result = extractAnimatedProperty(prop, inPoint, duration, fps, DEC, customProcessor);
+                result = extractAnimatedProperty(prop, offset, end-start, fps, DEC, customProcessor);
             }
         } else {
-            result = extractValue(prop, toTime(inPoint), DEC, customProcessor);
+            result = extractValue(prop, toTime(offset), DEC, customProcessor);
         }
         return result;
     }
     
     // ===== 統一処理関数 =====
-    function extractPropertiesRecursive(property, options, layer) {
+    function extractPropertiesRecursive(property, options, layer, offset) {
         try {
             if (!property) {
                 debugLog("extractPropertiesRecursive", "property is null", null, "warning");
@@ -1588,18 +1578,12 @@ function fillRuleToString(rule) {
             
             debugLog("extractPropertiesRecursive", "Processing property: " + property.matchName);
             
-            var fps = layer.containingComp.frameRate;
-            var inPoint = Math.floor(layer.inPoint * fps);
-            var outPoint = Math.floor(layer.outPoint * fps);
-            var duration = outPoint - inPoint;
-            var DEC = options.decimalPlaces || 4;
-            
             var result = null;
 
             var propType = property.propertyType;
             switch(propType) {
                 case PropertyType.PROPERTY:
-                    result = extractPropertyValue(property, options, layer, config);
+                    result = extractPropertyValue(property, options, layer, offset, config);
                     break;
                 case PropertyType.INDEXED_GROUP:
                     result = [];
@@ -1607,7 +1591,7 @@ function fillRuleToString(rule) {
                     
                     for (var i = 1; i <= property.numProperties; i++) {
                         var childProp = property.property(i);
-                        var child = extractPropertiesRecursive(childProp, options, layer);
+                        var child = extractPropertiesRecursive(childProp, options, layer, offset);
                         
                         if (preserveIndexes) {
                             // インデックスを維持（nullも配列に追加）
@@ -1639,7 +1623,7 @@ function fillRuleToString(rule) {
                     result = {};
                     for (var i = 1; i <= property.numProperties; i++) {
                         var childProp = property.property(i);
-                        var child = extractPropertiesRecursive(childProp, options, layer);
+                        var child = extractPropertiesRecursive(childProp, options, layer, offset);
                         if (child) {
                             for (var key in child) {
                                 if (child.hasOwnProperty(key)) {
@@ -1695,23 +1679,23 @@ function fillRuleToString(rule) {
         if (!layerFolder.exists) layerFolder.create();
 
         var fps = comp.frameRate;
-        function toFrame(t, floor){ return floor ? Math.floor(t * fps) : t * fps; }
+        function toFrame(t, round){ return round ? Math.round(t * fps) : t * fps; }
 
         var compInfo = {};
         compInfo["duration"]      = toFrame(comp.duration, true);
         compInfo["fps"]           = fps;
         compInfo["width"]         = comp.width;
         compInfo["height"]        = comp.height;
-        compInfo["startFrame"]    = toFrame(comp.workAreaStart, true);
+        var startFrame = toFrame(comp.workAreaStart, true);
+        compInfo["startFrame"]    = startFrame;
         compInfo["endFrame"]      = toFrame((comp.workAreaStart + comp.workAreaDuration), true);
         compInfo["layers"]        = [];
         // compInfo["layersDirectory"] = getRelativePath(outputFolder, layerFolder);
         // compInfo["footageDirectory"] = getRelativePath(outputFolder, footageFolder);
         
         // コンポジションマーカーを追加
-        var compMarkers = extractCompMarkers(comp);
-        if (compMarkers.length > 0) {
-            compInfo["markers"] = compMarkers;
+        if (comp.markerProperty.numKeys > 0) {
+            compInfo["markers"] = extractMarkers(comp.markerProperty, fps, startFrame);
         }
 
         for (var i=1;i<=comp.numLayers;i++){
@@ -1719,10 +1703,12 @@ function fillRuleToString(rule) {
             if (!layer.enabled) continue;
 
             var layerNameForFile = layerUniqueName(layer);
+            var offset = toFrame(layer.startTime, true);
             compInfo["layers"].push({
                 name: layer.name,
                 uniqueName: layerNameForFile,
-                file: getRelativePath(outputFolder, layerFolder) + "/" + layerNameForFile + ".json"
+                file: getRelativePath(outputFolder, layerFolder) + "/" + layerNameForFile + ".json",
+                offset: offset
             });
 
 
@@ -1730,8 +1716,8 @@ function fillRuleToString(rule) {
             resultData["name"] = layer.name;
             resultData["layerType"] = layer.matchName;
             resultData["blendingMode"] = blendingModeToString(layer.blendingMode);
-            var inPoint  = toFrame(layer.inPoint, true);
-            var outPoint = toFrame(layer.outPoint, true);
+            var inPoint  = toFrame(layer.inPoint, true) - offset;
+            var outPoint = toFrame(layer.outPoint, true) - offset;
             resultData["in"]  = inPoint;
             resultData["out"] = outPoint;
 
@@ -1765,12 +1751,11 @@ function fillRuleToString(rule) {
                 }
             }
 
-            var layerMarkers = extractLayerMarkers(layer);
-            if (layerMarkers.length > 0) {
-                resultData["markers"] = layerMarkers;
+            if (layer.marker.numKeys > 0) {
+                resultData["markers"] = extractMarkers(layer.marker, fps, offset);
             }
             options.keyframes = false;
-            var properties = extractPropertiesRecursive(layer, options, layer);
+            var properties = extractPropertiesRecursive(layer, options, layer, offset);
             if(properties) {
                 for (var key in properties) {
                     if (properties.hasOwnProperty(key)) {
@@ -1780,7 +1765,7 @@ function fillRuleToString(rule) {
             }
 
             options.keyframes = true;
-            var keyframes = extractPropertiesRecursive(layer, options, layer);
+            var keyframes = extractPropertiesRecursive(layer, options, layer, offset);
             if(keyframes) {
                 resultData["keyframes"] = keyframes;
             }

@@ -22,6 +22,7 @@ public:
 		int end_frame;
 		struct LayerInfo {
 			std::string name, unique_name, filepath;
+			int offset;
 		};
 		std::vector<LayerInfo> layers;
 		std::vector<MarkerData> markers;
@@ -51,6 +52,7 @@ private:
 	std::vector<std::shared_ptr<Layer>> layers_;
 	std::map<std::string, std::weak_ptr<Layer>> name_layers_map_;
 	std::map<std::string, std::weak_ptr<Layer>> unique_name_layers_map_;
+	std::map<std::weak_ptr<Layer>, int, std::owner_less<std::weak_ptr<Layer>>> layer_offsets_;
 
 	int current_frame_;
 };

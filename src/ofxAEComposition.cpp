@@ -29,7 +29,7 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 	info_.layers.clear();
 	if (json.contains("layers") && json["layers"].is_array()) {
 		for (const auto &layer : json["layers"]) {
-			info_.layers.emplace_back(layer["name"], layer["uniqueName"], layer["file"]);
+			info_.layers.emplace_back(layer["name"], layer["uniqueName"], layer["file"], layer["offset"]);
 		}
 	}
 
@@ -55,6 +55,7 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 			layers_.push_back(layer);
 			name_layers_map_.insert({info.name, layer});
 			unique_name_layers_map_.insert({info.unique_name, layer});
+			layer_offsets_.insert({layer, info.offset});
 		} else {
 			ofLogError("ofxAEComposition") << "Failed to load layer: " << layer_file;
 		}
@@ -70,8 +71,13 @@ bool Composition::setFrame(int frame)
 		return false;
 	}
 	bool ret = false;
+	auto offset = [this](std::shared_ptr<Layer> layer) {
+		auto found = layer_offsets_.find(layer);
+		if(found == end(layer_offsets_)) return 0;
+		return found->second;
+	};
 	for (auto &layer : layers_) {
-		ret |= layer->setFrame(frame);
+		ret |= layer->setFrame(frame - offset(layer));
 	}
 	current_frame_ = frame;
 	return ret;
