@@ -1,5 +1,7 @@
 #include "ofxAECompositionSource.h"
 #include "ofxAEVisitor.h"
+#include "../utils/ofxAEAssetManager.h"
+#include "ofLog.h"
 #include <sstream>
 
 namespace ofx { namespace ae {
@@ -11,8 +13,16 @@ CompositionSource::CompositionSource()
 }
 
 bool CompositionSource::load(const std::filesystem::path& filepath) {
-	composition_ = std::make_shared<Composition>();
-	return composition_->load(filepath);
+	filepath_ = filepath;
+	composition_ = AssetManager::getInstance().getComposition(filepath);
+	
+	if (composition_) {
+		ofLogVerbose("CompositionSource") << "Loaded composition via AssetManager: " << filepath;
+		return true;
+	} else {
+		ofLogError("CompositionSource") << "Failed to load composition: " << filepath;
+		return false;
+	}
 }
 
 void CompositionSource::update() {
@@ -48,7 +58,7 @@ std::string CompositionSource::getDebugInfo() const {
     ss << "CompositionSource[";
     if (composition_) {
         const auto& info = composition_->getInfo();
-		ss << "name=" << info.layers.size() << "layers";
+		ss << filepath_.filename().string() << ", " << info.layers.size() << " layers";
         ss << ", size=" << getWidth() << "x" << getHeight();
     } else {
         ss << "no composition";

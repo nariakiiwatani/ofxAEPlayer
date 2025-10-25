@@ -2,6 +2,7 @@
 
 #include "ofxAELayerSource.h"
 #include "ofxAEComposition.h"
+#include <memory>
 
 namespace ofx { namespace ae {
 
@@ -24,6 +25,7 @@ public:
     
 private:
     std::shared_ptr<Composition> composition_;
+    std::filesystem::path filepath_;
 };
 
 }}

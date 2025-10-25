@@ -2,6 +2,7 @@
 
 #include "ofxAELayerSource.h"
 #include "ofVideoPlayer.h"
+#include <memory>
 
 namespace ofx { namespace ae {
 
@@ -13,14 +14,15 @@ public:
 	void accept(Visitor& visitor) override;
 	bool load(const std::filesystem::path &filepath) override;
 	bool setFrame(int frame) override;
-	void draw(float x, float y, float w, float h) const override { player_.draw(x,y,w,h); }
-	float getWidth() const override { return player_.getWidth(); }
-	float getHeight() const override { return player_.getHeight(); }
-	   SourceType getSourceType() const override { return VIDEO; }
-	   std::string getDebugInfo() const override { return "VideoSource"; }
+	void draw(float x, float y, float w, float h) const override;
+	float getWidth() const override;
+	float getHeight() const override;
+	SourceType getSourceType() const override { return VIDEO; }
+	std::string getDebugInfo() const override;
 
 private:
-	ofVideoPlayer player_;
+	std::shared_ptr<ofVideoPlayer> player_;
+	std::filesystem::path filepath_;
 };
 
 }} // namespace ofx::ae

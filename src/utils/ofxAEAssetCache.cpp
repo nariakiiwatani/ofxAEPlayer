@@ -1,0 +1,1 @@
+// Removed - no template specializations needed for simplified implementation
