@@ -721,8 +721,9 @@ function fillRuleToString(rule) {
         executeButton.onClick = function(){
             var undoOpen=false;
             try{
-                // 実行ボタンを押すたびにログをクリア
+                // 実行ボタンを押すたびにログをクリアし、処理済みコンポジション履歴もリセット
                 clearDebugLogs();
+                resetProcessedCompositions();
                 
                 var outputFolderPath = outputPathText.text.trim();
                 var useSharedAssets = sharedAssetsCheck.value;
@@ -869,16 +870,20 @@ function fillRuleToString(rule) {
 
     // ===== path util =====
     function getRelativePath(fromPath, toPath){
-        var fromFsName = decodeURI(fromPath.fsName).replace(/\\/g,'/');
-        var toFsName   = decodeURI(toPath.fsName).replace(/\\/g,'/');
+        var fromFsName = fromPath.fsName.replace(/\\/g,'/');
+        var toFsName   = toPath.fsName.replace(/\\/g,'/');
         var fromParts = fromFsName.split('/'), toParts = toFsName.split('/');
-        for (var i=0;i<fromParts.length;i++) fromParts[i]=fromParts[i].toLowerCase();
-        for (var j=0;j<toParts.length;j++) toParts[j]=toParts[j].toLowerCase();
+        // 大文字小文字の比較用にコピーを作成
+        var fromPartsLower = [];
+        var toPartsLower = [];
+        for (var i=0;i<fromParts.length;i++) fromPartsLower[i]=fromParts[i].toLowerCase();
+        for (var j=0;j<toParts.length;j++) toPartsLower[j]=toParts[j].toLowerCase();
         var length = Math.min(fromParts.length, toParts.length);
         var samePartsLength = length;
-        for (var k=0;k<length;k++){ if (fromParts[k]!=toParts[k]){ samePartsLength=k; break; } }
+        for (var k=0;k<length;k++){ if (fromPartsLower[k]!=toPartsLower[k]){ samePartsLength=k; break; } }
         var outputParts=[];
         for (var a=samePartsLength; a<fromParts.length; a++) outputParts.push("..");
+        // 元の大文字小文字を保持したパスを使用
         for (var b=samePartsLength; b<toParts.length; b++) outputParts.push(toParts[b]);
         return outputParts.join("/");
     }
@@ -1660,7 +1665,34 @@ function fillRuleToString(rule) {
     }
     
     // ===== main extractor =====
+    // グローバル変数：処理済みコンポジション追跡用
+    var processedCompositions = {};
+    
+    // 処理済みコンポジション履歴をリセット
+    function resetProcessedCompositions() {
+        processedCompositions = {};
+        debugLog("resetProcessedCompositions", "Processed compositions history cleared", null, "notice");
+    }
+    
     function extractPropertiesForAllLayers(comp, options){
+        // コンポジションの一意識別子を生成（名前 + ID）
+        var compIdentifier = comp.name + "_" + comp.id;
+        
+        // 既に処理済みかチェック
+        if (processedCompositions[compIdentifier]) {
+            debugLog("extractPropertiesForAllLayers", "Composition already processed, skipping: " + comp.name, {
+                compId: comp.id,
+                compName: comp.name
+            }, "notice");
+            return;
+        }
+        
+        // 処理開始をマーク
+        processedCompositions[compIdentifier] = true;
+        debugLog("extractPropertiesForAllLayers", "Starting composition processing: " + comp.name, {
+            compId: comp.id,
+            compName: comp.name
+        }, "notice");
         var compName = comp.name.fsSanitized();
         var outputFolderPath = options.outputFolderPath;
 
