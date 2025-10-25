@@ -1803,7 +1803,25 @@ function fillRuleToString(rule) {
                 case "video":
                 case "audio":
                     var destFile = new File(assetFolder.fsName + "/" + layer.source.mainSource.file.name);
-                    try{ layer.source.mainSource.file.copy(destFile); }catch(e){ alert("ファイルのコピー中にエラー: " + e.message); }
+                    try{
+                        // ファイルの更新日時をチェックして、更新のあるファイルのみコピー
+                        var shouldCopy = true;
+                        if (destFile.exists) {
+                            var sourceModified = layer.source.mainSource.file.modified;
+                            var destModified = destFile.modified;
+                            shouldCopy = sourceModified > destModified;
+                            if (!shouldCopy) {
+                                debugLog("FileCopy", "File already up to date, skipping: " + layer.source.mainSource.file.name, null, "verbose");
+                            }
+                        }
+                        
+                        if (shouldCopy) {
+                            layer.source.mainSource.file.copy(destFile);
+                            debugLog("FileCopy", "File copied: " + layer.source.mainSource.file.name, null, "verbose");
+                        }
+                    }catch(e){
+                        alert("ファイルのコピー中にエラー: " + e.message);
+                    }
                     break;
                 case "sequence":
                     var extMatch = (""+layer.source.mainSource.file.name).match(/(\.[^.]+)$/);
@@ -1816,7 +1834,25 @@ function fillRuleToString(rule) {
                     for (var s=0; s<sequenceFiles.length; s++){
                         var sequenceFile = sequenceFiles[s];
                         var dest = new File(sequenceFolder.fsName + "/" + sequenceFile.name);
-                        try{ sequenceFile.copy(dest); }catch(e){ alert("ファイルのコピー中にエラー: " + e.message); }
+                        try{
+                            // ファイルの更新日時をチェックして、更新のあるファイルのみコピー
+                            var shouldCopy = true;
+                            if (dest.exists) {
+                                var sourceModified = sequenceFile.modified;
+                                var destModified = dest.modified;
+                                shouldCopy = sourceModified > destModified;
+                                if (!shouldCopy) {
+                                    debugLog("FileCopy", "Sequence file already up to date, skipping: " + sequenceFile.name, null, "verbose");
+                                }
+                            }
+                            
+                            if (shouldCopy) {
+                                sequenceFile.copy(dest);
+                                debugLog("FileCopy", "Sequence file copied: " + sequenceFile.name, null, "verbose");
+                            }
+                        }catch(e){
+                            alert("ファイルのコピー中にエラー: " + e.message);
+                        }
                     }
                     break;
                 default:
