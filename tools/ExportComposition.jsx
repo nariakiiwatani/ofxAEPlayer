@@ -1727,27 +1727,33 @@ function fillRuleToString(rule) {
             if (layer.source) {
                 resultData["sourceType"] = sourceType;
                 var source = null;
+                var sourcePath = null;
                 switch(sourceType) {
                     case "composition":
                         source = layer.source.name + ".json";
+                        // Composition files are saved in the output folder root, not in assets
+                        sourcePath = getRelativePath(layerFolder, outputFolder) + "/" + source;
                         break;
                     case "sequence":
                         source = layer.source.name;
+                        sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
                         break;
                     case "solid":
                         source = layer.source.name + ".json";
+                        sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
                         break;
                     case "still":
                     case "video":
                     case "audio":
                         source = layer.source.mainSource.file.name;
+                        sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
                         break;
                     default:
                         debugLog("extractPropertiesForAllLayers", "Unknown source type for layer: " + layer.name, { matchName: layer.matchName }, "warning");
                         break;
                 }
-                if(source) {
-                    resultData["source"] = getRelativePath(layerFolder, assetFolder) + "/" + source;
+                if(sourcePath) {
+                    resultData["source"] = sourcePath;
                 }
             }
 
