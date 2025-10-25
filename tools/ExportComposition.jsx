@@ -1777,7 +1777,7 @@ function fillRuleToString(rule) {
                     case "still":
                     case "video":
                     case "audio":
-                        source = layer.source.mainSource.file.name;
+                        source = decodeURI(layer.source.mainSource.file.name);
                         sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
                         break;
                     default:
@@ -1840,7 +1840,7 @@ function fillRuleToString(rule) {
                 case "still":
                 case "video":
                 case "audio":
-                    var destFile = new File(assetFolder.fsName + "/" + layer.source.mainSource.file.name);
+                    var destFile = new File(assetFolder.fsName + "/" + decodeURI(layer.source.mainSource.file.name));
                     try{
                         // ファイルの更新日時をチェックして、更新のあるファイルのみコピー
                         var shouldCopy = true;
@@ -1849,20 +1849,20 @@ function fillRuleToString(rule) {
                             var destModified = destFile.modified;
                             shouldCopy = sourceModified > destModified;
                             if (!shouldCopy) {
-                                debugLog("FileCopy", "File already up to date, skipping: " + layer.source.mainSource.file.name, null, "verbose");
+                                debugLog("FileCopy", "File already up to date, skipping: " + decodeURI(layer.source.mainSource.file.name), null, "verbose");
                             }
                         }
                         
                         if (shouldCopy) {
                             layer.source.mainSource.file.copy(destFile);
-                            debugLog("FileCopy", "File copied: " + layer.source.mainSource.file.name, null, "verbose");
+                            debugLog("FileCopy", "File copied: " + decodeURI(layer.source.mainSource.file.name), null, "verbose");
                         }
                     }catch(e){
                         alert("ファイルのコピー中にエラー: " + e.message);
                     }
                     break;
                 case "sequence":
-                    var extMatch = (""+layer.source.mainSource.file.name).match(/(\.[^.]+)$/);
+                    var extMatch = (""+decodeURI(layer.source.mainSource.file.name)).match(/(\.[^.]+)$/);
                     var ext = extMatch ? extMatch[1].toLowerCase() : "";
                     var sequenceFolder = new Folder(assetFolder.fsName + "/" + layer.source.name);
                     if (!sequenceFolder.exists) sequenceFolder.create();
