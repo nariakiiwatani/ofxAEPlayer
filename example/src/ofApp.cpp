@@ -13,7 +13,7 @@ void ofApp::setup(){
 
 	comp_ = std::make_shared<ofx::ae::Composition>();
     // Load composition using CompositionManager singleton
-	if (comp_->load("sequence.json")) {
+	if (comp_->load("Hakariuri_a01.json")) {
 		ofLogNotice("ofApp") << "Composition loaded successfully";
 		const auto& info = comp_->getInfo();
 		ofLogNotice("ofApp") << "Duration: " << info.duration;
@@ -30,8 +30,9 @@ void ofApp::setup(){
 //--------------------------------------------------------------
 void ofApp::update(){
     if (isPlaying && comp_) {
-		if(++timeline_ >= comp_->getInfo().duration) {
-			timeline_ = 0;
+		const auto& info = comp_->getInfo();
+		if(++timeline_ >= info.end_frame) {
+			timeline_ = info.start_frame;
 		}
 		if(comp_->setFrame(timeline_)) {
 			comp_->update();
@@ -44,7 +45,7 @@ void ofApp::draw(){
     ofClear(64, 64, 64);
     
 	if (comp_) {
-		comp_->draw(0,0);
+		comp_->draw(ofGetMouseX(),ofGetMouseY());
 	}
 
     // Draw controls and debug info
