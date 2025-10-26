@@ -1790,6 +1790,7 @@ function fillRuleToString(rule) {
 
                 var layerNameForFile = "";
                 var offset = 0;
+                var parent = "";
                 
                 try {
                     layerNameForFile = layerUniqueName(layer);
@@ -1806,13 +1807,25 @@ function fillRuleToString(rule) {
                     debugLog("LayerProcessing", "ERROR: Failed to calculate offset: " + offsetError.toString());
                     offset = 0;
                 }
-                
+
+                try {
+                    if (layer.parent) {
+                        parent = layerUniqueName(layer.parent);
+                        debugLog("LayerProcessing", "Layer has parent: " + parent);
+                    } else {
+                        debugLog("LayerProcessing", "Layer has no parent");
+                    }
+                } catch (parentError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to access layer.parent: " + parentError.toString());
+                }
+
                 try {
                     compInfo["layers"].push({
                         name: layerName,
                         uniqueName: layerNameForFile,
                         file: getRelativePath(outputFolder, layerFolder) + "/" + layerNameForFile + ".json",
-                        offset: offset
+                        offset: offset,
+                        parent: parent
                     });
                     debugLog("LayerProcessing", "Added layer to composition info");
                 } catch (pushError) {
@@ -1857,17 +1870,6 @@ function fillRuleToString(rule) {
                     debugLog("LayerProcessing", "ERROR: Failed to access layer timing: " + timingError.toString());
                     resultData["in"] = 0;
                     resultData["out"] = 0;
-                }
-
-                try {
-                    if (layer.parent) {
-                        resultData["parent"] = layerUniqueName(layer.parent);
-                        debugLog("LayerProcessing", "Layer has parent: " + resultData["parent"]);
-                    } else {
-                        debugLog("LayerProcessing", "Layer has no parent");
-                    }
-                } catch (parentError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to access layer.parent: " + parentError.toString());
                 }
     
                 // Process source if it exists

@@ -4,7 +4,7 @@
 //--------------------------------------------------------------
 void ofApp::setup(){
     ofSetVerticalSync(true);
-    ofSetFrameRate(60);
+    ofSetFrameRate(30);
     ofBackground(64, 64, 64);
     
     // Initialize variables
@@ -45,7 +45,7 @@ void ofApp::draw(){
     ofClear(64, 64, 64);
     
 	if (comp_) {
-		comp_->draw(ofGetMouseX(),ofGetMouseY());
+		comp_->draw(0,0);
 	}
 
     // Draw controls and debug info

@@ -21,7 +21,7 @@ public:
 		int start_frame;
 		int end_frame;
 		struct LayerInfo {
-			std::string name, unique_name, filepath;
+			std::string name, unique_name, filepath, parent;
 			int offset;
 		};
 		std::vector<LayerInfo> layers;

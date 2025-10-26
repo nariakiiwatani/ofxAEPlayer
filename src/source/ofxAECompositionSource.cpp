@@ -14,11 +14,10 @@ CompositionSource::CompositionSource()
 
 bool CompositionSource::load(const std::filesystem::path& filepath) {
 	filepath_ = filepath;
-	composition_ = std::make_shared<Composition>();
-
-
-	if (composition_->load(filepath)) {
-		ofLogVerbose("CompositionSource") << "Loaded composition: " << filepath;
+	composition_ = AssetManager::getInstance().getComposition(filepath);
+	
+	if (composition_) {
+		ofLogVerbose("CompositionSource") << "Loaded composition via AssetManager: " << filepath;
 		return true;
 	} else {
 		ofLogError("CompositionSource") << "Failed to load composition: " << filepath;

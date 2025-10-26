@@ -43,6 +43,8 @@ public:
 	float getHeight() const override;
 	float getWidth() const override;
 
+	std::string getParentUniqueName() const { return parent_name_; }
+
 	bool tryExtractTransform(TransformData &transform) const;
 
 	void setSource(std::unique_ptr<LayerSource> source);
@@ -70,6 +72,7 @@ private:
 	std::unique_ptr<LayerSource> source_;
 
 	std::string name_;
+	std::string parent_name_;
 	int in_, out_;
 	int current_frame_;
 

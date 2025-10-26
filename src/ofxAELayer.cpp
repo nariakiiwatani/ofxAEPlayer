@@ -90,6 +90,9 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 	EXTRACT_(out);
 	std::string blendingMode = "NORMAL";
 	EXTRACT(blendingMode);
+	std::string parent = "";
+	EXTRACT(parent);
+	parent_name_ = parent;
 	blend_mode_ = blendModeFromString(blendingMode);
 	if(json.contains("transform")) {
 		auto &&kf = json.value("/keyframes/transform"_json_pointer, ofJson{});
