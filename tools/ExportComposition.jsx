@@ -1777,15 +1777,24 @@ function fillRuleToString(rule) {
                     case "still":
                     case "video":
                     case "audio":
-                        source = decodeURI(layer.source.mainSource.file.name);
+                        var fileName = decodeURI(layer.source.mainSource.file.name);
+                        var fileNameLower = fileName.toLowerCase();
+                        
+                        source = fileName;
                         sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
                         break;
                     default:
                         debugLog("extractPropertiesForAllLayers", "Unknown source type for layer: " + layer.name, { matchName: layer.matchName }, "warning");
                         break;
                 }
+                // For non-PSD/AI files, set the source path here
+                // For PSD/AI files, the source path will be set during the file copy process below
                 if(sourcePath) {
-                    resultData["source"] = sourcePath;
+                    var fileName = decodeURI(layer.source.mainSource.file.name);
+                    var fileNameLower = fileName.toLowerCase();
+                    if (!fileNameLower.match(/\.(psd|ai)$/)) {
+                        resultData["source"] = sourcePath;
+                    }
                 }
             }
 
@@ -1840,25 +1849,104 @@ function fillRuleToString(rule) {
                 case "still":
                 case "video":
                 case "audio":
-                    var destFile = new File(assetFolder.fsName + "/" + decodeURI(layer.source.mainSource.file.name));
-                    try{
-                        // ファイルの更新日時をチェックして、更新のあるファイルのみコピー
-                        var shouldCopy = true;
-                        if (destFile.exists) {
-                            var sourceModified = layer.source.mainSource.file.modified;
-                            var destModified = destFile.modified;
-                            shouldCopy = sourceModified > destModified;
-                            if (!shouldCopy) {
-                                debugLog("FileCopy", "File already up to date, skipping: " + decodeURI(layer.source.mainSource.file.name), null, "verbose");
+                    var fileName = decodeURI(layer.source.mainSource.file.name);
+                    var fileNameLower = fileName.toLowerCase();
+                    
+                    // Check if it's a PSD or AI file
+                    if (fileNameLower.match(/\.(psd|ai)$/)) {
+                        try {
+                            debugLog("FileCopy", "Processing PSD/AI file using saveFrameToPng: " + fileName, null, "notice");
+                            
+                            // Get the original filename without extension for the folder name
+                            var baseName = fileName.replace(/\.[^.]+$/, "");
+                            
+                            // Create folder structure: [asset export folder]/[original filename]/
+                            var exportFolder = new Folder(assetFolder.fsName + "/" + baseName);
+                            if (!exportFolder.exists) {
+                                exportFolder.create();
                             }
+                            
+                            // Get the footage item name (before slash if present)
+                            var footageItemName = layer.source.name;
+                            var slashIndex = footageItemName.indexOf('/');
+                            if (slashIndex !== -1) {
+                                footageItemName = footageItemName.substring(0, slashIndex);
+                            }
+                            
+                            // Create output filename as PNG
+                            var outputFileName = footageItemName + ".png";
+                            var outputFile = new File(exportFolder.fsName + "/" + outputFileName);
+                            
+                            // Check if PNG already exists and source hasn't been modified
+                            var shouldExport = true;
+                            if (outputFile.exists) {
+                                var sourceModified = layer.source.mainSource.file.modified;
+                                var outputModified = outputFile.modified;
+                                shouldExport = sourceModified > outputModified;
+                                if (!shouldExport) {
+                                    debugLog("FileCopy", "PSD/AI PNG already up to date, skipping: " + outputFileName, null, "verbose");
+                                }
+                            }
+                            
+                            if (shouldExport) {
+                                // Create temporary composition from PSD/AI footage
+                                var tempCompName = "TempComp_" + layer.source.name + "_" + new Date().getTime();
+                                var newComp = app.project.items.addComp(
+                                    tempCompName,
+                                    layer.source.width,
+                                    layer.source.height,
+                                    layer.source.pixelAspect,
+                                    1/comp.frameRate, // Single frame duration
+                                    comp.frameRate
+                                );
+                                
+                                // Add footage to composition
+                                var newLayer = newComp.layers.add(layer.source);
+                                
+                                // Set composition time to frame 0
+                                newComp.time = 0;
+                                
+                                // Export using saveFrameToPng with proper parameters
+                                newComp.saveFrameToPng(0, outputFile);
+                                
+                                // Clean up temporary composition
+                                newComp.remove();
+                                
+                                debugLog("FileCopy", "PSD/AI exported as PNG: " + outputFileName, null, "notice");
+                            }
+                            
+                            // Update the source path to point to the exported PNG file
+                            var relativePath = getRelativePath(layerFolder, new Folder(exportFolder.fsName)) + "/" + outputFileName;
+                            resultData["source"] = relativePath;
+                            
+                            debugLog("FileCopy", "Successfully processed PSD/AI file as PNG: " + outputFile.fsName, null, "notice");
+                            
+                        } catch(e) {
+                            debugLog("FileCopy", "Error processing PSD/AI file with saveFrameToPng: " + e.message, null, "error");
+                            alert("PSD/AIファイルのPNG変換中にエラー: " + e.message);
                         }
-                        
-                        if (shouldCopy) {
-                            layer.source.mainSource.file.copy(destFile);
-                            debugLog("FileCopy", "File copied: " + decodeURI(layer.source.mainSource.file.name), null, "verbose");
+                    } else {
+                        // Regular file handling for non-PSD/AI files
+                        var destFile = new File(assetFolder.fsName + "/" + fileName);
+                        try{
+                            // ファイルの更新日時をチェックして、更新のあるファイルのみコピー
+                            var shouldCopy = true;
+                            if (destFile.exists) {
+                                var sourceModified = layer.source.mainSource.file.modified;
+                                var destModified = destFile.modified;
+                                shouldCopy = sourceModified > destModified;
+                                if (!shouldCopy) {
+                                    debugLog("FileCopy", "File already up to date, skipping: " + fileName, null, "verbose");
+                                }
+                            }
+                            
+                            if (shouldCopy) {
+                                layer.source.mainSource.file.copy(destFile);
+                                debugLog("FileCopy", "File copied: " + fileName, null, "verbose");
+                            }
+                        }catch(e){
+                            alert("ファイルのコピー中にエラー: " + e.message);
                         }
-                    }catch(e){
-                        alert("ファイルのコピー中にエラー: " + e.message);
                     }
                     break;
                 case "sequence":
