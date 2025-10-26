@@ -408,13 +408,15 @@ function fillRuleToString(rule) {
     }
 
     function getSourceType(layer) {
-        if (!layer.source) {
-            return "none"; // ソースなし（シェイプレイヤーなど）
-        }
-        
-        if (layer.source instanceof CompItem) {
-            return "composition";
-        }
+        try {
+            // Check if layer exists and has a source property
+            if (!layer || !layer.source) {
+                return "none"; // ソースなし（シェイプレイヤーなど）
+            }
+            
+            if (layer.source instanceof CompItem) {
+                return "composition";
+            }
         if (layer.source.mainSource instanceof SolidSource) {
             return "solid";
         }
@@ -474,6 +476,13 @@ function fillRuleToString(rule) {
         }
         
         return "unknown";
+        } catch (e) {
+            debugLog("getSourceType", "Error determining source type: " + e.toString(), {
+                layerName: layer ? layer.name : "unknown",
+                hasSource: !!(layer && layer.source)
+            }, "error");
+            return "unknown";
+        }
     }
 
     var SETTINGS_SECTION = "MyScriptSettings";
@@ -1730,104 +1739,308 @@ function fillRuleToString(rule) {
             compInfo["markers"] = extractMarkers(comp.markerProperty, fps, startFrame);
         }
 
+        debugLog("extractPropertiesForAllLayers", "Total layers to process: " + comp.numLayers);
+        
         for (var i=1;i<=comp.numLayers;i++){
-            var layer = comp.layer(i);
-            if (!layer.enabled) continue;
+            try {
+                debugLog("LayerProcessing", "=== Starting layer " + i + " of " + comp.numLayers + " ===");
+                
+                var layer = null;
+                try {
+                    layer = comp.layer(i);
+                    debugLog("LayerProcessing", "Retrieved layer object for index " + i);
+                } catch (layerRetrievalError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to retrieve layer at index " + i + ": " + layerRetrievalError.toString());
+                    continue;
+                }
+                
+                // Check if layer is null or undefined
+                if (!layer) {
+                    debugLog("LayerProcessing", "ERROR: Layer at index " + i + " is null or undefined");
+                    continue;
+                }
+                
+                // Check basic layer properties with null/undefined guards
+                var layerName = "";
+                var layerEnabled = false;
+                
+                try {
+                    layerName = layer.name || ("Layer " + i);
+                    debugLog("LayerProcessing", "Layer name: " + layerName);
+                } catch (nameError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to access layer.name: " + nameError.toString());
+                    layerName = "Layer " + i;
+                }
+                
+                try {
+                    layerEnabled = layer.enabled;
+                    debugLog("LayerProcessing", "Layer enabled: " + layerEnabled);
+                } catch (enabledError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to access layer.enabled: " + enabledError.toString());
+                    layerEnabled = false;
+                }
+                
+                // Skip if not enabled
+                if (!layerEnabled) {
+                    debugLog("LayerProcessing", "Skipping disabled layer: " + layerName);
+                    continue;
+                }
+                
+                debugLog("LayerProcessing", "Processing enabled layer: " + layerName + " (index: " + i + ")");
 
-            var layerNameForFile = layerUniqueName(layer);
-            var offset = toFrame(layer.startTime, true);
-            compInfo["layers"].push({
-                name: layer.name,
-                uniqueName: layerNameForFile,
-                file: getRelativePath(outputFolder, layerFolder) + "/" + layerNameForFile + ".json",
-                offset: offset
-            });
+                var layerNameForFile = "";
+                var offset = 0;
+                
+                try {
+                    layerNameForFile = layerUniqueName(layer);
+                    debugLog("LayerProcessing", "Layer unique name: " + layerNameForFile);
+                } catch (uniqueNameError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to generate unique name: " + uniqueNameError.toString());
+                    layerNameForFile = layerName + "(ID_" + i + ")";
+                }
+                
+                try {
+                    offset = toFrame(layer.startTime, true);
+                    debugLog("LayerProcessing", "Layer start time offset: " + offset);
+                } catch (offsetError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to calculate offset: " + offsetError.toString());
+                    offset = 0;
+                }
+                
+                try {
+                    compInfo["layers"].push({
+                        name: layerName,
+                        uniqueName: layerNameForFile,
+                        file: getRelativePath(outputFolder, layerFolder) + "/" + layerNameForFile + ".json",
+                        offset: offset
+                    });
+                    debugLog("LayerProcessing", "Added layer to composition info");
+                } catch (pushError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to add layer to composition info: " + pushError.toString());
+                }
 
+                var resultData = {};
+                
+                // Safely extract basic layer properties
+                try {
+                    resultData["name"] = layerName;
+                    debugLog("LayerProcessing", "Set result data name");
+                } catch (nameSetError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to set result data name: " + nameSetError.toString());
+                }
+                
+                try {
+                    resultData["layerType"] = layer.matchName || "Unknown";
+                    debugLog("LayerProcessing", "Layer type: " + resultData["layerType"]);
+                } catch (matchNameError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to access layer.matchName: " + matchNameError.toString());
+                    resultData["layerType"] = "Unknown";
+                }
+                
+                try {
+                    resultData["blendingMode"] = blendingModeToString(layer.blendingMode);
+                    debugLog("LayerProcessing", "Blending mode: " + resultData["blendingMode"]);
+                } catch (blendModeError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to access layer.blendingMode: " + blendModeError.toString());
+                    resultData["blendingMode"] = "NORMAL";
+                }
+                
+                var inPoint = 0;
+                var outPoint = 0;
+                try {
+                    inPoint = toFrame(layer.inPoint, true) - offset;
+                    outPoint = toFrame(layer.outPoint, true) - offset;
+                    resultData["in"] = inPoint;
+                    resultData["out"] = outPoint;
+                    debugLog("LayerProcessing", "Layer timing - in: " + inPoint + ", out: " + outPoint);
+                } catch (timingError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to access layer timing: " + timingError.toString());
+                    resultData["in"] = 0;
+                    resultData["out"] = 0;
+                }
 
-            var resultData = {};
-            resultData["name"] = layer.name;
-            resultData["layerType"] = layer.matchName;
-            resultData["blendingMode"] = blendingModeToString(layer.blendingMode);
-            var inPoint  = toFrame(layer.inPoint, true) - offset;
-            var outPoint = toFrame(layer.outPoint, true) - offset;
-            resultData["in"]  = inPoint;
-            resultData["out"] = outPoint;
-
-            if (layer.parent) resultData["parent"] = layerUniqueName(layer.parent);
+                try {
+                    if (layer.parent) {
+                        resultData["parent"] = layerUniqueName(layer.parent);
+                        debugLog("LayerProcessing", "Layer has parent: " + resultData["parent"]);
+                    } else {
+                        debugLog("LayerProcessing", "Layer has no parent");
+                    }
+                } catch (parentError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to access layer.parent: " + parentError.toString());
+                }
     
-            var sourceType = getSourceType(layer);
-            if (layer.source) {
-                resultData["sourceType"] = sourceType;
-                var source = null;
-                var sourcePath = null;
-                switch(sourceType) {
-                    case "composition":
-                        source = layer.source.name + ".json";
-                        // Composition files are saved in the output folder root, not in assets
-                        sourcePath = getRelativePath(layerFolder, outputFolder) + "/" + source;
-                        break;
-                    case "sequence":
-                        source = layer.source.name;
-                        sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
-                        break;
-                    case "solid":
-                        source = layer.source.name + ".json";
-                        sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
-                        break;
-                    case "still":
-                    case "video":
-                    case "audio":
-                        var fileName = decodeURI(layer.source.mainSource.file.name);
-                        var fileNameLower = fileName.toLowerCase();
+                // Process source if it exists
+                debugLog("LayerProcessing", "Checking layer source...");
+                var sourceType = "none";
+                try {
+                    sourceType = getSourceType(layer);
+                    debugLog("LayerProcessing", "Source type determined: " + sourceType);
+                } catch (sourceTypeError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to determine source type: " + sourceTypeError.toString());
+                    sourceType = "unknown";
+                }
+                
+                try {
+                    if (layer.source) {
+                        debugLog("LayerProcessing", "Layer has source, processing source for layer: " + layerName);
+                        resultData["sourceType"] = sourceType;
+                        var source = null;
+                        var sourcePath = null;
                         
-                        source = fileName;
-                        sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
-                        break;
-                    default:
-                        debugLog("extractPropertiesForAllLayers", "Unknown source type for layer: " + layer.name, { matchName: layer.matchName }, "warning");
-                        break;
-                }
-                // For non-PSD/AI files, set the source path here
-                // For PSD/AI files, the source path will be set during the file copy process below
-                if(sourcePath) {
-                    var fileName = decodeURI(layer.source.mainSource.file.name);
-                    var fileNameLower = fileName.toLowerCase();
-                    if (!fileNameLower.match(/\.(psd|ai)$/)) {
-                        resultData["source"] = sourcePath;
+                        switch(sourceType) {
+                            case "composition":
+                                try {
+                                    source = layer.source.name + ".json";
+                                    // Composition files are saved in the output folder root, not in assets
+                                    sourcePath = getRelativePath(layerFolder, outputFolder) + "/" + source;
+                                    debugLog("LayerProcessing", "Composition source path: " + sourcePath);
+                                } catch (compSourceError) {
+                                    debugLog("LayerProcessing", "ERROR: Failed to process composition source: " + compSourceError.toString());
+                                }
+                                break;
+                            case "sequence":
+                                try {
+                                    source = layer.source.name;
+                                    sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
+                                    debugLog("LayerProcessing", "Sequence source path: " + sourcePath);
+                                } catch (seqSourceError) {
+                                    debugLog("LayerProcessing", "ERROR: Failed to process sequence source: " + seqSourceError.toString());
+                                }
+                                break;
+                            case "solid":
+                                try {
+                                    source = layer.source.name + ".json";
+                                    sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
+                                    debugLog("LayerProcessing", "Solid source path: " + sourcePath);
+                                } catch (solidSourceError) {
+                                    debugLog("LayerProcessing", "ERROR: Failed to process solid source: " + solidSourceError.toString());
+                                }
+                                break;
+                            case "still":
+                            case "video":
+                            case "audio":
+                                try {
+                                    var fileName = decodeURI(layer.source.mainSource.file.name);
+                                    var fileNameLower = fileName.toLowerCase();
+                                    
+                                    source = fileName;
+                                    sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
+                                    debugLog("LayerProcessing", "Media source path: " + sourcePath);
+                                } catch (mediaSourceError) {
+                                    debugLog("LayerProcessing", "ERROR: Failed to process media source: " + mediaSourceError.toString());
+                                }
+                                break;
+                            default:
+                                debugLog("LayerProcessing", "Unknown source type for layer: " + layerName + " (type: " + sourceType + ")", null, "warning");
+                                break;
+                        }
+                        
+                        // For non-PSD/AI files, set the source path here
+                        // For PSD/AI files, the source path will be set during the file copy process below
+                        if(sourcePath) {
+                            try {
+                                // Only check for PSD/AI files if the source actually has a file
+                                if (sourceType === "still" || sourceType === "video" || sourceType === "audio" || sourceType === "sequence") {
+                                    var fileName = decodeURI(layer.source.mainSource.file.name);
+                                    var fileNameLower = fileName.toLowerCase();
+                                    if (!fileNameLower.match(/\.(psd|ai)$/)) {
+                                        resultData["source"] = sourcePath;
+                                        debugLog("LayerProcessing", "Set source path: " + sourcePath);
+                                    }
+                                } else {
+                                    // For compositions, solids, etc. - just set the source path directly
+                                    resultData["source"] = sourcePath;
+                                    debugLog("LayerProcessing", "Set source path for non-file source: " + sourcePath);
+                                }
+                            } catch (sourcePathError) {
+                                debugLog("LayerProcessing", "ERROR: Failed to set source path: " + sourcePathError.toString());
+                            }
+                        }
+                    } else {
+                        debugLog("LayerProcessing", "Layer has no source: " + layerName);
                     }
+                } catch (sourceError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to process source for layer " + layerName + ": " + sourceError.toString());
                 }
-            }
 
-            if (layer.marker.numKeys > 0) {
-                resultData["markers"] = extractMarkers(layer.marker, fps, offset);
-            }
-            options.keyframes = false;
-            var properties = extractPropertiesRecursive(layer, options, layer, offset);
-            if(properties) {
-                for (var key in properties) {
-                    if (properties.hasOwnProperty(key)) {
-                        resultData[key] = properties[key];
+                // Process markers
+                debugLog("LayerProcessing", "Checking layer markers...");
+                try {
+                    if (layer.marker && layer.marker.numKeys > 0) {
+                        debugLog("LayerProcessing", "Processing markers for layer: " + layerName + " (marker count: " + layer.marker.numKeys + ")");
+                        resultData["markers"] = extractMarkers(layer.marker, fps, offset);
+                        debugLog("LayerProcessing", "Successfully processed markers for layer: " + layerName);
+                    } else {
+                        debugLog("LayerProcessing", "Layer has no markers: " + layerName);
                     }
+                } catch (markerError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to process markers for layer " + layerName + ": " + markerError.toString());
                 }
-            }
+                
+                // Process properties (non-keyframe)
+                debugLog("LayerProcessing", "Processing properties (non-keyframe)...");
+                try {
+                    options.keyframes = false;
+                    var properties = extractPropertiesRecursive(layer, options, layer, offset);
+                    if(properties) {
+                        debugLog("LayerProcessing", "Processing properties for layer: " + layerName);
+                        for (var key in properties) {
+                            if (properties.hasOwnProperty(key)) {
+                                resultData[key] = properties[key];
+                            }
+                        }
+                        debugLog("LayerProcessing", "Successfully processed properties for layer: " + layerName);
+                    } else {
+                        debugLog("LayerProcessing", "No properties found for layer: " + layerName);
+                    }
+                } catch (propertiesError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to process properties for layer " + layerName + ": " + propertiesError.toString());
+                }
 
-            options.keyframes = true;
-            var keyframes = extractPropertiesRecursive(layer, options, layer, offset);
-            if(keyframes) {
-                resultData["keyframes"] = keyframes;
-            }
+                // Process keyframes
+                debugLog("LayerProcessing", "Processing keyframes...");
+                try {
+                    options.keyframes = true;
+                    var keyframes = extractPropertiesRecursive(layer, options, layer, offset);
+                    if(keyframes) {
+                        debugLog("LayerProcessing", "Processing keyframes for layer: " + layerName);
+                        resultData["keyframes"] = keyframes;
+                        debugLog("LayerProcessing", "Successfully processed keyframes for layer: " + layerName);
+                    } else {
+                        debugLog("LayerProcessing", "No keyframes found for layer: " + layerName);
+                    }
+                } catch (keyframesError) {
+                    debugLog("LayerProcessing", "ERROR: Failed to process keyframes for layer " + layerName + ": " + keyframesError.toString());
+                }
     
             switch(sourceType) {
                 case "composition":
                     // ネストされたコンポジションは常に処理する（新仕様）
-                    var nestedOptions = {
-                        outputFolderPath: outputFolderPath,
-                        useSharedAssets: options.useSharedAssets,
-                        sharedAssetsPath: options.sharedAssetsPath,
-                        decimalPlaces: DEC,
-                        useFullFrameAnimation: options.useFullFrameAnimation
-                    };
-                    extractPropertiesForAllLayers(layer.source, nestedOptions);
+                    try {
+                        // Check if layer.source exists and is a valid composition
+                        if (layer && layer.source && layer.source instanceof CompItem) {
+                            var nestedOptions = {
+                                outputFolderPath: outputFolderPath,
+                                useSharedAssets: options.useSharedAssets,
+                                sharedAssetsPath: options.sharedAssetsPath,
+                                decimalPlaces: DEC,
+                                useFullFrameAnimation: options.useFullFrameAnimation
+                            };
+                            extractPropertiesForAllLayers(layer.source, nestedOptions);
+                        } else {
+                            debugLog("extractPropertiesForAllLayers", "Invalid or null composition source for nested composition processing", {
+                                layerName: layer ? layer.name : "unknown",
+                                sourceType: sourceType,
+                                hasSource: !!(layer && layer.source)
+                            }, "warning");
+                        }
+                    } catch (e) {
+                        debugLog("extractPropertiesForAllLayers", "Error processing nested composition: " + e.toString(), {
+                            layerName: layer ? layer.name : "unknown",
+                            error: e.message
+                        }, "error");
+                    }
                     break;
                 case "solid":
                     var solidInfo = {
@@ -1985,18 +2198,30 @@ function fillRuleToString(rule) {
                     break;
             }
 
-            try{
-                var jsonString = JSON.stringify(resultData, null, 4);
-                var saveFile = new File(layerFolder.fsName + "/" + layerNameForFile + ".json");
-                saveFile.encoding = "UTF-8";
-                saveFile.open("w");
-                saveFile.write(jsonString);
-                saveFile.close();
-            }catch(e){
-                alert("ファイルの保存中にエラーが発生しました: " + e.message);
+                try{
+                    var jsonString = JSON.stringify(resultData, null, 4);
+                    var saveFile = new File(layerFolder.fsName + "/" + layerNameForFile + ".json");
+                    saveFile.encoding = "UTF-8";
+                    saveFile.open("w");
+                    saveFile.write(jsonString);
+                    saveFile.close();
+                    debugLog("LayerProcessing", "Successfully saved layer file: " + layerNameForFile + ".json");
+                }catch(e){
+                    debugLog("LayerProcessing", "ERROR: Failed to save layer file: " + e.toString());
+                    alert("ファイルの保存中にエラーが発生しました: " + e.message);
+                }
+                
+                debugLog("LayerProcessing", "=== Completed processing layer " + i + ": " + layerName + " ===");
+                
+            } catch (e) {
+                debugLog("LayerProcessing", "ERROR: Critical error processing layer " + i + " (" + (layer ? layer.name : "unknown") + "): " + e.toString());
+                // Continue with next layer even if this one fails
+                continue;
             }
         }
 
+        debugLog("extractPropertiesForAllLayers", "Finished processing " + compInfo["layers"].length + " layers for composition: " + compName);
+        
         try {
             var compInfoFile = new File(outputFolderPath + "/" + compName + ".json");
             compInfoFile.encoding = "UTF-8";
