@@ -273,7 +273,10 @@ var PROPERTY_MAPPING_CONFIG = {
     "ADBE Source Options Group": { ignored: true },
     "ADBE Marker": { ignored: true },
     "ADBE Effect Parade": { ignored: true },
-    "ADBE Time Remapping": { ignored: true },
+    "ADBE Time Remapping": {
+        wrapInObject: "timeRemap",
+        customProcessor: "timeRemapToFrames"
+    },
     "ADBE MTrackers": { ignored: true },
     "ADBE Vector Materials Group": { ignored: true },
     "ADBE Vector Skew": { ignored: true },
@@ -366,6 +369,14 @@ function fillRuleToString(rule) {
     map[1] = "NON_ZERO";
     map[2] = "EVEN_ODD";
     return map.hasOwnProperty(rule) ? map[rule] : "NON_ZERO";
+}
+
+function timeRemapToFrames(value, fps) {
+    if (typeof value === 'number') {
+        // タイム値をフレーム値に変換
+        return Math.round(value * fps);
+    }
+    return value;
 }
 (function(me){
     // polyfills
@@ -1020,7 +1031,7 @@ function fillRuleToString(rule) {
     }
     
     // 型自動判定による値処理
-    function extractValue(prop, time, decimalPlaces, customProcessor) {
+    function extractValue(prop, time, decimalPlaces, customProcessor, fps) {
         try {
             if (!prop) return null;
             
@@ -1034,6 +1045,8 @@ function fillRuleToString(rule) {
                         return windingDirectionToString(value);
                     case "fillRule":
                         return fillRuleToString(value);
+                    case "timeRemapToFrames":
+                        return timeRemapToFrames(value, fps);
                     default:
                         break;
                 }
@@ -1439,7 +1452,7 @@ function fillRuleToString(rule) {
                     var keyTime = prop.keyTime(i);
                     var keyFrame = toFrame(keyTime) - offset;
                     
-                    var keyValue = extractValue(prop, keyTime, decimalPlaces, customProcessor);
+                    var keyValue = extractValue(prop, keyTime, decimalPlaces, customProcessor, fps);
                     
                     // キーフレーム情報を構築
                     var keyframeInfo = {

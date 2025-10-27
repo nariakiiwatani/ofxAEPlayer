@@ -43,6 +43,12 @@ public:
 	float getCurrentTime() const { return current_frame_/info_.fps; }
 	int getCurrentFrame() const { return current_frame_; }
 
+	// Time remap control functions
+	void enableTimeRemapForAllLayers(bool enable);
+	void enableTimeRemapForLayer(const std::string &layerName, bool enable);
+	bool hasLayersWithTimeRemap() const;
+	std::vector<std::string> getTimeRemapEnabledLayerNames() const;
+
 	const Info& getInfo() const;
 	std::shared_ptr<Layer> getLayer(const std::string &name) const;
 	std::vector<std::shared_ptr<Layer>> getLayers() const;

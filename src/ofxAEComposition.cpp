@@ -132,6 +132,46 @@ std::vector<std::shared_ptr<Layer>> Composition::getLayers() const {
 	return layers_;
 }
 
+void Composition::enableTimeRemapForAllLayers(bool enable) {
+	for(auto& layer : layers_) {
+		if(layer) {
+			layer->enableTimeRemap(enable);
+		}
+	}
+	ofLogNotice("Composition") << "Time remap " << (enable ? "enabled" : "disabled")
+	                          << " for all layers (" << layers_.size() << " layers)";
+}
+
+void Composition::enableTimeRemapForLayer(const std::string &layerName, bool enable) {
+	auto layer = getLayer(layerName);
+	if(layer) {
+		layer->enableTimeRemap(enable);
+		ofLogNotice("Composition") << "Time remap " << (enable ? "enabled" : "disabled")
+		                          << " for layer: " << layerName;
+	} else {
+		ofLogWarning("Composition") << "Layer not found: " << layerName;
+	}
+}
+
+bool Composition::hasLayersWithTimeRemap() const {
+	for(const auto& layer : layers_) {
+		if(layer && layer->isTimeRemapEnabled()) {
+			return true;
+		}
+	}
+	return false;
+}
+
+std::vector<std::string> Composition::getTimeRemapEnabledLayerNames() const {
+	std::vector<std::string> result;
+	for(const auto& layer : layers_) {
+		if(layer && layer->isTimeRemapEnabled()) {
+			result.push_back(layer->getName());
+		}
+	}
+	return result;
+}
+
 void Composition::accept(Visitor& visitor) {
 	visitor.visit(*this);
 }

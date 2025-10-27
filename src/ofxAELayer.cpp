@@ -64,6 +64,7 @@ Layer::Layer()
 , name_("")
 , in_(0)
 , out_(0)
+, current_frame_(-1)
 , blend_mode_(BlendMode::NORMAL)
 {
 }
@@ -90,13 +91,25 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 	EXTRACT_(out);
 	std::string blendingMode = "NORMAL";
 	EXTRACT(blendingMode);
-	std::string parent = "";
-	EXTRACT(parent);
-	parent_name_ = parent;
 	blend_mode_ = blendModeFromString(blendingMode);
 	if(json.contains("transform")) {
 		auto &&kf = json.value("/keyframes/transform"_json_pointer, ofJson{});
 		transform_.setup(json["transform"], kf);
+	}
+	
+	// Time remap setup - automatically enable if timeRemap data exists
+	if(json.contains("timeRemap")) {
+		auto &&time_remap_kf = json.value("/keyframes/timeRemap"_json_pointer, ofJson{});
+		time_remap_.setup(json["timeRemap"], time_remap_kf);
+		
+		// Auto-enable time remap if keyframe data exists
+		bool hasKeyframes = !time_remap_kf.empty() && time_remap_kf.is_array() && time_remap_kf.size() > 0;
+		bool hasStaticValue = json["timeRemap"].is_number();
+		
+		if (hasKeyframes || hasStaticValue) {
+			time_remap_.setEnabled(true);
+			ofLogVerbose("Layer") << "Time remap auto-enabled for layer: " << name_;
+		}
 	}
 	
 	if(json.contains("mask")) {
@@ -127,19 +140,16 @@ void Layer::update()
 	}
 }
 
-bool Layer::tryExtractTransform(TransformData &transform) const
-{
-	return transform_.tryExtract(transform);
-}
-
 
 bool Layer::setFrame(int frame)
 {
 	if(current_frame_ == frame) {
 		return false;
 	}
+
 	bool ret = false;
 	bool need_mask_update = false;
+	
 	if(transform_.setFrame(frame)) {
 		TransformData t;
 		if (!transform_.tryExtract(t)) {
@@ -160,11 +170,14 @@ bool Layer::setFrame(int frame)
 			need_mask_update |= true;
 		}
 
-		if(source_ && source_->setFrame(frame)) {
-			ret |= true;
-			need_mask_update |= true;
-		}
+		if(source_) {
+			int source_frame = time_remap_.isEnabled() ? time_remap_.remapFrame(frame) : frame;
 
+			if(source_->setFrame(source_frame)) {
+				ret |= true;
+				need_mask_update |= true;
+			}
+		}
 		if (need_mask_update && !mask_collection_.empty()) {
 			float w = getWidth();
 			float h = getHeight();
@@ -259,6 +272,18 @@ LayerSource::SourceType Layer::getSourceType() const {
     }
     
 	return LayerSource::UNKNOWN;
+}
+
+void Layer::enableTimeRemap(bool enable) {
+	time_remap_.setEnabled(enable);
+}
+
+bool Layer::isTimeRemapEnabled() const {
+	return time_remap_.isEnabled();
+}
+
+float Layer::getRemappedFrame(int inputFrame) const {
+	return time_remap_.remapFrame(inputFrame);
 }
 
 std::string Layer::getDebugInfo() const {

@@ -39,6 +39,7 @@ public:
 
 	virtual void update() override {}
 	virtual bool setFrame(int frame) { return false; }
+	virtual bool setFrameFloat(float frame) { return setFrame(static_cast<int>(std::round(frame))); }
 
 	using ofBaseDraws::draw;
 	virtual void draw(float x, float y, float w, float h) const override {}

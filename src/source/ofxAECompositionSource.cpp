@@ -27,6 +27,7 @@ bool CompositionSource::load(const std::filesystem::path& filepath) {
 
 bool CompositionSource::setFrame(int frame)
 {
+	std::cout << frame << std::endl;
 	return composition_ && composition_->setFrame(frame);
 }
 

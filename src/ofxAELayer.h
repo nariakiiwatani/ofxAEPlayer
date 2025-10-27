@@ -12,6 +12,7 @@
 #include "ofxAELayerSource.h"
 #include "ofxAEMaskProp.h"
 #include "ofxAEMask.h"
+#include "ofxAETimeRemapProp.h"
 #include "TransformNode.h"
 #include "Hierarchical.h"
 
@@ -37,15 +38,15 @@ public:
 	bool setup(const ofJson& json, const std::filesystem::path &source_dir="");
 	void update() override;
 	bool setFrame(int frame);
+	
+	void enableTimeRemap(bool enable);
+	bool isTimeRemapEnabled() const;
+	float getRemappedFrame(int inputFrame) const;
 	using ofBaseDraws::draw;
 	void draw() const { draw(0,0); }
 	void draw(float x, float y, float w, float h) const override;
 	float getHeight() const override;
 	float getWidth() const override;
-
-	std::string getParentUniqueName() const { return parent_name_; }
-
-	bool tryExtractTransform(TransformData &transform) const;
 
 	void setSource(std::unique_ptr<LayerSource> source);
 	LayerSource* getSource() const { return source_.get(); }
@@ -72,11 +73,11 @@ private:
 	std::unique_ptr<LayerSource> source_;
 
 	std::string name_;
-	std::string parent_name_;
 	int in_, out_;
 	int current_frame_;
 
 	TransformProp transform_;
+	TimeRemapProp time_remap_;
 	MaskProp mask_;
 	MaskCollection mask_collection_;
 	mutable ofFbo layer_fbo_;
