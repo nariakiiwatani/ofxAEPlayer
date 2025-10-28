@@ -21,13 +21,21 @@ in vec2 vMatteUV;
 out vec4 fragColor;
 
 float luma(vec3 c){ return dot(c, vec3(0.2126,0.7152,0.0722)); }
+float val(vec4 a);
 
 void main(){
    vec4 m = texture(matte, vMatteUV+matteOffset);
-   float k = m.a;
+   float k = val(m);
    fragColor = vec4(k, k, k, k);
 }
 )";
+	switch(type) {
+		case TrackMatteType::ALPHA: fragment += R"(float val(vec4 c) { return c.a; })"; break;
+		case TrackMatteType::ALPHA_INVERTED: fragment += R"(float val(vec4 c) { return 1.0-c.a; })"; break;
+		case TrackMatteType::LUMA: fragment += R"(float val(vec4 c) { return luma(c.rgb); })"; break;
+		case TrackMatteType::LUMA_INVERTED: fragment += R"(float val(vec4 c) { return 1.0-luma(c.rgb); })"; break;
+		default: fragment += R"(float val(vec4 c) { return c.a; })"; break;
+	}
 	auto ret = std::make_unique<ofShader>();
 	ret->setupShaderFromSource(GL_VERTEX_SHADER, vertex);
 	ret->setupShaderFromSource(GL_FRAGMENT_SHADER, fragment);
