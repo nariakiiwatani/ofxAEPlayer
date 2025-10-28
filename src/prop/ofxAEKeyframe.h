@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <map>
 #include "ofxAEPath.h"
+#include "ofxAEMask.h"
 #include "ofxAEBlendMode.h"
 #include "ofxAEFillRule.h"
 #include "ofxAEWindingDirection.h"
@@ -187,6 +188,12 @@ inline FillRule calculate(const Keyframe::Data<FillRule>& keyframe_a,
 template<>
 inline WindingDirection calculate(const Keyframe::Data<WindingDirection>& keyframe_a,
 			const Keyframe::Data<WindingDirection>& keyframe_b,
+								  float dt, float ratio) {
+	return ratio < 1.f ? keyframe_a.value : keyframe_b.value;
+}
+template<>
+inline MaskMode calculate(const Keyframe::Data<MaskMode>& keyframe_a,
+			const Keyframe::Data<MaskMode>& keyframe_b,
 								  float dt, float ratio) {
 	return ratio < 1.f ? keyframe_a.value : keyframe_b.value;
 }

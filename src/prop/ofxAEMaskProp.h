@@ -4,6 +4,7 @@
 #include "ofxAEShapeProp.h"
 #include "ofPath.h"
 #include "ofxAEPath.h"
+#include "ofxAEMask.h"
 #include "ofGraphicsBaseTypes.h"
 #include <vector>
 
@@ -11,11 +12,28 @@ namespace ofx { namespace ae {
 
 class Visitor;
 
+class MaskModeProp : public Property<MaskMode> {
+public:
+	MaskModeProp() : Property<MaskMode>() {}
+
+	MaskMode parse(const ofJson& json) const override {
+		if (json.is_string()) {
+			std::string str = json.get<std::string>();
+			return maskModeFromString(str);
+		} else {
+			ofLogWarning("BlendModeProp") << "Expected string blend mode value, using NORMAL";
+			return MaskMode::ADD;
+		}
+	}
+};
+
 struct MaskAtomData {
     PathData shape;
-    glm::vec2 feather{0.f, 0.f}; // [inner, outer]
+    glm::vec2 feather{0.f, 0.f};
     float opacity = 1.f;
     float offset = 0.f;
+    bool inverted = false;
+    MaskMode mode = static_cast<MaskMode>(0);
     
     void accept(Visitor& visitor) const;
 };

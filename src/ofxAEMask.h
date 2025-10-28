@@ -1,20 +1,48 @@
 #pragma once
 
-#include "ofMain.h"
-#include "ofxAEMaskProp.h"
 #include <vector>
+#include <string>
+#include <unordered_map>
 #include "ofxAEPath.h"
 
 namespace ofx { namespace ae {
 
+class MaskProp;
+struct MaskAtomData;
 enum class MaskMode {
 	ADD,
 	SUBTRACT,
 	INTERSECT,
 	LIGHTEN,
 	DARKEN,
-	DIFFERENCE
+	DIFFERENCE,
+	UNKNOWN
 };
+
+inline MaskMode maskModeFromString(const std::string& str) {
+	static const std::unordered_map<std::string, MaskMode> map = {
+		{"ADD", MaskMode::ADD},
+		{"SUBTRACT", MaskMode::SUBTRACT},
+		{"INTERSECT", MaskMode::INTERSECT},
+		{"LIGHTEN", MaskMode::LIGHTEN},
+		{"DARKEN", MaskMode::DARKEN},
+		{"DIFFERENCE", MaskMode::DIFFERENCE}
+	};
+	auto it = map.find(str);
+	return (it != map.end()) ? it->second : MaskMode::UNKNOWN;
+}
+
+inline std::string toString(MaskMode mode) {
+	switch (mode) {
+		case MaskMode::ADD: return "ADD";
+		case MaskMode::SUBTRACT: return "SUBTRACT";
+		case MaskMode::INTERSECT: return "INTERSECT";
+		case MaskMode::LIGHTEN: return "LIGHTEN";
+		case MaskMode::DARKEN: return "DARKEN";
+		case MaskMode::DIFFERENCE: return "DIFFERENCE";
+		default: return "UNKNOWN";
+	}
+}
 
 struct MaskFeather {
 	float inner;

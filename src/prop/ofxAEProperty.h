@@ -364,5 +364,15 @@ public:
 		}
 	};
 
+class BoolProp : public Property<bool>
+{
+public:
+	BoolProp() : Property<bool>() {}
+
+	bool parse(const ofJson &json) const override {
+		return json.is_null() ? false : json.get<bool>();
+	}
+};
+
 
 }} // namespace ofx::ae

@@ -1,5 +1,6 @@
 #include "ofxAEMaskProp.h"
 #include "ofxAEVisitor.h"
+#include "ofxAEMask.h"
 
 namespace ofx { namespace ae {
 
@@ -7,8 +8,10 @@ MaskAtomProp::MaskAtomProp() {
     registerProperty<PathDataProp>("/shape");
     registerProperty<VecProp<2>>("/feather");
     registerProperty<PercentProp>("/opacity");
-    registerProperty<FloatProp>("/offset");
-    
+	registerProperty<FloatProp>("/offset");
+    registerProperty<BoolProp>("/inverted");
+    registerProperty<MaskModeProp>("/mode");
+
     registerExtractor<MaskAtomData>([this](MaskAtomData& atom) -> bool {
         bool success = true;
         
@@ -33,6 +36,18 @@ MaskAtomProp::MaskAtomProp() {
         if (!getProperty<FloatProp>("/offset")->tryExtract(atom.offset)) {
             ofLogWarning("PropertyExtraction") << "Failed to extract mask offset, using default";
             atom.offset = 0.0f;
+            success = false;
+        }
+        
+        if (!getProperty<BoolProp>("/inverted")->tryExtract(atom.inverted)) {
+            ofLogWarning("PropertyExtraction") << "Failed to extract mask inverted, using default";
+            atom.inverted = false;
+            success = false;
+        }
+
+		if (!getProperty<MaskModeProp>("/mode")->tryExtract(atom.mode)) {
+            ofLogWarning("PropertyExtraction") << "Failed to extract mask mode, using default";
+            atom.mode = MaskMode::ADD;
             success = false;
         }
         
@@ -110,10 +125,14 @@ void MaskProp::setupMaskAtom(const ofJson &atomBase, const ofJson &atomKeyframes
         ofJson featherBase = atom.contains("feather") ? atom["feather"] : ofJson::array({0, 0});
         float opacityBase = atom.contains("opacity") ? atom["opacity"].get<float>() : 100.0f;
         float offsetBase = atom.contains("offset") ? atom["offset"].get<float>() : 0.0f;
+        bool invertedBase = atom.contains("inverted") ? atom["inverted"].get<bool>() : false;
+        std::string modeBase = atom.contains("mode") ? atom["mode"].get<std::string>() : "ADD";
         
         maskAtom->getProperty<VecProp<2>>("/feather")->setup(featherBase, ofJson{});
         maskAtom->getProperty<FloatProp>("/opacity")->setup(opacityBase, ofJson{});
         maskAtom->getProperty<FloatProp>("/offset")->setup(offsetBase, ofJson{});
+        maskAtom->getProperty<BoolProp>("/inverted")->setup(invertedBase, ofJson{});
+        maskAtom->getProperty<MaskModeProp>("/mode")->setup(modeBase, ofJson{});
     }
 }
 

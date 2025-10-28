@@ -61,6 +61,7 @@ var PROPERTY_MAPPING_CONFIG = {
     },
     "ADBE Mask Atom": {
         wrapInObject: "atom",
+        customProcessor: "maskAtom"
     },
     "ADBE Mask Shape": {
         wrapInObject: "shape",
@@ -371,6 +372,17 @@ function fillRuleToString(rule) {
     return map.hasOwnProperty(rule) ? map[rule] : "NON_ZERO";
 }
 
+function maskModeToString(mode) {
+    var map = {};
+    map[MaskMode.NONE] = "NONE";
+    map[MaskMode.ADD] = "ADD";
+    map[MaskMode.SUBTRACT] = "SUBTRACT";
+    map[MaskMode.INTERSECT] = "INTERSECT";
+    map[MaskMode.LIGHTEN] = "LIGHTEN";
+    map[MaskMode.DARKEN] = "DARKEN";
+    map[MaskMode.DIFFERENCE] = "DIFFERENCE";
+    return map.hasOwnProperty(mode) ? map[mode] : "ADD";
+}
 function timeRemapToFrames(value, fps) {
     if (typeof value === 'number') {
         return Math.round(value * fps);
@@ -1686,6 +1698,10 @@ function trackMatteTypeToString(t){
                                 }
                             }
                         }
+                    }
+                    if(config.customProcessor === "maskAtom") {
+                        result.inverted = property.inverted;
+                        result.mode = maskModeToString(property.maskMode);
                     }
                     if(result.keys().length === 0) result = null;
                     break;

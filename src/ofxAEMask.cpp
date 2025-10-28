@@ -1,4 +1,5 @@
 #include "ofxAEMask.h"
+#include "ofxAEMaskProp.h"
 
 namespace ofx { namespace ae {
 
@@ -181,6 +182,8 @@ void Mask::setFromMaskAtomData(const MaskAtomData& atomData) {
 	setFeather(MaskFeather(atomData.feather.x, atomData.feather.y));
 	setOpacity(atomData.opacity);
 	setExpansion(atomData.offset);
+	setInverted(atomData.inverted);
+	setMode(atomData.mode);
 }
 
 void Mask::applyFeather(ofFbo& target) const {
