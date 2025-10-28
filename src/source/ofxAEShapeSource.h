@@ -6,6 +6,7 @@
 namespace ofx { namespace ae {
 
 class Visitor;
+class PathExtractionVisitor;
 
 class ShapeSource : public LayerSource
 {
@@ -26,6 +27,8 @@ public:
 
 private:
 	ShapeProp shape_props_;
+	ShapeData shape_data_;
+	std::shared_ptr<PathExtractionVisitor> visitor_;
 };
 
 }} // namespace ofx::ae

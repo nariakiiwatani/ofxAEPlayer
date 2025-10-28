@@ -125,7 +125,7 @@ public:
 
 	bool hasActiveMasks() const;
 
-	void renderCombined(ofFbo& target, int width, int height) const;
+	void renderCombined(ofFbo& target) const;
 	
 	void setupFromMaskProp(const MaskProp& maskProp);
 	bool empty() const { return masks.empty(); }

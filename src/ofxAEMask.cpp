@@ -140,14 +140,25 @@ void Mask::renderToFbo(ofFbo& target) const {
 	if (!enabled) return;
 
 	target.begin();
-
 	ofClear(0, 0, 0, 0);
+	ofFloatColor color{opacity,opacity,opacity,1};
 
-	ofSetColor(255, 255, 255, opacity * 255);
-	ofFill();
+	ofPushStyle();
+	if (inverted) {
+		ofSetColor(color);
+		ofDrawRectangle(0, 0, target.getWidth(), target.getHeight());
 
-	renderPath(path);
+		ofEnableBlendMode(OF_BLENDMODE_SUBTRACT);
+		ofSetColor(ofFloatColor::white);
+		renderPath(path);
+		ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+	} else {
+		ofSetColor(color);
+		ofFill();
+		renderPath(path);
+	}
 
+	ofPopStyle();
 	target.end();
 
 	if (feather.outer > 0 || feather.inner > 0) {
@@ -241,7 +252,7 @@ bool MaskCollection::hasActiveMasks() const {
 	return false;
 }
 
-void MaskCollection::renderCombined(ofFbo& target, int width, int height) const {
+void MaskCollection::renderCombined(ofFbo& target) const {
 	if (masks.empty()) {
 		target.begin();
 		ofClear(255, 255, 255, 255);
@@ -276,8 +287,9 @@ void MaskCollection::combineMasks(ofFbo& target, const Mask& mask, bool isFirst)
 
 	target.begin();
 
+	ofPushStyle();
 	if (isFirst) {
-		ofSetColor(255);
+		ofSetColor(ofFloatColor::white);
 		maskFbo.draw(0, 0);
 	} else {
 		switch (mask.getMode()) {
@@ -295,11 +307,11 @@ void MaskCollection::combineMasks(ofFbo& target, const Mask& mask, bool isFirst)
 				break;
 		}
 
-		ofSetColor(255);
+		ofSetColor(ofFloatColor::white);
 		maskFbo.draw(0, 0);
 		ofEnableBlendMode(OF_BLENDMODE_ALPHA);
 	}
-
+	ofPopStyle();
 	target.end();
 }
 

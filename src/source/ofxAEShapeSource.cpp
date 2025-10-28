@@ -3,14 +3,15 @@
 #include "ofLog.h"
 #include "ofMath.h"
 #include "ofxAEShapeUtils.h"
-#include "ofxAEVisitorUtils.h"
 #include "ofxAERenderContext.h"
 #include "ofxAEBlendMode.h"
+#include "ofxAEVisitorUtils.h"
 
 namespace ofx { namespace ae {
 
 bool ShapeSource::setup(const ofJson &json)
 {
+	visitor_ = std::make_shared<PathExtractionVisitor>();
 	if (!json.contains("shape")) {
 		ofLogWarning("ShapeSource") << "No shape data found in JSON";
 		return false;
@@ -29,6 +30,10 @@ bool ShapeSource::setup(const ofJson &json)
 }
 
 void ShapeSource::update() {
+	if(shape_props_.tryExtract(shape_data_)) {
+		visitor_ = std::make_shared<PathExtractionVisitor>();
+		visitor_->visit(shape_data_);
+	}
 }
 
 bool ShapeSource::setFrame(int frame) {
@@ -41,75 +46,26 @@ bool ShapeSource::tryExtract(ShapeData &dst) const
 }
 
 void ShapeSource::draw(float x, float y, float w, float h) const {
-	ShapeData data;
-	if (!shape_props_.tryExtract(data)) {
-		ofLogWarning("PropertyExtraction") << "Failed to extract ShapeData in draw(), using defaults";
-	}
-	PathExtractionVisitor visitor(data);
-	auto bb = visitor.getBoundingBox();
+	auto bb = visitor_->getBoundingBox();
 	ofPushMatrix();
 	ofTranslate(x,y);
 	ofScale(w/bb.width, h/bb.height);
-	visitor.getRenderer().draw();
+	visitor_->getRenderer().draw();
 	ofPopMatrix();
 }
 
 float ShapeSource::getWidth() const {
-    ShapeData data;
-    if (!shape_props_.tryExtract(data)) {
-        ofLogWarning("PropertyExtraction") << "Failed to extract ShapeData in getWidth(), using defaults";
-    }
-    
-    float maxWidth = 0.0f;
-    for (const auto& shapePtr : data.data) {
-        if (!shapePtr) continue;
-        
-        if (auto ellipse = dynamic_cast<const EllipseData*>(shapePtr.get())) {
-            maxWidth = std::max(maxWidth, ellipse->size.x);
-        }
-        else if (auto rectangle = dynamic_cast<const RectangleData*>(shapePtr.get())) {
-            maxWidth = std::max(maxWidth, rectangle->size.x);
-        }
-        else if (auto polygon = dynamic_cast<const PolygonData*>(shapePtr.get())) {
-            maxWidth = std::max(maxWidth, polygon->outerRadius * 2.0f);
-        }
-    }
-    
-    return maxWidth;
+	return visitor_->getBoundingBox().width;
 }
 
 float ShapeSource::getHeight() const {
-    ShapeData data;
-    if (!shape_props_.tryExtract(data)) {
-        ofLogWarning("PropertyExtraction") << "Failed to extract ShapeData in getHeight(), using defaults";
-    }
-    
-    float maxHeight = 0.0f;
-    for (const auto& shapePtr : data.data) {
-        if (!shapePtr) continue;
-        
-        if (auto ellipse = dynamic_cast<const EllipseData*>(shapePtr.get())) {
-            maxHeight = std::max(maxHeight, ellipse->size.y);
-        }
-        else if (auto rectangle = dynamic_cast<const RectangleData*>(shapePtr.get())) {
-            maxHeight = std::max(maxHeight, rectangle->size.y);
-        }
-        else if (auto polygon = dynamic_cast<const PolygonData*>(shapePtr.get())) {
-            maxHeight = std::max(maxHeight, polygon->outerRadius * 2.0f);
-        }
-    }
-    
-    return maxHeight;
+	return visitor_->getBoundingBox().height;
+
 }
 
 ofRectangle ShapeSource::getBoundingBox() const
 {
-	ShapeData data;
-	if (!shape_props_.tryExtract(data)) {
-		ofLogWarning("PropertyExtraction") << "Failed to extract ShapeData in draw(), using defaults";
-	}
-	PathExtractionVisitor visitor(data);
-	return visitor.getBoundingBox();
+	return visitor_->getBoundingBox();
 }
 
 

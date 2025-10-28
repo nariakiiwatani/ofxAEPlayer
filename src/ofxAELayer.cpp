@@ -189,7 +189,7 @@ void Layer::draw(float x, float y, float w, float h) const
 	RenderContext::setBlendMode(blend_mode_);
 	
 	if(isUseFbo()) {
-		layer_fbo_.draw(glm::vec2(x, y) - fbo_offset_);
+		layer_fbo_.draw(glm::vec2(x, y) - fbo_offset_, w, h);
 	}
 	else {
 		if(source_) {
@@ -206,6 +206,7 @@ void Layer::updateLayerFBO()
 	if(!source_) return;
 
 	auto bb = source_->getBoundingBox();
+	if(bb.isEmpty()) return;
 
 	if (layer_fbo_.getWidth() != bb.width || layer_fbo_.getHeight() != bb.height) {
 		layer_fbo_.allocate(bb.width, bb.height, GL_RGBA);
@@ -224,16 +225,9 @@ void Layer::updateLayerFBO()
 	ofPopStyle();
 	layer_fbo_.end();
 
+	mask_collection_.renderCombined(mask_fbo_);
 	mask_fbo_.begin();
 	ofPushStyle();
-	ofClear(0,0,0,0);
-	glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-	for (const auto& mask : mask_collection_) {
-		ofPath maskPath = mask.toOfPath();
-		maskPath.setFilled(true);
-		maskPath.setColor({mask.getOpacity(),1,1,1});
-		maskPath.draw();
-	}
 	glBlendFuncSeparate(GL_ZERO, GL_SRC_ALPHA, GL_ZERO, GL_SRC_ALPHA);
 	if(auto matte = track_matte_layer_.lock()) {
 		ofMatrix4x4 relative_mat = *getWorldMatrix() * *matte->getWorldMatrixInversed();
@@ -248,7 +242,6 @@ void Layer::updateLayerFBO()
 		ofDrawRectangle(ofGetCurrentViewport());
 		track_matte_shader_->end();
 	}
-	glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 	ofPopStyle();
 	mask_fbo_.end();
 
