@@ -29,7 +29,25 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 	info_.layers.clear();
 	if (json.contains("layers") && json["layers"].is_array()) {
 		for (const auto &layer : json["layers"]) {
-			info_.layers.emplace_back(layer["name"], layer["uniqueName"], layer["file"], layer["parent"], layer["offset"]);
+#define EXTRACT_LAYER2(k,n) json::extract(layer, #k, info.n)
+#define EXTRACT_LAYER(n) EXTRACT_LAYER2(n, n)
+			Info::LayerInfo info;
+			EXTRACT_LAYER(name);
+			EXTRACT_LAYER2(uniqueName, unique_name);
+			EXTRACT_LAYER2(file, filepath);
+			EXTRACT_LAYER(parent);
+			EXTRACT_LAYER(offset);
+			EXTRACT_LAYER(visible);
+#undef EXTRACT_LAYER2
+#undef EXTRACT_LAYER
+			if(layer.contains("trackMatte")) {
+				ofJson track_matte = layer["trackMatte"];
+				Info::LayerInfo::TrackMatte matte;
+				matte.layer = track_matte["layer"];
+				matte.type = trackMatteTypeFromString(track_matte["type"]);
+				info.track_matte = matte;
+			}
+			info_.layers.push_back(info);
 		}
 	}
 
@@ -56,17 +74,26 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 			name_layers_map_.insert({info.name, layer});
 			unique_name_layers_map_.insert({info.unique_name, layer});
 			layer_offsets_.insert({layer, info.offset});
+			layer->setVisible(info.visible);
 		} else {
 			ofLogError("ofxAEComposition") << "Failed to load layer: " << layer_file;
 		}
 	}
 
 	for(auto info : info_.layers) {
-		if(info.parent == "") continue;
-		auto c = unique_name_layers_map_[info.unique_name].lock();
-		auto p = unique_name_layers_map_[info.parent].lock();
-		if(!c || !p) continue;
-		c->setParent(p);
+		auto layer = unique_name_layers_map_[info.unique_name].lock();
+		if(!layer) continue;
+		if(info.parent != "") {
+			if(auto l = unique_name_layers_map_[info.parent].lock()) {
+				layer->setParent(l);
+			}
+		}
+		if(info.track_matte) {
+			if(auto l = unique_name_layers_map_[info.track_matte->layer].lock()) {
+				layer->setTrackMatte(l, info.track_matte->type);
+				l->setUseAsTrackMatte(true);
+			}
+		}
 	}
 
 	current_frame_ = -1;
@@ -103,6 +130,9 @@ void Composition::draw(float x, float y, float w, float h) const {
 	ofScale(w / info_.width, h / info_.height);
 	
 	for(auto it = layers_.rbegin(); it != layers_.rend(); ++it) {
+		if(!(*it)->isVisible()) {
+			continue;
+		}
 		(*it)->draw();
 	}
 	
@@ -130,46 +160,6 @@ std::shared_ptr<Layer> Composition::getLayer(const std::string &name) const {
 
 std::vector<std::shared_ptr<Layer>> Composition::getLayers() const {
 	return layers_;
-}
-
-void Composition::enableTimeRemapForAllLayers(bool enable) {
-	for(auto& layer : layers_) {
-		if(layer) {
-			layer->enableTimeRemap(enable);
-		}
-	}
-	ofLogNotice("Composition") << "Time remap " << (enable ? "enabled" : "disabled")
-	                          << " for all layers (" << layers_.size() << " layers)";
-}
-
-void Composition::enableTimeRemapForLayer(const std::string &layerName, bool enable) {
-	auto layer = getLayer(layerName);
-	if(layer) {
-		layer->enableTimeRemap(enable);
-		ofLogNotice("Composition") << "Time remap " << (enable ? "enabled" : "disabled")
-		                          << " for layer: " << layerName;
-	} else {
-		ofLogWarning("Composition") << "Layer not found: " << layerName;
-	}
-}
-
-bool Composition::hasLayersWithTimeRemap() const {
-	for(const auto& layer : layers_) {
-		if(layer && layer->isTimeRemapEnabled()) {
-			return true;
-		}
-	}
-	return false;
-}
-
-std::vector<std::string> Composition::getTimeRemapEnabledLayerNames() const {
-	std::vector<std::string> result;
-	for(const auto& layer : layers_) {
-		if(layer && layer->isTimeRemapEnabled()) {
-			result.push_back(layer->getName());
-		}
-	}
-	return result;
 }
 
 void Composition::accept(Visitor& visitor) {

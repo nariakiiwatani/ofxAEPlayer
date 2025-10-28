@@ -3,6 +3,7 @@
 #include "ofGraphicsBaseTypes.h"
 #include "ofJson.h"
 #include "ofxAEMarker.h"
+#include "ofxAETrackMatte.h"
 
 namespace ofx { namespace ae {
 
@@ -23,6 +24,12 @@ public:
 		struct LayerInfo {
 			std::string name, unique_name, filepath, parent;
 			int offset;
+			bool visible;
+			struct TrackMatte {
+				std::string layer;
+				TrackMatteType type;
+			};
+			std::optional<TrackMatte> track_matte;
 		};
 		std::vector<LayerInfo> layers;
 		std::vector<MarkerData> markers;
@@ -42,12 +49,6 @@ public:
 
 	float getCurrentTime() const { return current_frame_/info_.fps; }
 	int getCurrentFrame() const { return current_frame_; }
-
-	// Time remap control functions
-	void enableTimeRemapForAllLayers(bool enable);
-	void enableTimeRemapForLayer(const std::string &layerName, bool enable);
-	bool hasLayersWithTimeRemap() const;
-	std::vector<std::string> getTimeRemapEnabledLayerNames() const;
 
 	const Info& getInfo() const;
 	std::shared_ptr<Layer> getLayer(const std::string &name) const;

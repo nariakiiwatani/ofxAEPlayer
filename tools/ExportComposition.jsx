@@ -373,10 +373,19 @@ function fillRuleToString(rule) {
 
 function timeRemapToFrames(value, fps) {
     if (typeof value === 'number') {
-        // タイム値をフレーム値に変換
         return Math.round(value * fps);
     }
     return value;
+}
+
+function trackMatteTypeToString(t){
+    var map = {};
+    map[TrackMatteType.NO_TRACK_MATTE]   = "NO_TRACK_MATTE";
+    map[TrackMatteType.ALPHA]            = "ALPHA";
+    map[TrackMatteType.ALPHA_INVERTED]   = "ALPHA_INVERTED";
+    map[TrackMatteType.LUMA]             = "LUMA";
+    map[TrackMatteType.LUMA_INVERTED]    = "LUMA_INVERTED";
+    return map.hasOwnProperty(t) ? map[t] : "UNKNOWN";
 }
 (function(me){
     // polyfills
@@ -412,6 +421,25 @@ function timeRemapToFrames(value, fps) {
                 k++;
             }
             return A;
+        };
+    }
+    if (typeof Array.prototype.filter !== 'function') {
+        Array.prototype.filter = function(callback, thisArg) {
+            if (this == null) throw new TypeError(' this is null or not defined');
+            if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
+
+            var O = Object(this);
+            var len = O.length >>> 0;
+            var res = [];
+            for (var i = 0; i < len; i++) {
+                if (i in O) {
+                    var val = O[i];
+                    if (callback.call(thisArg, val, i, O)) {
+                        res.push(val);
+                    }
+                }
+            }
+            return res;
         };
     }
     if (typeof Array.isArray !== 'function') {
@@ -1744,8 +1772,6 @@ function timeRemapToFrames(value, fps) {
         compInfo["startFrame"]    = startFrame;
         compInfo["endFrame"]      = toFrame((comp.workAreaStart + comp.workAreaDuration), true);
         compInfo["layers"]        = [];
-        // compInfo["layersDirectory"] = getRelativePath(outputFolder, layerFolder);
-        // compInfo["footageDirectory"] = getRelativePath(outputFolder, footageFolder);
         
         // コンポジションマーカーを追加
         if (comp.markerProperty.numKeys > 0) {
@@ -1772,84 +1798,32 @@ function timeRemapToFrames(value, fps) {
                     debugLog("LayerProcessing", "ERROR: Layer at index " + i + " is null or undefined");
                     continue;
                 }
-                
-                // Check basic layer properties with null/undefined guards
-                var layerName = "";
-                var layerEnabled = false;
-                
-                try {
-                    layerName = layer.name || ("Layer " + i);
-                    debugLog("LayerProcessing", "Layer name: " + layerName);
-                } catch (nameError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to access layer.name: " + nameError.toString());
-                    layerName = "Layer " + i;
-                }
-                
-                try {
-                    layerEnabled = layer.enabled;
-                    debugLog("LayerProcessing", "Layer enabled: " + layerEnabled);
-                } catch (enabledError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to access layer.enabled: " + enabledError.toString());
-                    layerEnabled = false;
-                }
-                
-                // Skip if not enabled
-                if (!layerEnabled) {
-                    debugLog("LayerProcessing", "Skipping disabled layer: " + layerName);
-                    continue;
-                }
-                
-                debugLog("LayerProcessing", "Processing enabled layer: " + layerName + " (index: " + i + ")");
 
-                var layerNameForFile = "";
-                var offset = 0;
-                var parent = "";
-                
-                try {
-                    layerNameForFile = layerUniqueName(layer);
-                    debugLog("LayerProcessing", "Layer unique name: " + layerNameForFile);
-                } catch (uniqueNameError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to generate unique name: " + uniqueNameError.toString());
-                    layerNameForFile = layerName + "(ID_" + i + ")";
-                }
-                
-                try {
-                    offset = toFrame(layer.startTime, true);
-                    debugLog("LayerProcessing", "Layer start time offset: " + offset);
-                } catch (offsetError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to calculate offset: " + offsetError.toString());
-                    offset = 0;
-                }
+                var layerInfo = {};
+                layerInfo.name = layer.name;
+                var layerNameForFile = layerUniqueName(layer);
+                layerInfo.uniqueName = layerNameForFile;
+                layerInfo.file = getRelativePath(outputFolder, layerFolder) + "/" + layerInfo.uniqueName + ".json";
+                layerInfo.visible = layer.enabled;
+                var offset = toFrame(layer.startTime, true);
+                layerInfo.offset = offset;
 
-                try {
-                    if (layer.parent) {
-                        parent = layerUniqueName(layer.parent);
-                        debugLog("LayerProcessing", "Layer has parent: " + parent);
-                    } else {
-                        debugLog("LayerProcessing", "Layer has no parent");
-                    }
-                } catch (parentError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to access layer.parent: " + parentError.toString());
+                if (layer.parent) {
+                    layerInfo.parent = layerUniqueName(layer.parent);
                 }
-
-                try {
-                    compInfo["layers"].push({
-                        name: layerName,
-                        uniqueName: layerNameForFile,
-                        file: getRelativePath(outputFolder, layerFolder) + "/" + layerNameForFile + ".json",
-                        offset: offset,
-                        parent: parent
-                    });
-                    debugLog("LayerProcessing", "Added layer to composition info");
-                } catch (pushError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to add layer to composition info: " + pushError.toString());
+                if (layer.trackMatteLayer) {
+                    layerInfo.trackMatte = {
+                        layer: layerUniqueName(layer.trackMatteLayer),
+                        type: trackMatteTypeToString(layer.trackMatteType)
+                    };
                 }
+                compInfo["layers"].push(layerInfo);
 
                 var resultData = {};
                 
                 // Safely extract basic layer properties
                 try {
-                    resultData["name"] = layerName;
+                    resultData["name"] = layer.name;
                     debugLog("LayerProcessing", "Set result data name");
                 } catch (nameSetError) {
                     debugLog("LayerProcessing", "ERROR: Failed to set result data name: " + nameSetError.toString());
@@ -1898,7 +1872,7 @@ function timeRemapToFrames(value, fps) {
                 
                 try {
                     if (layer.source) {
-                        debugLog("LayerProcessing", "Layer has source, processing source for layer: " + layerName);
+                        debugLog("LayerProcessing", "Layer has source, processing source for layer: " + layer.name);
                         resultData["sourceType"] = sourceType;
                         var source = null;
                         var sourcePath = null;
@@ -1947,7 +1921,7 @@ function timeRemapToFrames(value, fps) {
                                 }
                                 break;
                             default:
-                                debugLog("LayerProcessing", "Unknown source type for layer: " + layerName + " (type: " + sourceType + ")", null, "warning");
+                                debugLog("LayerProcessing", "Unknown source type for layer: " + layer.name + " (type: " + sourceType + ")", null, "warning");
                                 break;
                         }
                         
@@ -1973,24 +1947,24 @@ function timeRemapToFrames(value, fps) {
                             }
                         }
                     } else {
-                        debugLog("LayerProcessing", "Layer has no source: " + layerName);
+                        debugLog("LayerProcessing", "Layer has no source: " + layer.name);
                     }
                 } catch (sourceError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to process source for layer " + layerName + ": " + sourceError.toString());
+                    debugLog("LayerProcessing", "ERROR: Failed to process source for layer " + layer.name + ": " + sourceError.toString());
                 }
 
                 // Process markers
                 debugLog("LayerProcessing", "Checking layer markers...");
                 try {
                     if (layer.marker && layer.marker.numKeys > 0) {
-                        debugLog("LayerProcessing", "Processing markers for layer: " + layerName + " (marker count: " + layer.marker.numKeys + ")");
+                        debugLog("LayerProcessing", "Processing markers for layer: " + layer.name + " (marker count: " + layer.marker.numKeys + ")");
                         resultData["markers"] = extractMarkers(layer.marker, fps, offset);
-                        debugLog("LayerProcessing", "Successfully processed markers for layer: " + layerName);
+                        debugLog("LayerProcessing", "Successfully processed markers for layer: " + layer.name);
                     } else {
-                        debugLog("LayerProcessing", "Layer has no markers: " + layerName);
+                        debugLog("LayerProcessing", "Layer has no markers: " + layer.name);
                     }
                 } catch (markerError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to process markers for layer " + layerName + ": " + markerError.toString());
+                    debugLog("LayerProcessing", "ERROR: Failed to process markers for layer " + layer.name + ": " + markerError.toString());
                 }
                 
                 // Process properties (non-keyframe)
@@ -1999,18 +1973,18 @@ function timeRemapToFrames(value, fps) {
                     options.keyframes = false;
                     var properties = extractPropertiesRecursive(layer, options, layer, offset);
                     if(properties) {
-                        debugLog("LayerProcessing", "Processing properties for layer: " + layerName);
+                        debugLog("LayerProcessing", "Processing properties for layer: " + layer.name);
                         for (var key in properties) {
                             if (properties.hasOwnProperty(key)) {
                                 resultData[key] = properties[key];
                             }
                         }
-                        debugLog("LayerProcessing", "Successfully processed properties for layer: " + layerName);
+                        debugLog("LayerProcessing", "Successfully processed properties for layer: " + layer.name);
                     } else {
-                        debugLog("LayerProcessing", "No properties found for layer: " + layerName);
+                        debugLog("LayerProcessing", "No properties found for layer: " + layer.name);
                     }
                 } catch (propertiesError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to process properties for layer " + layerName + ": " + propertiesError.toString());
+                    debugLog("LayerProcessing", "ERROR: Failed to process properties for layer " + layer.name + ": " + propertiesError.toString());
                 }
 
                 // Process keyframes
@@ -2019,14 +1993,14 @@ function timeRemapToFrames(value, fps) {
                     options.keyframes = true;
                     var keyframes = extractPropertiesRecursive(layer, options, layer, offset);
                     if(keyframes) {
-                        debugLog("LayerProcessing", "Processing keyframes for layer: " + layerName);
+                        debugLog("LayerProcessing", "Processing keyframes for layer: " + layer.name);
                         resultData["keyframes"] = keyframes;
-                        debugLog("LayerProcessing", "Successfully processed keyframes for layer: " + layerName);
+                        debugLog("LayerProcessing", "Successfully processed keyframes for layer: " + layer.name);
                     } else {
-                        debugLog("LayerProcessing", "No keyframes found for layer: " + layerName);
+                        debugLog("LayerProcessing", "No keyframes found for layer: " + layer.name);
                     }
                 } catch (keyframesError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to process keyframes for layer " + layerName + ": " + keyframesError.toString());
+                    debugLog("LayerProcessing", "ERROR: Failed to process keyframes for layer " + layer.name + ": " + keyframesError.toString());
                 }
     
             switch(sourceType) {
@@ -2226,7 +2200,7 @@ function timeRemapToFrames(value, fps) {
                     alert("ファイルの保存中にエラーが発生しました: " + e.message);
                 }
                 
-                debugLog("LayerProcessing", "=== Completed processing layer " + i + ": " + layerName + " ===");
+                debugLog("LayerProcessing", "=== Completed processing layer " + i + ": " + layer.name + " ===");
                 
             } catch (e) {
                 debugLog("LayerProcessing", "ERROR: Critical error processing layer " + i + " (" + (layer ? layer.name : "unknown") + "): " + e.toString());

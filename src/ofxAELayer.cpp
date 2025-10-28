@@ -101,15 +101,6 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 	if(json.contains("timeRemap")) {
 		auto &&time_remap_kf = json.value("/keyframes/timeRemap"_json_pointer, ofJson{});
 		time_remap_.setup(json["timeRemap"], time_remap_kf);
-		
-		// Auto-enable time remap if keyframe data exists
-		bool hasKeyframes = !time_remap_kf.empty() && time_remap_kf.is_array() && time_remap_kf.size() > 0;
-		bool hasStaticValue = json["timeRemap"].is_number();
-		
-		if (hasKeyframes || hasStaticValue) {
-			time_remap_.setEnabled(true);
-			ofLogVerbose("Layer") << "Time remap auto-enabled for layer: " << name_;
-		}
 	}
 	
 	if(json.contains("mask")) {
@@ -163,7 +154,7 @@ bool Layer::setFrame(int frame)
 		ret |= true;
 	}
 
-	if(isActiveAtFrame(frame)) {
+	if(isActiveAtFrame(frame) || isTrackMatte()) {
 		if(mask_.setFrame(frame)) {
 			mask_collection_.setupFromMaskProp(mask_);
 			ret |= true;
@@ -171,18 +162,18 @@ bool Layer::setFrame(int frame)
 		}
 
 		if(source_) {
-			int source_frame = time_remap_.isEnabled() ? time_remap_.remapFrame(frame) : frame;
-
+			int source_frame = frame;
+			if(time_remap_.setFrame(frame)) {
+				time_remap_.tryExtract(source_frame);
+			}
 			if(source_->setFrame(source_frame)) {
 				ret |= true;
 				need_mask_update |= true;
 			}
 		}
-		if (need_mask_update && !mask_collection_.empty()) {
-			float w = getWidth();
-			float h = getHeight();
-			updateLayerFBO(w, h);
-		}
+	}
+	if(need_mask_update || isTrackMatte()) {
+		updateLayerFBO(getWidth(), getHeight());
 	}
 	current_frame_ = frame;
 	return ret;
@@ -197,7 +188,7 @@ void Layer::draw(float x, float y, float w, float h) const
 	RenderContext::setOpacity(opacity_);
 	RenderContext::setBlendMode(blend_mode_);
 	
-	if (!mask_collection_.empty()) {
+	if(isUseFbo()) {
 		layer_fbo_.draw(x, y);
 	}
 	else {
@@ -214,34 +205,32 @@ void Layer::updateLayerFBO(float w, float h)
 {
 	if (layer_fbo_.getWidth() != w || layer_fbo_.getHeight() != h) {
 		layer_fbo_.allocate(w, h, GL_RGBA);
-		mask_fbo_.allocate(w, h, GL_RGBA);
 	}
-	
+
 	layer_fbo_.begin();
 	ofClear(0, 0, 0, 0);
-	if(source_) {
-		source_->draw(0, 0, w, h);
-	}
-	layer_fbo_.end();
-	
-	mask_fbo_.begin();
 	ofPushStyle();
-	ofClear(0, 0, 0, 0);
 	ofSetColor(255, 255, 255, 255);
-	
+
+	ofEnableBlendMode(OF_BLENDMODE_ALPHA);
 	for (const auto& mask : mask_collection_) {
 		ofPath maskPath = mask.toOfPath();
 		maskPath.setFilled(true);
-		maskPath.setColor(ofColor(255, 255, 255, mask.getOpacity() * 255));
+		maskPath.setColor({1,1,1,mask.getOpacity()});
 		maskPath.draw();
 	}
-	ofPopStyle();
-	mask_fbo_.end();
-	
-	layer_fbo_.begin();
-	ofPushStyle();
-	glBlendFunc(GL_ZERO, GL_SRC_COLOR);
-	mask_fbo_.draw(0, 0);
+	ofEnableBlendMode(OF_BLENDMODE_MULTIPLY);
+	if(auto matte = track_matte_layer_.lock()) {
+		ofMatrix4x4 relative_mat = *matte->getWorldMatrixInversed() * *getWorldMatrix();
+		track_matte_shader_->begin();
+		track_matte_shader_->setUniformMatrix4f("uLayerToMatte", relative_mat);
+		track_matte_shader_->setUniformTexture("matte", matte->getTexture(), 0);
+		ofDrawRectangle(ofGetCurrentViewport());
+		track_matte_shader_->end();
+	}
+	if(source_) {
+		source_->draw(0, 0, w, h);
+	}
 	ofPopStyle();
 	layer_fbo_.end();
 }
@@ -272,18 +261,6 @@ LayerSource::SourceType Layer::getSourceType() const {
     }
     
 	return LayerSource::UNKNOWN;
-}
-
-void Layer::enableTimeRemap(bool enable) {
-	time_remap_.setEnabled(enable);
-}
-
-bool Layer::isTimeRemapEnabled() const {
-	return time_remap_.isEnabled();
-}
-
-float Layer::getRemappedFrame(int inputFrame) const {
-	return time_remap_.remapFrame(inputFrame);
 }
 
 std::string Layer::getDebugInfo() const {

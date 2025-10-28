@@ -10,9 +10,9 @@
 #include "ofxAEKeyframe.h"
 #include "ofxAETransformProp.h"
 #include "ofxAELayerSource.h"
+#include "ofxAETrackMatte.h"
 #include "ofxAEMaskProp.h"
 #include "ofxAEMask.h"
-#include "ofxAETimeRemapProp.h"
 #include "TransformNode.h"
 #include "Hierarchical.h"
 
@@ -39,18 +39,16 @@ public:
 	void update() override;
 	bool setFrame(int frame);
 	
-	void enableTimeRemap(bool enable);
-	bool isTimeRemapEnabled() const;
-	float getRemappedFrame(int inputFrame) const;
 	using ofBaseDraws::draw;
 	void draw() const { draw(0,0); }
 	void draw(float x, float y, float w, float h) const override;
 	float getHeight() const override;
 	float getWidth() const override;
+	void setVisible(bool visible) { is_visible_ = visible; }
+	bool isVisible() const { return is_visible_; }
 
 	void setSource(std::unique_ptr<LayerSource> source);
 	LayerSource* getSource() const { return source_.get(); }
-
 	template<typename T>
 	T* getSource() const {
 		return dynamic_cast<T*>(source_.get());
@@ -65,6 +63,16 @@ public:
 
 	bool isActiveAtFrame(int frame) const { return in_ <= frame && frame < out_; }
 
+	void setTrackMatte(std::shared_ptr<Layer> src, TrackMatteType type) {
+		track_matte_layer_ = src;
+		track_matte_shader_ = createShaderForTrackMatteType(type);
+	}
+
+	void setUseAsTrackMatte(bool use) { is_track_matte_ = use; }
+	bool hasTrackMatte() { return track_matte_layer_.lock() != nullptr; }
+	bool isTrackMatte() const { return is_track_matte_; }
+	ofTexture getTexture() const { return layer_fbo_.isAllocated() ? layer_fbo_.getTexture() : ofTexture(); }
+
 	std::string getDebugInfo() const;
 
 private:
@@ -77,13 +85,20 @@ private:
 	int current_frame_;
 
 	TransformProp transform_;
-	TimeRemapProp time_remap_;
+	FloatProp time_remap_;
 	MaskProp mask_;
 	MaskCollection mask_collection_;
+
+	std::weak_ptr<Layer> track_matte_layer_;
+	std::unique_ptr<ofShader> track_matte_shader_;
+	bool is_track_matte_ = false;
+
+	bool isUseFbo() const { return is_track_matte_ || !mask_collection_.empty(); }
+
 	mutable ofFbo layer_fbo_;
-	mutable ofFbo mask_fbo_;
 	float opacity_=1;
 	BlendMode blend_mode_;
+	bool is_visible_ = false;
 
 	static std::vector<SourceResolver> resolvers_;
 	std::unique_ptr<LayerSource> resolveSource(const ofJson& json, const std::filesystem::path& base_dir);
