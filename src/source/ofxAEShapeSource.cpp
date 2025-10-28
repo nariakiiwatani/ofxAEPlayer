@@ -46,7 +46,12 @@ void ShapeSource::draw(float x, float y, float w, float h) const {
 		ofLogWarning("PropertyExtraction") << "Failed to extract ShapeData in draw(), using defaults";
 	}
 	PathExtractionVisitor visitor(data);
+	auto bb = visitor.getBoundingBox();
+	ofPushMatrix();
+	ofTranslate(x,y);
+	ofScale(w/bb.width, h/bb.height);
 	visitor.getRenderer().draw();
+	ofPopMatrix();
 }
 
 float ShapeSource::getWidth() const {
@@ -96,6 +101,17 @@ float ShapeSource::getHeight() const {
     
     return maxHeight;
 }
+
+ofRectangle ShapeSource::getBoundingBox() const
+{
+	ShapeData data;
+	if (!shape_props_.tryExtract(data)) {
+		ofLogWarning("PropertyExtraction") << "Failed to extract ShapeData in draw(), using defaults";
+	}
+	PathExtractionVisitor visitor(data);
+	return visitor.getBoundingBox();
+}
+
 
 void ShapeSource::accept(Visitor& visitor) {
 	visitor.visit(*this);

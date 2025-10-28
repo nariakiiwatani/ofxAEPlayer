@@ -43,6 +43,8 @@ public:
 	using ofBaseDraws::draw;
 	virtual void draw(float x, float y, float w, float h) const override {}
 
+	virtual ofRectangle getBoundingBox() const { return ofRectangle{0,0,getWidth(),getHeight()}; }
+
 	virtual SourceType getSourceType() const = 0;
 
 	virtual std::string getDebugInfo() const { return "LayerSource"; }

@@ -172,8 +172,8 @@ bool Layer::setFrame(int frame)
 			}
 		}
 	}
-	if(need_mask_update || isTrackMatte()) {
-		updateLayerFBO(getWidth(), getHeight());
+	if(need_mask_update || isTrackMatte() || hasTrackMatte()) {
+		updateLayerFBO();
 	}
 	current_frame_ = frame;
 	return ret;
@@ -189,7 +189,7 @@ void Layer::draw(float x, float y, float w, float h) const
 	RenderContext::setBlendMode(blend_mode_);
 	
 	if(isUseFbo()) {
-		layer_fbo_.draw(x, y);
+		layer_fbo_.draw(glm::vec2(x, y) - fbo_offset_);
 	}
 	else {
 		if(source_) {
@@ -201,38 +201,58 @@ void Layer::draw(float x, float y, float w, float h) const
 	TransformNode::popMatrix();
 }
 
-void Layer::updateLayerFBO(float w, float h)
+void Layer::updateLayerFBO()
 {
-	if (layer_fbo_.getWidth() != w || layer_fbo_.getHeight() != h) {
-		layer_fbo_.allocate(w, h, GL_RGBA);
+	if(!source_) return;
+
+	auto bb = source_->getBoundingBox();
+
+	if (layer_fbo_.getWidth() != bb.width || layer_fbo_.getHeight() != bb.height) {
+		layer_fbo_.allocate(bb.width, bb.height, GL_RGBA);
+	}
+	if (mask_fbo_.getWidth() != bb.width || mask_fbo_.getHeight() != bb.height) {
+		mask_fbo_.allocate(bb.width, bb.height, GL_RGBA);
 	}
 
 	layer_fbo_.begin();
-	ofClear(0, 0, 0, 0);
 	ofPushStyle();
+	ofClear(0, 0, 0, 0);
 	ofSetColor(255, 255, 255, 255);
-
 	ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+	fbo_offset_ = -bb.position;
+	source_->draw(fbo_offset_);
+	ofPopStyle();
+	layer_fbo_.end();
+
+	mask_fbo_.begin();
+	ofPushStyle();
+	ofClear(0,0,0,0);
+	glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 	for (const auto& mask : mask_collection_) {
 		ofPath maskPath = mask.toOfPath();
 		maskPath.setFilled(true);
-		maskPath.setColor({1,1,1,mask.getOpacity()});
+		maskPath.setColor({mask.getOpacity(),1,1,1});
 		maskPath.draw();
 	}
-	ofEnableBlendMode(OF_BLENDMODE_MULTIPLY);
+	glBlendFuncSeparate(GL_ZERO, GL_SRC_ALPHA, GL_ZERO, GL_SRC_ALPHA);
 	if(auto matte = track_matte_layer_.lock()) {
-		ofMatrix4x4 relative_mat = *matte->getWorldMatrixInversed() * *getWorldMatrix();
+		ofMatrix4x4 relative_mat = *getWorldMatrix() * *matte->getWorldMatrixInversed();
 		track_matte_shader_->begin();
 		track_matte_shader_->setUniformMatrix4f("uLayerToMatte", relative_mat);
-		track_matte_shader_->setUniformTexture("matte", matte->getTexture(), 0);
+		auto offset = matte->getFboOffset();
+		track_matte_shader_->setUniform2f("matteOffset", offset.x, offset.y);
+		auto tex = matte->getTexture();
+		tex.setTextureWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+		track_matte_shader_->setUniformTexture("matte", tex, 0);
+
 		ofDrawRectangle(ofGetCurrentViewport());
 		track_matte_shader_->end();
 	}
-	if(source_) {
-		source_->draw(0, 0, w, h);
-	}
+	glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 	ofPopStyle();
-	layer_fbo_.end();
+	mask_fbo_.end();
+
+	layer_fbo_.getTexture().setAlphaMask(mask_fbo_.getTexture());
 }
 
 

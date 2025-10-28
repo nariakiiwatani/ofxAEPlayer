@@ -99,6 +99,7 @@ public:
 	};
 	const RenderGroupItem& getRenderer() const { return renderer_; }
 	const ofPath& getPath() const { return path_; }
+	const ofRectangle& getBoundingBox() const { return bounding_box_; }
 
 private:
 	ofPath path_{};

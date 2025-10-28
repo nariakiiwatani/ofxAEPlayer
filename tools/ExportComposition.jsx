@@ -1615,10 +1615,10 @@ function trackMatteTypeToString(t){
                 return null;
             }
             
-            if (!property.enabled) {
-                debugLog("extractPropertiesRecursive", "Property not enabled: " + property.matchName, null, "verbose");
-                return null;
-            }
+            // if (!property.enabled) {
+            //     debugLog("extractPropertiesRecursive", "Property not enabled: " + property.matchName, null, "verbose");
+            //     return null;
+            // }
 
             var config = PROPERTY_MAPPING_CONFIG[property.matchName];
             if (!config) {

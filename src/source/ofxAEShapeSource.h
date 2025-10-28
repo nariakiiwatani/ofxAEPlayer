@@ -16,6 +16,7 @@ public:
 	void update() override;
 	void draw(float x, float y, float w, float h) const override;
 	bool setFrame(int frame) override;
+	ofRectangle getBoundingBox() const override;
 
 	SourceType getSourceType() const override { return SHAPE; }
 	bool tryExtract(ShapeData &dst) const;

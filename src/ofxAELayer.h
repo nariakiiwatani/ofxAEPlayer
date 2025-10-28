@@ -72,11 +72,12 @@ public:
 	bool hasTrackMatte() { return track_matte_layer_.lock() != nullptr; }
 	bool isTrackMatte() const { return is_track_matte_; }
 	ofTexture getTexture() const { return layer_fbo_.isAllocated() ? layer_fbo_.getTexture() : ofTexture(); }
+	glm::vec2 getFboOffset() const { return fbo_offset_; }
 
 	std::string getDebugInfo() const;
 
 private:
-	void updateLayerFBO(float w, float h);
+	void updateLayerFBO();
 	
 	std::unique_ptr<LayerSource> source_;
 
@@ -86,8 +87,10 @@ private:
 
 	TransformProp transform_;
 	FloatProp time_remap_;
+
 	MaskProp mask_;
 	MaskCollection mask_collection_;
+	mutable ofFbo mask_fbo_;
 
 	std::weak_ptr<Layer> track_matte_layer_;
 	std::unique_ptr<ofShader> track_matte_shader_;
@@ -96,6 +99,7 @@ private:
 	bool isUseFbo() const { return is_track_matte_ || !mask_collection_.empty(); }
 
 	mutable ofFbo layer_fbo_;
+	glm::vec2 fbo_offset_{0,0};
 	float opacity_=1;
 	BlendMode blend_mode_;
 	bool is_visible_ = false;
