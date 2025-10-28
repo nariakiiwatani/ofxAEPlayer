@@ -3,6 +3,7 @@
 #include "ofMain.h"
 #include "ofxAEMaskProp.h"
 #include <vector>
+#include "ofxAEPath.h"
 
 namespace ofx { namespace ae {
 

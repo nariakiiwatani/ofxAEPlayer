@@ -83,12 +83,6 @@ public:
 		if(type == "LINEAR") return ofx::ae::Keyframe::LINEAR;
 		else if(type == "BEZIER") return ofx::ae::Keyframe::BEZIER;
 		else if(type == "HOLD") return ofx::ae::Keyframe::HOLD;
-		else if(type == "EASE_IN") return ofx::ae::Keyframe::EASE_IN;
-		else if(type == "EASE_OUT") return ofx::ae::Keyframe::EASE_OUT;
-		else if(type == "EASE_IN_OUT") return ofx::ae::Keyframe::EASE_IN_OUT;
-		else if(type == "CUBIC") return ofx::ae::Keyframe::CUBIC;
-		else if(type == "HERMITE") return ofx::ae::Keyframe::HERMITE;
-		else if(type == "CATMULL_ROM") return ofx::ae::Keyframe::CATMULL_ROM;
 		else return ofx::ae::Keyframe::LINEAR; // default fallback
 	}
 	std::pair<int, ofxAEKeyframe<T>> parseKeyframe(const ofJson &json) const {
@@ -123,7 +117,7 @@ public:
 						ret.second.interpolation.in_ease.speed = inEase["speed"].get<float>();
 					}
 					if(inEase.contains("influence")) {
-						ret.second.interpolation.in_ease.influence = inEase["influence"].get<float>();
+						ret.second.interpolation.in_ease.influence = inEase["influence"].get<float>() / 100.0f;
 					}
 				}
 				if(tempEase.contains("outEase")) {
@@ -132,7 +126,7 @@ public:
 						ret.second.interpolation.out_ease.speed = outEase["speed"].get<float>();
 					}
 					if(outEase.contains("influence")) {
-						ret.second.interpolation.out_ease.influence = outEase["influence"].get<float>();
+						ret.second.interpolation.out_ease.influence = outEase["influence"].get<float>() / 100.0f;
 					}
 				}
 			}
@@ -173,7 +167,8 @@ public:
 			cache_ = base_;
 			return is_first;
 		}
-		cache_ = ofx::ae::util::interpolateKeyframe(*pair.keyframe_a, *pair.keyframe_b, pair.ratio);
+		float fps = 30.f; // TODO: use correct fps
+		cache_ = ofx::ae::util::interpolateKeyframe(*pair.keyframe_a, *pair.keyframe_b, (pair.frame_b - pair.frame_a)/fps, pair.ratio);
 		return true;
 	}
 	

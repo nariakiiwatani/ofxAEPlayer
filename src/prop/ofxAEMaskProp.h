@@ -3,6 +3,7 @@
 #include "ofxAEProperty.h"
 #include "ofxAEShapeProp.h"
 #include "ofPath.h"
+#include "ofxAEPath.h"
 #include "ofGraphicsBaseTypes.h"
 #include <vector>
 

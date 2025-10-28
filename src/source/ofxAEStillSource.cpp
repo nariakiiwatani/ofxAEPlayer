@@ -1,6 +1,6 @@
 #include "ofxAEStillSource.h"
 #include "ofxAEVisitor.h"
-#include "../utils/ofxAEAssetManager.h"
+#include "ofxAEAssetManager.h"
 #include "ofLog.h"
 
 namespace ofx { namespace ae {

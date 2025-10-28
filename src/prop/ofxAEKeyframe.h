@@ -4,6 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <map>
+#include "ofxAEPath.h"
 #include "ofxAEBlendMode.h"
 #include "ofxAEFillRule.h"
 #include "ofxAEWindingDirection.h"
@@ -15,13 +16,7 @@ public:
 	enum InterpolationType {
 		LINEAR,
 		BEZIER,
-		HOLD,
-		EASE_IN,
-		EASE_OUT,
-		EASE_IN_OUT,
-		CUBIC,
-		HERMITE,
-		CATMULL_ROM
+		HOLD
 	};
 
 	struct TemporalEase {
@@ -55,34 +50,6 @@ public:
 
 namespace interpolation {
 
-inline float cubicBezier(float t, float p1, float p2) {
-    float u = 1.0f - t;
-    float tt = t * t;
-    float uu = u * u;
-    float uuu = uu * u;
-    float ttt = tt * t;
-    
-    return 3 * uu * t * p1 + 3 * u * tt * p2 + ttt;
-}
-
-inline float solveBezierForX(float x, float p1x, float p2x, float tolerance = 0.001f) {
-    if (x <= 0.0f) return 0.0f;
-    if (x >= 1.0f) return 1.0f;
-    
-    float t = x;
-    for (int i = 0; i < 10; ++i) {
-        float currentX = cubicBezier(t, p1x, p2x);
-        if (std::abs(currentX - x) < tolerance) break;
-        
-        float derivative = 3 * (1 - t) * (1 - t) * p1x + 6 * (1 - t) * t * (p2x - p1x) + 3 * t * t * (1 - p2x);
-        if (std::abs(derivative) < tolerance) break;
-        
-        t -= (currentX - x) / derivative;
-        t = std::max(0.0f, std::min(1.0f, t));
-    }
-    return t;
-}
-
 template<typename T>
 T linear(const T& value_a, const T& value_b, float ratio) {
     return value_a + (value_b - value_a) * ratio;
@@ -93,96 +60,99 @@ T hold(const T& value_a, const T& value_b, float ratio) {
     return ratio >= 1.0f ? value_b : value_a;
 }
 
+inline float bez3(float t, float p1, float p2){
+	float u=1.f-t, tt=t*t, uu=u*u;
+	return 3*uu*t*p1 + 3*u*tt*p2 + tt*t;
+}
+inline float solveForX(float x, float p1x, float p2x){
+	x = std::min(std::max(x,0.f),1.f);
+	float t = x;
+	for(int i=0;i<8;++i){
+		float f  = bez3(t,p1x,p2x) - x;
+		float df = 3*(1-t)*(1-t)*p1x + 6*(1-t)*t*(p2x-p1x) + 3*t*t*(1-p2x);
+		if (std::fabs(df) < 1e-6f) break;
+		t = std::min(std::max(t - f/df, 0.f), 1.f);
+	}
+	return t;
+}
+
 template<typename T>
-T bezier(const T& value_a, const T& value_b,
+inline T normalize(const T &a) {
+	return glm::normalize(a);
+}
+
+template<>
+inline float normalize(const float&) { return 1; }
+template<>
+inline int normalize(const int&) { return 1; }
+
+template<>
+inline ofFloatColor normalize(const ofFloatColor &a) {
+	glm::vec4 v = glm::normalize(glm::vec4{a.r,a.g,a.b,a.a});
+	return ofFloatColor{v.x,v.y,v.z,v.w};
+}
+
+template<typename T>
+inline T bezier(const T& value_a, const T& value_b,
 		 const Keyframe::TemporalEase& ease_out_a,
 		 const Keyframe::TemporalEase& ease_in_b,
-         float ratio) {
-    if (ratio <= 0.0f) return value_a;
-    if (ratio >= 1.0f) return value_b;
-    
-    float p1x = ease_out_a.influence / 100.0f;
-    float p1y = ease_out_a.speed / 100.0f * p1x;
-    float p2x = 1.0f - (ease_in_b.influence / 100.0f);
-    float p2y = 1.0f - (ease_in_b.speed / 100.0f * (1.0f - p2x));
-    
-    float t = solveBezierForX(ratio, p1x, p2x);
-    
-    float bezier_ratio = cubicBezier(t, p1y, p2y);
-    
-    return linear(value_a, value_b, bezier_ratio);
+		 float dt, float ratio)
+{
+	if (ratio<=0.f) return value_a;
+	if (ratio>=1.f) return value_b;
+
+	const float p1x = ease_out_a.influence;
+	const float p2x = 1.f - ease_in_b.influence;
+
+	const T norm = normalize(value_b - value_a);
+	const T p1y = value_a + norm*(ease_out_a.speed * dt * ease_out_a.influence);
+	const T p2y = value_b - norm*(ease_in_b.speed * dt * ease_in_b.influence);
+
+	const float t = solveForX(ratio, p1x, p2x);
+
+	const float u = 1.f - t;
+	const T y = value_a*u*u*u + p1y*3*u*u*t + p2y*3*u*t*t + value_b*t*t*t;
+	return y;
 }
 
-template<typename T>
-T ease_in(const T& value_a, const T& value_b,
-		  const Keyframe::TemporalEase& ease_params,
-          float ratio) {
-    if (ratio <= 0.0f) return value_a;
-    if (ratio >= 1.0f) return value_b;
-    
-    float influence = ease_params.influence / 100.0f;
-    float speed = ease_params.speed / 100.0f;
-    
-    float p1x = influence * 0.42f; // Standard ease-in control point adjusted by influence
-    float p1y = 0.0f;
-    float p2x = 1.0f;
-    float p2y = 1.0f;
-    
-    float t = solveBezierForX(ratio, p1x, p2x);
-    float eased_ratio = cubicBezier(t, p1y, p2y * speed);
-    
-    return linear(value_a, value_b, eased_ratio);
-}
+template<>
+inline PathData bezier<PathData>(const PathData& va, const PathData& vb,
+								 const Keyframe::TemporalEase& ease_out_a,
+								 const Keyframe::TemporalEase& ease_in_b,
+								 float dt, float ratio)
+{
+	PathData ret = va;
+	if (va.vertices.size()!=vb.vertices.size()
+	 || va.inTangents.size()!=vb.inTangents.size()
+	 || va.outTangents.size()!=vb.outTangents.size()){
+		return va;
+	}
 
-template<typename T>
-T ease_out(const T& value_a, const T& value_b,
-		   const Keyframe::TemporalEase& ease_params,
-           float ratio) {
-    if (ratio <= 0.0f) return value_a;
-    if (ratio >= 1.0f) return value_b;
-    
-    float influence = ease_params.influence / 100.0f;
-    float speed = ease_params.speed / 100.0f;
-    
-    float p1x = 0.0f;
-    float p1y = 0.0f;
-    float p2x = 1.0f - (influence * 0.58f); // Standard ease-out control point adjusted by influence
-    float p2y = 1.0f;
-    
-    float t = solveBezierForX(ratio, p1x, p2x);
-    float eased_ratio = cubicBezier(t, p1y * speed, p2y);
-    
-    return linear(value_a, value_b, eased_ratio);
-}
+	const float eased = bezier(0.f, 1.f, ease_out_a, ease_in_b, dt, ratio);
 
-template<typename T>
-T ease_in_out(const T& value_a, const T& value_b,
-			  const Keyframe::TemporalEase& ease_in,
-			  const Keyframe::TemporalEase& ease_out,
-              float ratio) {
-    if (ratio <= 0.0f) return value_a;
-    if (ratio >= 1.0f) return value_b;
-    
-    float influence_in = ease_in.influence / 100.0f;
-    float speed_in = ease_in.speed / 100.0f;
-    float influence_out = ease_out.influence / 100.0f;
-    float speed_out = ease_out.speed / 100.0f;
-    
-    float p1x = influence_in * 0.42f;
-    float p1y = 0.0f;
-    float p2x = 1.0f - (influence_out * 0.58f);
-    float p2y = 1.0f;
-    
-    float t = solveBezierForX(ratio, p1x, p2x);
-    float eased_ratio = cubicBezier(t, p1y * speed_in, p2y * speed_out);
-    
-    return linear(value_a, value_b, eased_ratio);
-}
+	auto lerp = [&](const glm::vec2& a, const glm::vec2& b){
+		return a + (b - a) * eased;
+	};
 
+	ret.vertices.resize(va.vertices.size());
+	ret.inTangents.resize(va.inTangents.size());
+	ret.outTangents.resize(va.outTangents.size());
+
+	for (size_t i=0;i<ret.vertices.size();++i)
+		ret.vertices[i] = lerp(va.vertices[i], vb.vertices[i]);
+	for (size_t i=0;i<ret.inTangents.size();++i)
+		ret.inTangents[i] = lerp(va.inTangents[i], vb.inTangents[i]);
+	for (size_t i=0;i<ret.outTangents.size();++i)
+		ret.outTangents[i] = lerp(va.outTangents[i], vb.outTangents[i]);
+
+	ret.closed    = vb.closed;
+	ret.direction = vb.direction;
+	return ret;
+}
 template<typename T>
 T calculate(const Keyframe::Data<T>& keyframe_a,
 			const Keyframe::Data<T>& keyframe_b,
-           float ratio) {
+			float dt, float ratio) {
 	Keyframe::InterpolationType interp_type = keyframe_a.interpolation.out_type;
     
     switch (interp_type) {
@@ -195,21 +165,8 @@ T calculate(const Keyframe::Data<T>& keyframe_a,
 		case Keyframe::BEZIER:
             return bezier(keyframe_a.value, keyframe_b.value,
                          keyframe_a.interpolation.out_ease,
-                         keyframe_b.interpolation.in_ease, ratio);
-            
-		case Keyframe::EASE_IN:
-            return ease_in(keyframe_a.value, keyframe_b.value,
-                          keyframe_a.interpolation.out_ease, ratio);
-            
-		case Keyframe::EASE_OUT:
-            return ease_out(keyframe_a.value, keyframe_b.value,
-                           keyframe_b.interpolation.in_ease, ratio);
-            
-		case Keyframe::EASE_IN_OUT:
-            return ease_in_out(keyframe_a.value, keyframe_b.value,
-                              keyframe_b.interpolation.in_ease,
-                              keyframe_a.interpolation.out_ease, ratio);
-            
+                         keyframe_b.interpolation.in_ease, dt, ratio);
+
         default:
             return linear(keyframe_a.value, keyframe_b.value, ratio);
     }
@@ -218,20 +175,20 @@ T calculate(const Keyframe::Data<T>& keyframe_a,
 template<>
 inline BlendMode calculate(const Keyframe::Data<BlendMode>& keyframe_a,
 			const Keyframe::Data<BlendMode>& keyframe_b,
-			float ratio) {
-	return ratio < 0.5f ? keyframe_a.value : keyframe_b.value;
+			float dt, float ratio) {
+	return ratio < 1.f ? keyframe_a.value : keyframe_b.value;
 }
 template<>
 inline FillRule calculate(const Keyframe::Data<FillRule>& keyframe_a,
 			const Keyframe::Data<FillRule>& keyframe_b,
-			float ratio) {
-	return ratio < 0.5f ? keyframe_a.value : keyframe_b.value;
+						  float dt, float ratio) {
+	return ratio < 1.f ? keyframe_a.value : keyframe_b.value;
 }
 template<>
 inline WindingDirection calculate(const Keyframe::Data<WindingDirection>& keyframe_a,
 			const Keyframe::Data<WindingDirection>& keyframe_b,
-			float ratio) {
-	return ratio < 0.5f ? keyframe_a.value : keyframe_b.value;
+								  float dt, float ratio) {
+	return ratio < 1.f ? keyframe_a.value : keyframe_b.value;
 }
 
 } // namespace interpolation
@@ -308,8 +265,8 @@ KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyfram
 template<typename T>
 T interpolateKeyframe(const Keyframe::Data<T>& keyframe_a,
                      const Keyframe::Data<T>& keyframe_b,
-                     float ratio) {
-    return interpolation::calculate(keyframe_a, keyframe_b, ratio);
+                     float dt, float ratio) {
+    return interpolation::calculate(keyframe_a, keyframe_b, dt, ratio);
 }
 
 } // namespace util

@@ -11,6 +11,7 @@
 #include "ofxAESolidSource.h"
 #include "ofxAEShapeProp.h"
 #include "ofxAEMaskProp.h"
+#include "ofxAEPath.h"
 #include "ofxAEProperty.h"
 
 namespace ofx { namespace ae {

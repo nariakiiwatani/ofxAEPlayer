@@ -3,10 +3,6 @@
 
 namespace ofx { namespace ae {
 
-void MaskAtomData::accept(Visitor& visitor) const {
-    visitor.visit(*this);
-}
-
 MaskAtomProp::MaskAtomProp() {
     registerProperty<PathDataProp>("/shape");
     registerProperty<VecProp<2>>("/feather");
