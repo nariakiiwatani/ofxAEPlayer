@@ -69,7 +69,7 @@ public:
 	}
 
 	void setUseAsTrackMatte(bool use) { is_track_matte_ = use; }
-	bool hasTrackMatte() { return track_matte_layer_.lock() != nullptr; }
+	bool hasTrackMatte() const { return track_matte_layer_.lock() != nullptr; }
 	bool isTrackMatte() const { return is_track_matte_; }
 	ofTexture getTexture() const { return layer_fbo_.isAllocated() ? layer_fbo_.getTexture() : ofTexture(); }
 	glm::vec2 getFboOffset() const { return fbo_offset_; }
@@ -96,7 +96,7 @@ private:
 	std::unique_ptr<ofShader> track_matte_shader_;
 	bool is_track_matte_ = false;
 
-	bool isUseFbo() const { return is_track_matte_ || !mask_collection_.empty(); }
+	bool isUseFbo() const { return is_track_matte_ || !mask_collection_.empty() || hasTrackMatte(); }
 
 	mutable ofFbo layer_fbo_;
 	glm::vec2 fbo_offset_{0,0};

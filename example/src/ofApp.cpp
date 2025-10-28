@@ -13,7 +13,7 @@ void ofApp::setup(){
 
 	comp_ = std::make_shared<ofx::ae::Composition>();
     // Load composition using CompositionManager singleton
-	if (comp_->load("matte.json")) {
+	if (comp_->load("Clouds_AL-Gold.json")) {
 		ofLogNotice("ofApp") << "Composition loaded successfully";
 		const auto& info = comp_->getInfo();
 		ofLogNotice("ofApp") << "Duration: " << info.duration;
@@ -45,7 +45,7 @@ void ofApp::draw(){
     ofClear(64, 64, 64);
 
 	ofPushMatrix();
-	float scale = 1.f;
+	float scale = 0.3f;
 	ofScale(scale, scale);
 	if (comp_) {
 		comp_->draw(0,0);

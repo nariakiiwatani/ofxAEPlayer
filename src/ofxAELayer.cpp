@@ -168,7 +168,7 @@ bool Layer::setFrame(int frame)
 			}
 			if(source_->setFrame(source_frame)) {
 				ret |= true;
-				need_mask_update |= true;
+				need_mask_update |= !mask_collection_.empty();
 			}
 		}
 	}
