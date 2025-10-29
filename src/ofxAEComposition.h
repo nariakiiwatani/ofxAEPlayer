@@ -13,7 +13,7 @@ class Layer;
 class Composition : public ofBaseDraws, public ofBaseUpdates
 {
 public:
-	void accept(Visitor& visitor);
+	void accept(Visitor &visitor);
 	struct Info {
 		int duration;
 		float fps;

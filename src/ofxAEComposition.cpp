@@ -113,7 +113,7 @@ bool Composition::setFrame(int frame)
 		if(found == end(layer_offsets_)) return 0;
 		return found->second;
 	};
-	for(auto &layer : layers_) {
+	for(auto& layer : layers_) {
 		ret |= layer->setFrame(frame - offset(layer));
 	}
 	current_frame_ = frame;
@@ -121,7 +121,7 @@ bool Composition::setFrame(int frame)
 }
 void Composition::update()
 {
-	for(auto &layer : layers_) {
+	for(auto& layer : layers_) {
 		layer->update();
 	}
 }
@@ -159,7 +159,7 @@ const Composition::Info& Composition::getInfo() const
 
 std::shared_ptr<Layer> Composition::getLayer(const std::string &name) const
 {
-	for(auto &&[n,l] : name_layers_map_) {
+	for(auto&& [n,l] : name_layers_map_) {
 		if(n == name) return l.lock();
 	}
 	return nullptr;

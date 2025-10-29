@@ -9,7 +9,7 @@
 
 namespace ofx { namespace ae {
 
-bool ShapeSource::setup(const ofJson &json)
+bool ShapeSource::setup(const ofJson& json)
 {
 	visitor_ = std::make_shared<PathExtractionVisitor>();
 	if(!json.contains("shape")) {
@@ -17,7 +17,7 @@ bool ShapeSource::setup(const ofJson &json)
 		return false;
 	}
 
-	const auto &shapeJson = json["shape"];
+	const auto& shapeJson = json["shape"];
 
 	ofJson keyframes = {};
 	if(json.contains("keyframes") && json["keyframes"].contains("shape")) {
@@ -42,7 +42,7 @@ bool ShapeSource::setFrame(int frame)
     return shape_props_.setFrame(frame);
 }
 
-bool ShapeSource::tryExtract(ShapeData &dst) const
+bool ShapeSource::tryExtract(ShapeData& dst) const
 {
 	return shape_props_.tryExtract(dst);
 }
@@ -73,7 +73,7 @@ ofRectangle ShapeSource::getBoundingBox() const
 }
 
 
-void ShapeSource::accept(Visitor &visitor)
+void ShapeSource::accept(Visitor& visitor)
 {
 	visitor.visit(*this);
 }

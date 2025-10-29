@@ -9,39 +9,39 @@
 
 namespace ofx { namespace ae {
 
-AssetManager &AssetManager::getInstance()
+AssetManager& AssetManager::getInstance()
 {
     static AssetManager instance;
     return instance;
 }
 
-std::shared_ptr<ofTexture> AssetManager::getTexture(const std::filesystem::path &path)
+std::shared_ptr<ofTexture> AssetManager::getTexture(const std::filesystem::path& path)
 {
     AssetKey key(path, AssetKey::AssetType::TEXTURE);
 
-    auto loader = [this](const std::filesystem::path &p) {
+    auto loader = [this](const std::filesystem::path& p) {
         return createTexture(p);
     };
 
     return texture_cache_.get(key, loader);
 }
 
-std::shared_ptr<ofVideoPlayer> AssetManager::getVideo(const std::filesystem::path &path)
+std::shared_ptr<ofVideoPlayer> AssetManager::getVideo(const std::filesystem::path& path)
 {
     AssetKey key(path, AssetKey::AssetType::VIDEO);
 
-    auto loader = [this](const std::filesystem::path &p) {
+    auto loader = [this](const std::filesystem::path& p) {
         return createVideo(p);
     };
 
     return video_cache_.get(key, loader);
 }
 
-std::shared_ptr<Composition> AssetManager::getComposition(const std::filesystem::path &path)
+std::shared_ptr<Composition> AssetManager::getComposition(const std::filesystem::path& path)
 {
     AssetKey key(path, AssetKey::AssetType::COMPOSITION);
 
-    auto loader = [this](const std::filesystem::path &p) {
+    auto loader = [this](const std::filesystem::path& p) {
         return createComposition(p);
     };
 
@@ -88,9 +88,9 @@ AssetManager::AssetStats AssetManager::getStats() const
 
 void AssetManager::resetStats()
 {
-    const_cast<CacheStats &>(texture_cache_.getStats()).reset();
-    const_cast<CacheStats &>(video_cache_.getStats()).reset();
-    const_cast<CacheStats &>(composition_cache_.getStats()).reset();
+    const_cast<CacheStats&>(texture_cache_.getStats()).reset();
+    const_cast<CacheStats&>(video_cache_.getStats()).reset();
+    const_cast<CacheStats&>(composition_cache_.getStats()).reset();
 }
 
 std::string AssetManager::getDebugInfo() const
@@ -125,7 +125,7 @@ void AssetManager::logCacheStats() const
     ofLogNotice("AssetManager") << "\n" << getDebugInfo();
 }
 
-std::shared_ptr<ofTexture> AssetManager::createTexture(const std::filesystem::path &path)
+std::shared_ptr<ofTexture> AssetManager::createTexture(const std::filesystem::path& path)
 {
     auto texture = std::make_shared<ofTexture>();
 
@@ -139,7 +139,7 @@ std::shared_ptr<ofTexture> AssetManager::createTexture(const std::filesystem::pa
     }
 }
 
-std::shared_ptr<ofVideoPlayer> AssetManager::createVideo(const std::filesystem::path &path)
+std::shared_ptr<ofVideoPlayer> AssetManager::createVideo(const std::filesystem::path& path)
 {
     auto video = std::make_shared<ofVideoPlayer>();
 
@@ -153,7 +153,7 @@ std::shared_ptr<ofVideoPlayer> AssetManager::createVideo(const std::filesystem::
     }
 }
 
-std::shared_ptr<Composition> AssetManager::createComposition(const std::filesystem::path &path)
+std::shared_ptr<Composition> AssetManager::createComposition(const std::filesystem::path& path)
 {
     auto composition = std::make_shared<Composition>();
 

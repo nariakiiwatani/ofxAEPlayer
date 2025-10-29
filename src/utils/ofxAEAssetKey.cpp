@@ -14,7 +14,8 @@ AssetKey::AssetKey(const std::filesystem::path& path, AssetType type, const std:
     canonicalizePath(path);
 }
 
-void AssetKey::canonicalizePath(const std::filesystem::path& path) {
+void AssetKey::canonicalizePath(const std::filesystem::path& path)
+{
     try {
         // Convert to absolute canonical path to handle relative paths and symlinks
         if(std::filesystem::exists(path)) {
@@ -29,7 +30,8 @@ void AssetKey::canonicalizePath(const std::filesystem::path& path) {
     }
 }
 
-bool AssetKey::operator<(const AssetKey& other) const {
+bool AssetKey::operator<(const AssetKey& other) const
+{
     if(canonical_path_ != other.canonical_path_) {
         return canonical_path_ < other.canonical_path_;
     }
@@ -39,17 +41,20 @@ bool AssetKey::operator<(const AssetKey& other) const {
     return parameters_ < other.parameters_;
 }
 
-bool AssetKey::operator==(const AssetKey& other) const {
+bool AssetKey::operator==(const AssetKey& other) const
+{
     return canonical_path_ == other.canonical_path_ &&
            type_ == other.type_ &&
            parameters_ == other.parameters_;
 }
 
-bool AssetKey::operator!=(const AssetKey& other) const {
+bool AssetKey::operator!=(const AssetKey& other) const
+{
     return !(*this == other);
 }
 
-std::string AssetKey::toString() const {
+std::string AssetKey::toString() const
+{
     std::ostringstream oss;
     oss << assetTypeToString(type_) << ":" << canonical_path_.string();
     if(!parameters_.empty()) {
@@ -58,7 +63,8 @@ std::string AssetKey::toString() const {
     return oss.str();
 }
 
-std::size_t AssetKey::hash() const {
+std::size_t AssetKey::hash() const
+{
     std::size_t h1 = std::hash<std::string>{}(canonical_path_.string());
     std::size_t h2 = std::hash<int>{}(static_cast<int>(type_));
     std::size_t h3 = std::hash<std::string>{}(parameters_);
@@ -67,7 +73,8 @@ std::size_t AssetKey::hash() const {
     return h1 ^ (h2 << 1) ^ (h3 << 2);
 }
 
-std::string AssetKey::assetTypeToString(AssetType type) {
+std::string AssetKey::assetTypeToString(AssetType type)
+{
     switch (type) {
         case AssetType::TEXTURE: return "texture";
         case AssetType::VIDEO: return "video";
@@ -77,7 +84,8 @@ std::string AssetKey::assetTypeToString(AssetType type) {
     }
 }
 
-AssetKey::AssetType AssetKey::stringToAssetType(const std::string& typeStr) {
+AssetKey::AssetType AssetKey::stringToAssetType(const std::string& typeStr)
+{
     if(typeStr == "texture") return AssetType::TEXTURE;
     if(typeStr == "video") return AssetType::VIDEO;
     if(typeStr == "composition") return AssetType::COMPOSITION;

@@ -14,7 +14,7 @@ namespace ofx { namespace ae {
 
 namespace {
 std::vector<Layer::SourceResolver> BUILTIN_RESOLVERS = {
-	[](const ofJson& json, const std::filesystem::path& base_dir) -> std::unique_ptr<LayerSource> {
+	[](const ofJson &json, const std::filesystem::path &base_dir) -> std::unique_ptr<LayerSource> {
 		std::string sourceType = json.value("sourceType", "none");
 		auto source = LayerSource::createSourceOfType(sourceType);
 
@@ -33,7 +33,7 @@ std::vector<Layer::SourceResolver> BUILTIN_RESOLVERS = {
 
 		return source;
 	},
-	[](const ofJson& json, const std::filesystem::path& base_dir) -> std::unique_ptr<LayerSource> {
+	[](const ofJson &json, const std::filesystem::path &base_dir) -> std::unique_ptr<LayerSource> {
 		auto source = LayerSource::createSourceOfType("shape");
 		if (!source) {
 			ofLogError("ShapeResolver") << "Failed to create shape source";
@@ -124,12 +124,12 @@ Layer::Layer()
 }
 
 
-std::unique_ptr<LayerSource> Layer::resolveSource(const ofJson& json, const std::filesystem::path& base_dir)
+std::unique_ptr<LayerSource> Layer::resolveSource(const ofJson &json, const std::filesystem::path &base_dir)
 {
 	std::vector<SourceResolver> resolvers = BUILTIN_RESOLVERS;
 	std::copy(resolvers_.begin(), resolvers_.end(), std::back_inserter(resolvers));
 
-	for(const auto& resolver : resolvers) {
+	for(const auto &resolver : resolvers) {
 		if(auto source = resolver(json, base_dir)) {
 			return source;
 		}
@@ -137,7 +137,7 @@ std::unique_ptr<LayerSource> Layer::resolveSource(const ofJson& json, const std:
 	return nullptr;
 }
 
-bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir)
+bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 {
 #define EXTRACT(n) json::extract(json, #n, n)
 #define EXTRACT_(n) json::extract(json, #n, n##_)
@@ -148,18 +148,18 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir)
 	EXTRACT(blendingMode);
 	blend_mode_ = blendModeFromString(blendingMode);
 	if(json.contains("transform")) {
-		auto &&kf = json.value("/keyframes/transform"_json_pointer, ofJson{});
+		auto&& kf = json.value("/keyframes/transform"_json_pointer, ofJson{});
 		transform_.setup(json["transform"], kf);
 	}
 	
 	// Time remap setup - automatically enable if timeRemap data exists
 	if(json.contains("timeRemap")) {
-		auto &&time_remap_kf = json.value("/keyframes/timeRemap"_json_pointer, ofJson{});
+		auto&& time_remap_kf = json.value("/keyframes/timeRemap"_json_pointer, ofJson{});
 		time_remap_.setup(json["timeRemap"], time_remap_kf);
 	}
 	
 	if(json.contains("mask")) {
-		auto &&mask_kf = json.value("/keyframes/mask"_json_pointer, ofJson{});
+		auto&& mask_kf = json.value("/keyframes/mask"_json_pointer, ofJson{});
 		mask_.setup(json["mask"], mask_kf);
 		mask_collection_.setupFromMaskProp(mask_);
 	}
@@ -354,7 +354,7 @@ bool Layer::load(const std::string &filepath)
 	return setup(json, base_dir);
 }
 
-void Layer::accept(Visitor& visitor)
+void Layer::accept(Visitor &visitor)
 {
 	visitor.visit(*this);
 }

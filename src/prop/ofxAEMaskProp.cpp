@@ -46,7 +46,7 @@ MaskAtomProp::MaskAtomProp()
             success = false;
         }
 
-		if(!getProperty<MaskModeProp>("/mode")->tryExtract(atom.mode)) {
+  if(!getProperty<MaskModeProp>("/mode")->tryExtract(atom.mode)) {
             ofLogWarning("PropertyExtraction") << "Failed to extract mask mode, using default";
             atom.mode = MaskMode::ADD;
             success = false;
@@ -64,26 +64,26 @@ void MaskAtomProp::accept(Visitor &visitor)
 MaskProp::MaskProp()
 {
     registerExtractor<std::vector<MaskAtomData>>([this](std::vector<MaskAtomData> &masks) -> bool {
-		masks.clear();
-		masks.reserve(properties_.size());
+  masks.clear();
+  masks.reserve(properties_.size());
 
-		bool success = true;
+  bool success = true;
 
-		for(const auto &prop : properties_) {
-			if(auto maskAtomProp = dynamic_cast<const MaskAtomProp *>(prop.get())) {
-				MaskAtomData atom;
-				if(maskAtomProp->tryExtract(atom)) {
-					masks.push_back(atom);
-				} else {
-					ofLogWarning("PropertyExtraction") << "Failed to extract mask atom, skipping";
-					success = false;
-				}
-			} else {
-				masks.push_back(MaskAtomData());
-			}
-		}
+  for(const auto &prop : properties_) {
+   if(auto maskAtomProp = dynamic_cast<const MaskAtomProp*>(prop.get())) {
+    MaskAtomData atom;
+    if(maskAtomProp->tryExtract(atom)) {
+    	masks.push_back(atom);
+    } else {
+    	ofLogWarning("PropertyExtraction") << "Failed to extract mask atom, skipping";
+    	success = false;
+    }
+   } else {
+    masks.push_back(MaskAtomData());
+   }
+  }
 
-		return success;
+  return success;
     });
 }
 

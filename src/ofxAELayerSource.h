@@ -32,7 +32,7 @@ public:
 
 	virtual ~LayerSource() = default;
 
-	virtual void accept(Visitor& visitor);
+	virtual void accept(Visitor &visitor);
 
 	virtual bool setup(const ofJson &json) { return false; }
 	virtual bool load(const std::filesystem::path &filepath) { return setup(ofLoadJson(filepath)); }

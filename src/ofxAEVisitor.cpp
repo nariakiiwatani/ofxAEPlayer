@@ -16,37 +16,37 @@ void Visitor::visit(const Layer &layer)
 		if(source) {
 			switch(source->getSourceType()) {
 				case LayerSource::SHAPE: {
-					if(const ShapeSource *shapeSource = dynamic_cast<const ShapeSource *>(source)) {
+					if(const ShapeSource *shapeSource = dynamic_cast<const ShapeSource*>(source)) {
 						visit(*shapeSource);
 					}
 					break;
 				}
 				case LayerSource::VIDEO: {
-					if(const VideoSource *videoSource = dynamic_cast<const VideoSource *>(source)) {
+					if(const VideoSource *videoSource = dynamic_cast<const VideoSource*>(source)) {
 						visit(*videoSource);
 					}
 					break;
 				}
 				case LayerSource::STILL: {
-					if(const StillSource *stillSource = dynamic_cast<const StillSource *>(source)) {
+					if(const StillSource *stillSource = dynamic_cast<const StillSource*>(source)) {
 						visit(*stillSource);
 					}
 					break;
 				}
 				case LayerSource::SEQUENCE: {
-					if(const SequenceSource *seqSource = dynamic_cast<const SequenceSource *>(source)) {
+					if(const SequenceSource *seqSource = dynamic_cast<const SequenceSource*>(source)) {
 						visit(*seqSource);
 					}
 					break;
 				}
 				case LayerSource::COMPOSITION: {
-					if(const CompositionSource *compSource = dynamic_cast<const CompositionSource *>(source)) {
+					if(const CompositionSource *compSource = dynamic_cast<const CompositionSource*>(source)) {
 						visit(*compSource);
 					}
 					break;
 				}
 				case LayerSource::SOLID: {
-					if(const SolidSource *solidSource = dynamic_cast<const SolidSource *>(source)) {
+					if(const SolidSource *solidSource = dynamic_cast<const SolidSource*>(source)) {
 						visit(*solidSource);
 					}
 					break;
@@ -129,25 +129,25 @@ void Visitor::visitChildren(const GroupData &group)
 
 	for(const auto &shapePtr : group.data) {
 		if(shapePtr) {
-			if(const EllipseData *ellipse = dynamic_cast<const EllipseData *>(shapePtr.get())) {
+			if(const EllipseData *ellipse = dynamic_cast<const EllipseData*>(shapePtr.get())) {
 				visit(*ellipse);
 			}
-			else if(const RectangleData *rectangle = dynamic_cast<const RectangleData *>(shapePtr.get())) {
+			else if(const RectangleData *rectangle = dynamic_cast<const RectangleData*>(shapePtr.get())) {
 				visit(*rectangle);
 			}
-			else if(const PolygonData *polygon = dynamic_cast<const PolygonData *>(shapePtr.get())) {
+			else if(const PolygonData *polygon = dynamic_cast<const PolygonData*>(shapePtr.get())) {
 				visit(*polygon);
 			}
-			else if(const FillData *fill = dynamic_cast<const FillData *>(shapePtr.get())) {
+			else if(const FillData *fill = dynamic_cast<const FillData*>(shapePtr.get())) {
 				visit(*fill);
 			}
-			else if(const StrokeData *stroke = dynamic_cast<const StrokeData *>(shapePtr.get())) {
+			else if(const StrokeData *stroke = dynamic_cast<const StrokeData*>(shapePtr.get())) {
 				visit(*stroke);
 			}
-			else if(const GroupData *group = dynamic_cast<const GroupData *>(shapePtr.get())) {
+			else if(const GroupData *group = dynamic_cast<const GroupData*>(shapePtr.get())) {
 				visit(*group);
 			}
-			else if(const ShapeData *nestedShape = dynamic_cast<const ShapeData *>(shapePtr.get())) {
+			else if(const ShapeData *nestedShape = dynamic_cast<const ShapeData*>(shapePtr.get())) {
 				visit(*nestedShape);
 			}
 		}

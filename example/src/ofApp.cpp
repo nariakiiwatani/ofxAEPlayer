@@ -2,7 +2,8 @@
 #include "ofxAELayer.h"
 
 //--------------------------------------------------------------
-void ofApp::setup(){
+void ofApp::setup()
+{
     ofSetVerticalSync(true);
     ofSetFrameRate(30);
     ofBackground(64, 64, 64);
@@ -13,7 +14,7 @@ void ofApp::setup(){
 
 	comp_ = std::make_shared<ofx::ae::Composition>();
     // Load composition using CompositionManager singleton
-	if (comp_->load("Edit_Rough.json")) {
+	if(comp_->load("Edit_Rough.json")) {
 		ofLogNotice("ofApp") << "Composition loaded successfully";
 		const auto& info = comp_->getInfo();
 		ofLogNotice("ofApp") << "Duration: " << info.duration;
@@ -28,20 +29,22 @@ void ofApp::setup(){
 }
 
 //--------------------------------------------------------------
-void ofApp::update(){
-    if (is_playing_ && comp_) {
-		const auto& info = comp_->getInfo();
-		if(++timeline_ >= info.end_frame) {
-			timeline_ = info.start_frame;
-		}
-		if(comp_->setFrame(timeline_)) {
-			comp_->update();
-		}
+void ofApp::update()
+{
+    if(is_playing_ && comp_) {
+ const auto &info = comp_->getInfo();
+ if(++timeline_ >= info.end_frame) {
+  timeline_ = info.start_frame;
+ }
+ if(comp_->setFrame(timeline_)) {
+  comp_->update();
+ }
     }
 }
 
 //--------------------------------------------------------------
-void ofApp::draw(){
+void ofApp::draw()
+{
     ofClear(64, 64, 64);
 
 	ofPushMatrix();
@@ -49,19 +52,20 @@ void ofApp::draw(){
 	ofScale(scale, scale);
 	float duration = 60;
 	ofTranslate(ofMap(ofWrap(ofGetElapsedTimef(), 0, duration), 0, duration, 0, -comp_->getWidth()+ofGetWidth()), 0);
-	if (comp_) {
+	if(comp_) {
 		comp_->draw(0,0);
 	}
 	ofPopMatrix();
 
-    if (show_debug_info_) {
+    if(show_debug_info_) {
 		drawControls();
         drawDebugInfo();
     }
 }
 
 //--------------------------------------------------------------
-void ofApp::drawControls(){
+void ofApp::drawControls()
+{
     ofSetColor(255);
     string controls = "Controls:\n";
     controls += "SPACE: Play/Pause\n";
@@ -74,14 +78,15 @@ void ofApp::drawControls(){
 }
 
 //--------------------------------------------------------------
-void ofApp::drawDebugInfo(){
-    if (!comp_) return;
+void ofApp::drawDebugInfo()
+{
+    if(!comp_) return;
 
     ofSetColor(255);
     string info = "Debug Info:\n";
     info += "Playing: " + string(is_playing_ ? "Yes" : "No") + "\n";
     info += "frame: " + ofToString(comp_->getCurrentTime(), 2) + "s\n";
-    const auto& compInfo = comp_->getInfo();
+    const auto &compInfo = comp_->getInfo();
     float duration = static_cast<float>(compInfo.duration) / compInfo.fps;
     info += "Duration: " + ofToString(duration, 2) + "s\n";
     info += "FPS: " + ofToString(ofGetFrameRate(), 1) + "\n";
@@ -90,15 +95,15 @@ void ofApp::drawDebugInfo(){
     // Add layer information using the new API
     info += "\nLayer Information:\n";
     auto layers = comp_->getLayers();
-    for (const auto& layer : layers) {
-        if (layer) {
+    for(const auto &layer : layers) {
+        if(layer) {
             info += "- " + layer->getName() + ": ";
             
             // Test the sourceType field using the new API
             auto sourceTypeEnum = layer->getSourceType();
             string sourceType = ofx::ae::LayerSource::sourceTypeToString(sourceTypeEnum);
             
-            if (sourceType.empty()) {
+            if(sourceType.empty()) {
                 info += "[NO SOURCE TYPE]";
             } else {
                 info += sourceType;
@@ -106,7 +111,7 @@ void ofApp::drawDebugInfo(){
             
             // Add additional debug info using new API
             info += " [Size: " + ofToString(layer->getWidth()) + "x" + ofToString(layer->getHeight()) + "]";
-            if (layer->getSource()) {
+            if(layer->getSource()) {
                 info += " [" + layer->getSource()->getDebugInfo() + "]";
             }
             
@@ -118,7 +123,8 @@ void ofApp::drawDebugInfo(){
 }
 
 //--------------------------------------------------------------
-void ofApp::keyPressed(int key){
+void ofApp::keyPressed(int key)
+{
     switch(key) {
         case ' ':
             is_playing_ = !is_playing_;
@@ -147,51 +153,61 @@ void ofApp::keyPressed(int key){
 }
 
 //--------------------------------------------------------------
-void ofApp::keyReleased(int key){
+void ofApp::keyReleased(int key)
+{
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseMoved(int x, int y ){
+void ofApp::mouseMoved(int x, int y)
+{
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseDragged(int x, int y, int button){
+void ofApp::mouseDragged(int x, int y, int button)
+{
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mousePressed(int x, int y, int button){
+void ofApp::mousePressed(int x, int y, int button)
+{
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseReleased(int x, int y, int button){
+void ofApp::mouseReleased(int x, int y, int button)
+{
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseEntered(int x, int y){
+void ofApp::mouseEntered(int x, int y)
+{
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseExited(int x, int y){
+void ofApp::mouseExited(int x, int y)
+{
 
 }
 
 //--------------------------------------------------------------
-void ofApp::windowResized(int w, int h){
+void ofApp::windowResized(int w, int h)
+{
 
 }
 
 //--------------------------------------------------------------
-void ofApp::gotMessage(ofMessage msg){
+void ofApp::gotMessage(ofMessage msg)
+{
 
 }
 
 //--------------------------------------------------------------
-void ofApp::dragEvent(ofDragInfo dragInfo){ 
+void ofApp::dragEvent(ofDragInfo dragInfo)
+{
 
 }

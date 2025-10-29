@@ -29,15 +29,15 @@ class LayerSource;
 class Layer : public TransformNode, public ofBaseDraws, public ofBaseUpdates
 {
 public:
-	using SourceResolver = std::function<std::unique_ptr<LayerSource>(const ofJson &json, const std::filesystem::path& base_dir)>;
+	using SourceResolver = std::function<std::unique_ptr<LayerSource>(const ofJson& json, const std::filesystem::path& base_dir)>;
 	static void registerResolver(SourceResolver resolver);
 	static void clearResolvers();
 
 	Layer();
 	void accept(Visitor &visitor);
 
-	bool load(const std::string& base_dir);
-	bool setup(const ofJson& json, const std::filesystem::path &source_dir="");
+	bool load(const std::string &base_dir);
+	bool setup(const ofJson &json, const std::filesystem::path &source_dir="");
 	void update() override;
 	bool setFrame(int frame);
 	
@@ -50,14 +50,14 @@ public:
 	bool isVisible() const { return is_visible_; }
 
 	void setSource(std::unique_ptr<LayerSource> source);
-	LayerSource *getSource() const { return source_.get(); }
+	LayerSource* getSource() const { return source_.get(); }
 	template<typename T>
-	T *getSource() const {
+	T* getSource() const {
 		return dynamic_cast<T*>(source_.get());
 	}
 	LayerSource::SourceType getSourceType() const;
 
-	void setName(const std::string& name) { name_ = name; }
+	void setName(const std::string &name) { name_ = name; }
 	const std::string& getName() const { return name_; }
 
 	void setBlendMode(BlendMode mode) { blend_mode_ = mode; }
@@ -107,7 +107,7 @@ private:
 	bool is_visible_ = false;
 
 	static std::vector<SourceResolver> resolvers_;
-	std::unique_ptr<LayerSource> resolveSource(const ofJson& json, const std::filesystem::path& base_dir);
+	std::unique_ptr<LayerSource> resolveSource(const ofJson &json, const std::filesystem::path &base_dir);
 };
 
 }} // namespace ofx::ae
