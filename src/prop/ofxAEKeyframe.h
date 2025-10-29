@@ -30,7 +30,7 @@ inline float solveForX(float x, float p1x, float p2x){
 	x = std::min(std::max(x,0.f),1.f);
 	float t = x;
 	for(int i=0;i<8;++i){
-		float f  = bez3(t,p1x,p2x) - x;
+		float f = bez3(t,p1x,p2x) - x;
 		float df = 3*(1-t)*(1-t)*p1x + 6*(1-t)*t*(p2x-p1x) + 3*t*t*(1-p2x);
 		if (std::fabs(df) < 1e-6f) break;
 		t = std::min(std::max(t - f/df, 0.f), 1.f);
@@ -155,7 +155,7 @@ inline WindingDirection calculate(const Keyframe::Data<WindingDirection>& keyfra
 template<>
 inline MaskMode calculate(const Keyframe::Data<MaskMode>& keyframe_a,
 			const Keyframe::Data<MaskMode>& keyframe_b,
-								  float dt, float ratio) {
+						  float dt, float ratio) {
 	return ratio < 1.f ? keyframe_a.value : keyframe_b.value;
 }
 
@@ -221,8 +221,7 @@ KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyfram
 	result.frame_b = keyframe_b_it->first;
 	
 	if (result.frame_b != result.frame_a) {
-		result.ratio = static_cast<float>(frame - result.frame_a) /
-					  static_cast<float>(result.frame_b - result.frame_a);
+		result.ratio = static_cast<float>(frame - result.frame_a) / static_cast<float>(result.frame_b - result.frame_a);
 	}
 	else {
 		result.ratio = 0.0f;

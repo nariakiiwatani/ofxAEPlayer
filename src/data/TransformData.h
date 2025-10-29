@@ -24,8 +24,8 @@ private:
 		auto T_anchor = ofMatrix4x4::newTranslationMatrix(-anchor);
 		auto S = ofMatrix4x4::newScaleMatrix(scale);
 		auto R = ofMatrix4x4::newRotationMatrix(rotXYZdeg.z, {0,0,1},
-											  rotXYZdeg.y, {0,1,0},
-											  rotXYZdeg.x, {1,0,0});
+												rotXYZdeg.y, {0,1,0},
+												rotXYZdeg.x, {1,0,0});
 		auto T = ofMatrix4x4::newTranslationMatrix(pos);
 		return T_anchor * S * R * T;
 	}

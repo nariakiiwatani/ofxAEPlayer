@@ -108,7 +108,8 @@ ShapeProp::ShapeProp()
 				}
 			}
 			return true;
-		} catch(const std::exception& ex) {
+		}
+		catch(const std::exception& ex) {
 			return false;
 		}
 	});

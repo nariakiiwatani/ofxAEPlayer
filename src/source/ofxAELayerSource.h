@@ -36,7 +36,7 @@ public:
 
  static std::unique_ptr<LayerSource> createSourceOfType(SourceType type);
  static std::unique_ptr<LayerSource> createSourceOfType(std::string type) {
-  return createSourceOfType(sourceTypeFromString(type));
+	 return createSourceOfType(sourceTypeFromString(type));
  }
 
 };

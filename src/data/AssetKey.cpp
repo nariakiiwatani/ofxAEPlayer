@@ -44,8 +44,8 @@ bool AssetKey::operator<(const AssetKey& other) const
 bool AssetKey::operator==(const AssetKey& other) const
 {
 	return canonical_path_ == other.canonical_path_ &&
-		   type_ == other.type_ &&
-		   parameters_ == other.parameters_;
+		type_ == other.type_ &&
+		parameters_ == other.parameters_;
 }
 
 bool AssetKey::operator!=(const AssetKey& other) const

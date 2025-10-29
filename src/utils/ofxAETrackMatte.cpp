@@ -24,9 +24,9 @@ float luma(vec3 c){ return dot(c, vec3(0.2126,0.7152,0.0722)); }
 float val(vec4 a);
 
 void main(){
-   vec4 m = texture(matte, vMatteUV);
-   float k = val(m);
-   fragColor = vec4(k, k, k, k);
+	vec4 m = texture(matte, vMatteUV);
+	float k = val(m);
+	fragColor = vec4(k, k, k, k);
 }
 )";
 	switch(type) {

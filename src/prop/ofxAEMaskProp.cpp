@@ -46,7 +46,7 @@ MaskAtomProp::MaskAtomProp()
 			success = false;
 		}
 
-  if(!getProperty<MaskModeProp>("/mode")->tryExtract(atom.mode)) {
+		if(!getProperty<MaskModeProp>("/mode")->tryExtract(atom.mode)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract mask mode, using default";
 			atom.mode = MaskMode::ADD;
 			success = false;

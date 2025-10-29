@@ -62,8 +62,8 @@ out vec2 uv;
 
 void main()
 {
-  gl_Position = modelViewProjectionMatrix * position;
-  uv = texcoord;
+	gl_Position = modelViewProjectionMatrix * position;
+	uv = texcoord;
 })");
 		mask_shader->setupShaderFromSource(GL_FRAGMENT_SHADER, R"(#version 150
 uniform sampler2DRect src_tex;
