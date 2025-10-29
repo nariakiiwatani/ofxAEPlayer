@@ -46,6 +46,53 @@ std::vector<Layer::SourceResolver> BUILTIN_RESOLVERS = {
 		return source;
 	}
 };
+
+std::unique_ptr<ofShader> mask_shader;
+void drawWithMask(ofTexture &src, ofTexture &mask, float x, float y, float w, float h) {
+	if(!mask_shader) {
+		mask_shader = std::make_unique<ofShader>();
+		mask_shader->setupShaderFromSource(GL_VERTEX_SHADER, R"(#version 150
+uniform mat4 modelViewProjectionMatrix;
+in vec4 position;
+in vec2 texcoord;
+out vec2 uv;
+
+void main(){
+  gl_Position = modelViewProjectionMatrix * position;
+  uv = texcoord;
+})");
+		mask_shader->setupShaderFromSource(GL_FRAGMENT_SHADER, R"(#version 150
+uniform sampler2DRect src_tex;
+uniform sampler2DRect mask_tex;
+
+in vec2 uv;
+out vec4 fragColor;
+
+void main(){
+	fragColor = texture(src_tex, uv);
+	fragColor.a *= texture(mask_tex, uv).r;
+}
+)");
+		mask_shader->bindDefaults();
+		mask_shader->linkProgram();
+	}
+	mask_shader->begin();
+	mask_shader->setUniformTexture("src_tex", src, 0);
+	mask_shader->setUniformTexture("mask_tex", mask, 1);
+	ofMesh m;
+	m.addVertex({x,y,0});
+	m.addVertex({x,y+h,0});
+	m.addVertex({x+w,y+h,0});
+	m.addVertex({x+w,y,0});
+	auto data = src.getTextureData();
+	m.addTexCoord({0,0});
+	m.addTexCoord({0,data.tex_h});
+	m.addTexCoord({data.tex_w,data.tex_h});
+	m.addTexCoord({data.tex_w,0});
+	m.setMode(OF_PRIMITIVE_TRIANGLE_FAN);
+	m.drawFaces();
+	mask_shader->end();
+}
 }
 
 std::vector<Layer::SourceResolver> Layer::resolvers_;
@@ -189,7 +236,13 @@ void Layer::draw(float x, float y, float w, float h) const
 	RenderContext::setBlendMode(blend_mode_);
 	
 	if(isUseFbo()) {
-		layer_fbo_.draw(glm::vec2(x, y) - fbo_offset_, w, h);
+		auto offset = glm::vec2(x, y) - fbo_offset_;
+		if(mask_fbo_.isAllocated()) {
+			drawWithMask(layer_fbo_.getTexture(), mask_fbo_.getTexture(), offset.x, offset.y, w, h);
+		}
+		else {
+			layer_fbo_.draw(offset.x, offset.y, w, h);
+		}
 	}
 	else {
 		if(source_) {
@@ -244,8 +297,6 @@ void Layer::updateLayerFBO()
 	}
 	ofPopStyle();
 	mask_fbo_.end();
-
-	layer_fbo_.getTexture().setAlphaMask(mask_fbo_.getTexture());
 }
 
 

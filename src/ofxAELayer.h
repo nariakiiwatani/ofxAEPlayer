@@ -106,14 +106,6 @@ private:
 
 	static std::vector<SourceResolver> resolvers_;
 	std::unique_ptr<LayerSource> resolveSource(const ofJson& json, const std::filesystem::path& base_dir);
-	
-	void renderWithMasks(float x, float y, float w, float h) const;
-	void renderWithoutMasks(float x, float y, float w, float h) const;
-	void setupFbos(float w, float h) const;
-	
-	// Mask support
-	bool hasMasks() const;
-	void updateMasks();
 };
 
 }} // namespace ofx::ae
