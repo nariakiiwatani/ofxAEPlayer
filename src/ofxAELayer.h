@@ -11,12 +11,12 @@
 #include "ofxAEKeyframe.h"
 #include "ofxAELayerSource.h"
 #include "ofxAEMarker.h"
-#include "ofxAEMask.h"
+#include "core/ofxAEMask.h"
 #include "ofxAEMaskProp.h"
 #include "ofxAETrackMatte.h"
 #include "ofxAETransformProp.h"
-#include "Hierarchical.h"
-#include "TransformNode.h"
+#include "core/Hierarchical.h"
+#include "core/TransformNode.h"
 
 namespace ofx { namespace ae {
 class Visitor;

@@ -5,7 +5,7 @@
 #include "ofGraphicsBaseTypes.h"
 #include "ofPath.h"
 
-#include "ofxAEMask.h"
+#include "../core/ofxAEMask.h"
 #include "ofxAEPath.h"
 #include "ofxAEProperty.h"
 #include "ofxAEShapeProp.h"

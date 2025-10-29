@@ -5,7 +5,7 @@
 #include "ofUtils.h"
 
 #include "ofxAELayer.h"
-#include "utils/TransformNode.h"
+#include "core/TransformNode.h"
 #include "ofxAEKeyframe.h"
 #include "ofxAEVisitor.h"
 #include "JsonFuncs.h"
