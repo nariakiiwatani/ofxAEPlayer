@@ -6,7 +6,7 @@
 #include "ofPath.h"
 
 #include "../core/ofxAEMask.h"
-#include "ofxAEPath.h"
+#include "../data/ofxAEPath.h"
 #include "ofxAEProperty.h"
 #include "ofxAEShapeProp.h"
 

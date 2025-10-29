@@ -1,53 +1,16 @@
 #pragma once
 
-#include <vector>
 #include <cmath>
 #include <algorithm>
 #include <map>
-#include "ofxAEPath.h"
-#include "ofxAEMask.h"
-#include "ofxAEBlendMode.h"
-#include "ofxAEFillRule.h"
-#include "ofxAEWindingDirection.h"
+#include "data/ofxAEPath.h"
+#include "core/ofxAEMask.h"
+#include "utils/ofxAEBlendMode.h"
+#include "utils/ofxAEFillRule.h"
+#include "utils/ofxAEWindingDirection.h"
+#include "data/KeyframeData.h"
 
 namespace ofx { namespace ae {
-
-class Keyframe {
-public:
-	enum InterpolationType {
-		LINEAR,
-		BEZIER,
-		HOLD
-	};
-
-	struct TemporalEase {
-		float speed=0;
-		float influence=0;
-	};
-
-	struct InterpolationData {
-		InterpolationType in_type=HOLD;
-		InterpolationType out_type=HOLD;
-		bool roving=false;
-		bool continuous=false;
-		TemporalEase in_ease;
-		TemporalEase out_ease;
-	};
-
-	struct SpatialTangents {
-		std::vector<float> in_tangent;
-		std::vector<float> out_tangent;
-	};
-
-	template<typename T>
-	struct Data {
-		Data(){}
-		Data(const T &t):value(t){}
-		T value;
-		InterpolationData interpolation;
-		SpatialTangents spatial_tangents;
-	};
-};
 
 namespace interpolation {
 
@@ -279,5 +242,3 @@ T interpolateKeyframe(const Keyframe::Data<T>& keyframe_a,
 } // namespace util
 
 }} // namespace ofx::ae
-
-template<typename T> using ofxAEKeyframe = ofx::ae::Keyframe::Data<T>;

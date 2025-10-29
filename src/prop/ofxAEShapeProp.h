@@ -5,7 +5,7 @@
 #include "ofxAEBlendMode.h"
 #include "ofxAEFillRule.h"
 #include "ofxAEWindingDirection.h"
-#include "ofxAEPath.h"
+#include "../data/ofxAEPath.h"
 #include "ofMain.h"
 #include <memory>
 
