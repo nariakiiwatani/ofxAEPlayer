@@ -77,17 +77,17 @@ enum class MaskMode {
 };
 
 enum class SourceType {
-	SHAPE,        // Vector shapes and paths
+	SHAPE,		// Vector shapes and paths
 	COMPOSITION,  // Nested compositions (pre-comps)
-	SOLID,        // Solid color layers
-	CAMERA,       // 3D camera layers
-	LIGHT,        // 3D light layers
+	SOLID,		// Solid color layers
+	CAMERA,	   // 3D camera layers
+	LIGHT,		// 3D light layers
 	ADJUSTMENT,   // Adjustment layers (effects only)
-	TEXT,         // Text layers with typography
+	TEXT,		 // Text layers with typography
 	NULL_OBJECT,  // Null objects for hierarchy/parenting
-	STILL,        // Still images via TexturePlayer
-	VIDEO,        // Video files via ofVideoPlayer
-	SEQUENCE,     // Image sequences via SequencePlayer
+	STILL,		// Still images via TexturePlayer
+	VIDEO,		// Video files via ofVideoPlayer
+	SEQUENCE,	 // Image sequences via SequencePlayer
 	UNKNOWN,
 	NUM_TYPES
 };

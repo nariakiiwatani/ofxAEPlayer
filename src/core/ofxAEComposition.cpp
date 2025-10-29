@@ -77,7 +77,8 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 			unique_name_layers_map_.insert({info.unique_name, layer});
 			layer_offsets_.insert({layer, info.offset});
 			layer->setVisible(info.visible);
-		} else {
+		}
+		else {
 			ofLogError("ofxAEComposition") << "Failed to load layer: " << layer_file;
 		}
 	}

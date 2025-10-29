@@ -4,9 +4,9 @@ namespace ofx { namespace ae {
 
 void Visitor::visit(const Composition &composition)
 {
-    if(visit_children_) {
-        visitChildren(composition);
-    }
+	if(visit_children_) {
+		visitChildren(composition);
+	}
 }
 
 void Visitor::visit(const Layer &layer)
@@ -61,57 +61,57 @@ void Visitor::visit(const Layer &layer)
 
 void Visitor::visit(const ShapeData &shape)
 {
-    if(visit_children_) {
-        visitChildren(shape);
-    }
+	if(visit_children_) {
+		visitChildren(shape);
+	}
 }
 
 void Visitor::visit(const GroupData &group)
 {
-    if(visit_children_) {
-        visitChildren(group);
-    }
+	if(visit_children_) {
+		visitChildren(group);
+	}
 }
 
 void Visitor::visit(const PropertyGroup &group)
 {
-    if(visit_properties_ && visit_children_) {
-        visitChildren(group);
-    }
+	if(visit_properties_ && visit_children_) {
+		visitChildren(group);
+	}
 }
 
 void Visitor::visit(const PropertyArray &array)
 {
-    if(visit_properties_ && visit_children_) {
-        visitChildren(array);
-    }
+	if(visit_properties_ && visit_children_) {
+		visitChildren(array);
+	}
 }
 
 void Visitor::visit(const ShapeSource &source)
 {
-    if(visit_children_) {
-        visitChildren(source);
-    }
+	if(visit_children_) {
+		visitChildren(source);
+	}
 }
 
 void Visitor::visitChildren(const Composition &composition)
 {
-    if(!visit_children_) return;
+	if(!visit_children_) return;
 
-    auto layers = composition.getLayers();
-    for(const auto &layer : layers) {
-        visit(*layer);
-    }
+	auto layers = composition.getLayers();
+	for(const auto &layer : layers) {
+		visit(*layer);
+	}
 }
 
 void Visitor::visitChildren(const ShapeSource &source)
 {
-    if(!visit_children_) return;
+	if(!visit_children_) return;
 
-    ShapeData shapeData;
-    if(source.tryExtract(shapeData)) {
-        visit(shapeData);
-    }
+	ShapeData shapeData;
+	if(source.tryExtract(shapeData)) {
+		visit(shapeData);
+	}
 }
 
 void Visitor::visitChildren(const CompositionSource &source)
@@ -156,12 +156,12 @@ void Visitor::visitChildren(const GroupData &group)
 
 void Visitor::visitChildren(const PropertyGroup &group)
 {
-    if(!visit_properties_ || !visit_children_) return;
+	if(!visit_properties_ || !visit_children_) return;
 }
 
 void Visitor::visitChildren(const PropertyArray &array)
 {
-    if(!visit_properties_ || !visit_children_) return;
+	if(!visit_properties_ || !visit_children_) return;
 }
 
 }} // namespace ofx::ae

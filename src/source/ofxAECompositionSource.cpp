@@ -10,8 +10,8 @@
 namespace ofx { namespace ae {
 
 CompositionSource::CompositionSource()
-    : LayerSource()
-    , composition_(nullptr)
+	: LayerSource()
+	, composition_(nullptr)
 {
 }
 
@@ -23,7 +23,8 @@ bool CompositionSource::load(const std::filesystem::path &filepath)
 	if(composition_) {
 		ofLogVerbose("CompositionSource") << "Loaded composition via AssetManager: " << filepath;
 		return true;
-	} else {
+	}
+	else {
 		ofLogError("CompositionSource") << "Failed to load composition: " << filepath;
 		return false;
 	}
@@ -36,49 +37,50 @@ bool CompositionSource::setFrame(int frame)
 
 void CompositionSource::update()
 {
-    if(!composition_) {
-        return;
-    }
+	if(!composition_) {
+		return;
+	}
 	composition_->update();
 }
 
 void CompositionSource::draw(float x, float y, float w, float h) const
 {
-    if(!composition_) {
-        return;
-    }
+	if(!composition_) {
+		return;
+	}
 	composition_->draw(x, y, w, h);
 }
 
 float CompositionSource::getWidth() const
 {
-    if(!composition_) {
-        return 0.0f;
-    }
-    return composition_->getWidth();
+	if(!composition_) {
+		return 0.0f;
+	}
+	return composition_->getWidth();
 }
 
 float CompositionSource::getHeight() const
 {
-    if(!composition_) {
-        return 0.0f;
-    }
-    return composition_->getHeight();
+	if(!composition_) {
+		return 0.0f;
+	}
+	return composition_->getHeight();
 }
 
 std::string CompositionSource::getDebugInfo() const
 {
-    std::stringstream ss;
-    ss << "CompositionSource[";
-    if(composition_) {
-        const auto& info = composition_->getInfo();
+	std::stringstream ss;
+	ss << "CompositionSource[";
+	if(composition_) {
+		const auto& info = composition_->getInfo();
 		ss << filepath_.filename().string() << ", " << info.layers.size() << " layers";
-        ss << ", size=" << getWidth() << "x" << getHeight();
-    } else {
-        ss << "no composition";
-    }
-    ss << "]";
-    return ss.str();
+		ss << ", size=" << getWidth() << "x" << getHeight();
+	}
+	else {
+		ss << "no composition";
+	}
+	ss << "]";
+	return ss.str();
 }
 
 void CompositionSource::accept(Visitor &visitor)

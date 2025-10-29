@@ -166,12 +166,13 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 	auto source = resolveSource(json, base_dir);
 	if(source) {
 		setSource(std::move(source));
-	} else {
+	}
+	else {
 		ofLogVerbose("Layer") << "No source resolved for layer: " << name_;
 	}
 
 	current_frame_ = -1;
-    return true;
+	return true;
 #undef EXTRACT_
 #undef EXTRACT
 }
@@ -310,40 +311,40 @@ void Layer::updateLayerFBO()
 
 float Layer::getHeight() const
 {
-    if(source_) {
-        return source_->getHeight();
-    }
-    return 0.0f;
+	if(source_) {
+		return source_->getHeight();
+	}
+	return 0.0f;
 }
 
 float Layer::getWidth() const
 {
-    if(source_) {
-        return source_->getWidth();
-    }
-    return 0.0f;
+	if(source_) {
+		return source_->getWidth();
+	}
+	return 0.0f;
 }
 
 void Layer::setSource(std::unique_ptr<LayerSource> source)
 {
-    source_ = std::move(source);
+	source_ = std::move(source);
 }
 
 SourceType Layer::getSourceType() const
 {
-    if(source_) {
-        return source_->getSourceType();
-    }
-    
+	if(source_) {
+		return source_->getSourceType();
+	}
+	
 	return SourceType::UNKNOWN;
 }
 
 std::string Layer::getDebugInfo() const
 {
-    std::stringstream info;
-    info << "Layer[" << name_ << "] ";
-    info << "Source: " << (source_ ? source_->getDebugInfo() : "None") << " ";
-    return info.str();
+	std::stringstream info;
+	info << "Layer[" << name_ << "] ";
+	info << "Source: " << (source_ ? source_->getDebugInfo() : "None") << " ";
+	return info.str();
 }
 
 bool Layer::load(const std::string &filepath)

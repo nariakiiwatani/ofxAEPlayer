@@ -15,7 +15,8 @@ bool VideoSource::load(const std::filesystem::path &filepath)
 	if(player_) {
 		ofLogVerbose("VideoSource") << "Loaded video via AssetManager: " << filepath;
 		return true;
-	} else {
+	}
+	else {
 		ofLogError("VideoSource") << "Failed to load video: " << filepath;
 		return false;
 	}
@@ -53,8 +54,9 @@ std::string VideoSource::getDebugInfo() const
 	oss << "VideoSource[";
 	if(player_) {
 		oss << filepath_.filename().string() << ", "
-		    << getWidth() << "x" << getHeight();
-	} else {
+			<< getWidth() << "x" << getHeight();
+	}
+	else {
 		oss << "no video";
 	}
 	oss << "]";

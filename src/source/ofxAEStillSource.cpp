@@ -15,7 +15,8 @@ bool StillSource::load(const std::filesystem::path &filepath)
 	if(texture_) {
 		ofLogVerbose("StillSource") << "Loaded texture via AssetManager: " << filepath;
 		return true;
-	} else {
+	}
+	else {
 		ofLogError("StillSource") << "Failed to load texture: " << filepath;
 		return false;
 	}
@@ -44,8 +45,9 @@ std::string StillSource::getDebugInfo() const
 	oss << "StillSource[";
 	if(texture_) {
 		oss << filepath_.filename().string() << ", "
-		    << getWidth() << "x" << getHeight();
-	} else {
+			<< getWidth() << "x" << getHeight();
+	}
+	else {
 		oss << "no texture";
 	}
 	oss << "]";

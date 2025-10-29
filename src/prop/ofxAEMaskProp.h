@@ -23,7 +23,8 @@ public:
 		if(json.is_string()) {
 			std::string str = json.get<std::string>();
 			return maskModeFromString(str);
-		} else {
+		}
+		else {
 			ofLogWarning("BlendModeProp") << "Expected string blend mode value, using NORMAL";
 			return MaskMode::ADD;
 		}
@@ -34,20 +35,20 @@ public:
 class MaskAtomProp : public PropertyGroup
 {
 public:
-    MaskAtomProp();
-    
-    void accept(Visitor &visitor) override;
+	MaskAtomProp();
+	
+	void accept(Visitor &visitor) override;
 };
 
 class MaskProp : public PropertyArray
 {
 public:
-    MaskProp();
-    
-    void setup(const ofJson &base, const ofJson &keyframes) override;
-    void accept(Visitor &visitor) override;
+	MaskProp();
+	
+	void setup(const ofJson &base, const ofJson &keyframes) override;
+	void accept(Visitor &visitor) override;
 private:
-    void setupMaskAtom(const ofJson &atomBase, const ofJson &atomKeyframes);
+	void setupMaskAtom(const ofJson &atomBase, const ofJson &atomKeyframes);
 };
 
 }} // namespace ofx::ae

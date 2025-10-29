@@ -72,7 +72,8 @@ void PathExtractionVisitor::visit(const FillData &data) {
 
 	if (data.compositeOrder == 1) {
 		renderer_.item.push_front(item);
-	} else {
+	}
+	else {
 		renderer_.item.push_back(item);
 	}
 	Visitor::visit(data);
@@ -90,7 +91,8 @@ void PathExtractionVisitor::visit(const StrokeData &data) {
 
 	if (data.compositeOrder == 1) {
 		renderer_.item.push_front(item);
-	} else {
+	}
+	else {
 		renderer_.item.push_back(item);
 	}
 	Visitor::visit(data);

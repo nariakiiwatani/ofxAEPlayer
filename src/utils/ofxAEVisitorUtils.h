@@ -16,51 +16,51 @@ template<typename T, typename Predicate>
 class FindVisitor : public Visitor
 {
 public:
-    explicit FindVisitor(Predicate predicate) : predicate_(predicate) {}
-    
-    using Visitor::visit;
-    
-    void visit(const T& item) override {
-        if (predicate_(item)) {
-            results_.push_back(const_cast<T*>(&item));
-        }
-        Visitor::visit(item);
-    }
-    
-    const std::vector<T*>& getResults() const {
-        return results_;
-    }
-    
-    void clear() {
-        results_.clear();
-    }
+	explicit FindVisitor(Predicate predicate) : predicate_(predicate) {}
+	
+	using Visitor::visit;
+	
+	void visit(const T& item) override {
+		if (predicate_(item)) {
+			results_.push_back(const_cast<T*>(&item));
+		}
+		Visitor::visit(item);
+	}
+	
+	const std::vector<T*>& getResults() const {
+		return results_;
+	}
+	
+	void clear() {
+		results_.clear();
+	}
 
 private:
-    Predicate predicate_;
-    std::vector<T*> results_;
+	Predicate predicate_;
+	std::vector<T*> results_;
 };
 
 template<typename T>
 class CollectVisitor : public Visitor
 {
 public:
-    using Visitor::visit;
-    
-    void visit(const T &item) override {
-        items_.push_back(const_cast<T*>(&item));
-        Visitor::visit(item);
-    }
-    
-    const std::vector<T*>& getItems() const {
-        return items_;
-    }
-    
-    void clear() {
-        items_.clear();
-    }
+	using Visitor::visit;
+	
+	void visit(const T &item) override {
+		items_.push_back(const_cast<T*>(&item));
+		Visitor::visit(item);
+	}
+	
+	const std::vector<T*>& getItems() const {
+		return items_;
+	}
+	
+	void clear() {
+		items_.clear();
+	}
 
 private:
-    std::vector<T*> items_;
+	std::vector<T*> items_;
 };
 
 class PathExtractionVisitor : public Visitor
@@ -69,12 +69,12 @@ public:
 	PathExtractionVisitor();
 	PathExtractionVisitor(const GroupData &group);
 	~PathExtractionVisitor()=default;
-    void visit(const EllipseData &ellipse) override;
-    void visit(const RectangleData &rectangle) override;
-    void visit(const PolygonData &polygon) override;
-    void visit(const PathData &pathData) override;
-    void visit(const FillData &fill) override;
-    void visit(const StrokeData &stroke) override;
+	void visit(const EllipseData &ellipse) override;
+	void visit(const RectangleData &rectangle) override;
+	void visit(const PolygonData &polygon) override;
+	void visit(const PathData &pathData) override;
+	void visit(const FillData &fill) override;
+	void visit(const StrokeData &stroke) override;
 	void visit(const GroupData &group) override;
 
 	struct RenderItem {

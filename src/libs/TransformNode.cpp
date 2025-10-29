@@ -168,18 +168,18 @@ void TransformNode::setTranslationZ(float z)
 
 void TransformNode::setOrientation(const ofVec3f& from, const ofVec3f& to)
 {
-    orientation_.makeRotate(from,to);
+	orientation_.makeRotate(from,to);
 	dirty(LOCAL);
 }
 void TransformNode::setOrientation(float angle, const ofVec3f& axis)
 {
-    orientation_.makeRotate(angle, axis);
+	orientation_.makeRotate(angle, axis);
 	dirty(LOCAL);
 }
 
 void TransformNode::setOrientation(float angle, float x, float y, float z)
 {
-    orientation_.makeRotate(angle, x, y, z);
+	orientation_.makeRotate(angle, x, y, z);
 	dirty(LOCAL);
 }
 
@@ -354,14 +354,14 @@ void TransformNode::addOrientation(const ofVec3f& from, const ofVec3f& to)
 {
 	ofQuaternion quat;
 	quat.makeRotate(from,to);
-    orientation_ *= quat;
+	orientation_ *= quat;
 	dirty(LOCAL);
 }
 void TransformNode::addOrientation(float angle, const ofVec3f& axis)
 {
 	ofQuaternion quat;
 	quat.makeRotate(angle, axis);
-    orientation_ *= quat;
+	orientation_ *= quat;
 	dirty(LOCAL);
 }
 
@@ -369,13 +369,13 @@ void TransformNode::addOrientation(float angle, float x, float y, float z)
 {
 	ofQuaternion quat;
 	quat.makeRotate(angle, x, y, z);
-    orientation_ *= quat;
+	orientation_ *= quat;
 	dirty(LOCAL);
 }
 
 void TransformNode::addOrientation(const ofQuaternion& quat)
 {
-    orientation_ *= quat;
+	orientation_ *= quat;
 	dirty(LOCAL);
 }
 
@@ -385,7 +385,7 @@ void TransformNode::addOrientation(float angle1, const ofVec3f& axis1,
 {
 	ofQuaternion quat;
 	quat.makeRotate(angle1, axis1, angle2, axis2, angle3, axis3);
-    orientation_ *= quat;
+	orientation_ *= quat;
 	dirty(LOCAL);
 }
 

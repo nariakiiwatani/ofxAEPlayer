@@ -20,7 +20,8 @@ public:
 		if (json.is_string()) {
 			std::string blendModeStr = json.get<std::string>();
 			return blendModeFromString(blendModeStr);
-		} else {
+		}
+		else {
 			ofLogWarning("BlendModeProp") << "Expected string blend mode value, using NORMAL";
 			return BlendMode::NORMAL;
 		}
@@ -34,7 +35,8 @@ public:
 	FillRule parse(const ofJson &json) const override {
 		if (json.is_string()) {
 			return fillRuleFromString(json.get<std::string>());
-		} else {
+		}
+		else {
 			ofLogWarning("FillRuleProp") << "Expected string fill rule value, using NON_ZERO";
 			return FillRule::NON_ZERO;
 		}
@@ -48,7 +50,8 @@ public:
 	WindingDirection parse(const ofJson &json) const override {
 		if (json.is_string()) {
 			return windingDirectionFromString(json.get<std::string>());
-		} else {
+		}
+		else {
 			ofLogWarning("WindingDirectionProp") << "Expected string winding direction value, using DEFAULT";
 			return WindingDirection::DEFAULT;
 		}

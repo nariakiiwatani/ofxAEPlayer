@@ -15,12 +15,12 @@ MaskPath::~MaskPath()
 {
 }
 
-void MaskPath::addVertex(const MaskVertex& vertex)
+void MaskPath::addVertex(const MaskVertex &vertex)
 {
 	vertices.push_back(vertex);
 }
 
-void MaskPath::addVertex(const glm::vec2& position)
+void MaskPath::addVertex(const glm::vec2 &position)
 {
 	vertices.push_back(MaskVertex(position));
 }
@@ -55,7 +55,7 @@ glm::vec2 MaskPath::evaluateAt(float t) const
 	return glm::mix(vertices[segmentIndex].position, vertices[nextIndex].position, localT);
 }
 
-void MaskPath::generatePolyline(ofPolyline& polyline, int resolution) const
+void MaskPath::generatePolyline(ofPolyline &polyline, int resolution) const
 {
 	polyline.clear();
 
@@ -72,7 +72,7 @@ void MaskPath::generatePolyline(ofPolyline& polyline, int resolution) const
 	}
 }
 
-void MaskPath::setFromPathData(const PathData& pathData)
+void MaskPath::setFromPathData(const PathData &pathData)
 {
 	clear();
 	closed = pathData.closed;
@@ -153,7 +153,7 @@ Mask::~Mask()
 {
 }
 
-void Mask::renderToFbo(ofFbo& target) const
+void Mask::renderToFbo(ofFbo &target) const
 {
 	if(!enabled) return;
 
@@ -170,7 +170,8 @@ void Mask::renderToFbo(ofFbo& target) const
 		ofSetColor(ofFloatColor::white);
 		renderPath(path);
 		ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-	} else {
+	}
+	else {
 		ofSetColor(color);
 		ofFill();
 		renderPath(path);
@@ -184,7 +185,7 @@ void Mask::renderToFbo(ofFbo& target) const
 	}
 }
 
-void Mask::renderPath(const MaskPath& path) const
+void Mask::renderPath(const MaskPath &path) const
 {
 	if(path.getVertexCount() < 2) return;
 
@@ -192,7 +193,7 @@ void Mask::renderPath(const MaskPath& path) const
 	pathObj.draw();
 }
 
-void Mask::setFromMaskAtomData(const MaskAtomData& atomData)
+void Mask::setFromMaskAtomData(const MaskAtomData &atomData)
 {
 	MaskPath newPath;
 	newPath.setFromPathData(atomData.shape);
@@ -205,7 +206,7 @@ void Mask::setFromMaskAtomData(const MaskAtomData& atomData)
 	setMode(atomData.mode);
 }
 
-void Mask::applyFeather(ofFbo& target) const
+void Mask::applyFeather(ofFbo &target) const
 {
 }
 
@@ -228,7 +229,7 @@ ofRectangle Mask::getBounds() const
 	return ofRectangle(minX, minY, maxX - minX, maxY - minY);
 }
 
-bool Mask::containsPoint(const glm::vec2& point) const
+bool Mask::containsPoint(const glm::vec2 &point) const
 {
 	if(path.getVertexCount() < 3) return false;
 
@@ -256,7 +257,7 @@ MaskCollection::~MaskCollection()
 {
 }
 
-void MaskCollection::addMask(const Mask& mask)
+void MaskCollection::addMask(const Mask &mask)
 {
 	masks.push_back(mask);
 }
@@ -283,7 +284,7 @@ bool MaskCollection::hasActiveMasks() const
 	return false;
 }
 
-void MaskCollection::renderCombined(ofFbo& target) const
+void MaskCollection::renderCombined(ofFbo &target) const
 {
 	if(masks.empty()) {
 		target.begin();
@@ -311,7 +312,7 @@ void MaskCollection::renderCombined(ofFbo& target) const
 	}
 }
 
-void MaskCollection::combineMasks(ofFbo& target, const Mask& mask, bool isFirst) const
+void MaskCollection::combineMasks(ofFbo &target, const Mask &mask, bool isFirst) const
 {
 	ofFbo maskFbo;
 	maskFbo.allocate(target.getWidth(), target.getHeight(), GL_RGBA);
@@ -324,7 +325,8 @@ void MaskCollection::combineMasks(ofFbo& target, const Mask& mask, bool isFirst)
 	if(isFirst) {
 		ofSetColor(ofFloatColor::white);
 		maskFbo.draw(0, 0);
-	} else {
+	}
+	else {
 		switch (mask.getMode()) {
 			case MaskMode::ADD:
 				ofEnableBlendMode(OF_BLENDMODE_ADD);
@@ -348,7 +350,7 @@ void MaskCollection::combineMasks(ofFbo& target, const Mask& mask, bool isFirst)
 	target.end();
 }
 
-void MaskCollection::setupFromMaskProp(const MaskProp& maskProp)
+void MaskCollection::setupFromMaskProp(const MaskProp &maskProp)
 {
 	clear();
 	

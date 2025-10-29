@@ -5,41 +5,41 @@ namespace ofx { namespace ae {
 
 PathData PathDataProp::parse(const ofJson &json) const
 {
-    PathData pathData;
-    
-    if(json.contains("vertices") && json["vertices"].is_array()) {
-        for(const auto& vertex : json["vertices"]) {
-            if(vertex.is_array() && vertex.size() >= 2) {
-                pathData.vertices.emplace_back(vertex[0], vertex[1]);
-            }
-        }
-    }
-    
-    if(json.contains("inTangents") && json["inTangents"].is_array()) {
-        for(const auto& tangent : json["inTangents"]) {
-            if(tangent.is_array() && tangent.size() >= 2) {
-                pathData.inTangents.emplace_back(tangent[0], tangent[1]);
-            }
-        }
-    }
-    
-    if(json.contains("outTangents") && json["outTangents"].is_array()) {
-        for(const auto& tangent : json["outTangents"]) {
-            if(tangent.is_array() && tangent.size() >= 2) {
-                pathData.outTangents.emplace_back(tangent[0], tangent[1]);
-            }
-        }
-    }
-    
-    if(json.contains("closed")) {
-        pathData.closed = json["closed"];
-    }
-    
-    if(json.contains("direction")) {
-        pathData.direction = json["direction"];
-    }
-    
-    return pathData;
+	PathData pathData;
+	
+	if(json.contains("vertices") && json["vertices"].is_array()) {
+		for(const auto& vertex : json["vertices"]) {
+			if(vertex.is_array() && vertex.size() >= 2) {
+				pathData.vertices.emplace_back(vertex[0], vertex[1]);
+			}
+		}
+	}
+	
+	if(json.contains("inTangents") && json["inTangents"].is_array()) {
+		for(const auto& tangent : json["inTangents"]) {
+			if(tangent.is_array() && tangent.size() >= 2) {
+				pathData.inTangents.emplace_back(tangent[0], tangent[1]);
+			}
+		}
+	}
+	
+	if(json.contains("outTangents") && json["outTangents"].is_array()) {
+		for(const auto& tangent : json["outTangents"]) {
+			if(tangent.is_array() && tangent.size() >= 2) {
+				pathData.outTangents.emplace_back(tangent[0], tangent[1]);
+			}
+		}
+	}
+	
+	if(json.contains("closed")) {
+		pathData.closed = json["closed"];
+	}
+	
+	if(json.contains("direction")) {
+		pathData.direction = json["direction"];
+	}
+	
+	return pathData;
 }
 
 

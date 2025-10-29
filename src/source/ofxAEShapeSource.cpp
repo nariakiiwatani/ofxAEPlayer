@@ -39,7 +39,7 @@ void ShapeSource::update()
 
 bool ShapeSource::setFrame(int frame)
 {
-    return shape_props_.setFrame(frame);
+	return shape_props_.setFrame(frame);
 }
 
 bool ShapeSource::tryExtract(ShapeData &dst) const

@@ -14,12 +14,12 @@ namespace interpolation {
 
 template<typename T>
 T linear(const T& value_a, const T& value_b, float ratio) {
-    return value_a + (value_b - value_a) * ratio;
+	return value_a + (value_b - value_a) * ratio;
 }
 
 template<typename T>
 T hold(const T& value_a, const T& value_b, float ratio) {
-    return ratio >= 1.0f ? value_b : value_a;
+	return ratio >= 1.0f ? value_b : value_a;
 }
 
 inline float bez3(float t, float p1, float p2){
@@ -107,7 +107,7 @@ inline PathData bezier<PathData>(const PathData& va, const PathData& vb,
 	for (size_t i=0;i<ret.outTangents.size();++i)
 		ret.outTangents[i] = lerp(va.outTangents[i], vb.outTangents[i]);
 
-	ret.closed    = vb.closed;
+	ret.closed	= vb.closed;
 	ret.direction = vb.direction;
 	return ret;
 }
@@ -116,22 +116,22 @@ T calculate(const Keyframe::Data<T>& keyframe_a,
 			const Keyframe::Data<T>& keyframe_b,
 			float dt, float ratio) {
 	Keyframe::InterpolationType interp_type = keyframe_a.interpolation.out_type;
-    
-    switch (interp_type) {
+	
+	switch (interp_type) {
 		case Keyframe::LINEAR:
-            return linear(keyframe_a.value, keyframe_b.value, ratio);
-            
+			return linear(keyframe_a.value, keyframe_b.value, ratio);
+			
 		case Keyframe::HOLD:
-            return hold(keyframe_a.value, keyframe_b.value, ratio);
-            
+			return hold(keyframe_a.value, keyframe_b.value, ratio);
+			
 		case Keyframe::BEZIER:
-            return bezier(keyframe_a.value, keyframe_b.value,
-                         keyframe_a.interpolation.out_ease,
-                         keyframe_b.interpolation.in_ease, dt, ratio);
+			return bezier(keyframe_a.value, keyframe_b.value,
+						 keyframe_a.interpolation.out_ease,
+						 keyframe_b.interpolation.in_ease, dt, ratio);
 
-        default:
-            return linear(keyframe_a.value, keyframe_b.value, ratio);
-    }
+		default:
+			return linear(keyframe_a.value, keyframe_b.value, ratio);
+	}
 }
 
 template<>
@@ -165,76 +165,77 @@ namespace util {
 
 template<typename T>
 struct KeyframePair {
-    const Keyframe::Data<T>* keyframe_a = nullptr;
-    const Keyframe::Data<T>* keyframe_b = nullptr;
-    float ratio = 0.0f;
-    int frame_a = 0;
-    int frame_b = 0;
+	const Keyframe::Data<T>* keyframe_a = nullptr;
+	const Keyframe::Data<T>* keyframe_b = nullptr;
+	float ratio = 0.0f;
+	int frame_a = 0;
+	int frame_b = 0;
 };
 
 template<typename T>
 KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyframes, int frame) {
-    KeyframePair<T> result;
-    
-    if (keyframes.empty()) {
-        return result;
-    }
-    
-    if (keyframes.size() == 1) {
-        auto it = keyframes.begin();
-        result.keyframe_a = &it->second;
-        result.keyframe_b = &it->second;
-        result.frame_a = it->first;
-        result.frame_b = it->first;
-        result.ratio = 0.0f;
-        return result;
-    }
-    
-    auto upper = keyframes.upper_bound(frame);
-    
-    if (upper == keyframes.begin()) {
-        auto first = keyframes.begin();
-        result.keyframe_a = &first->second;
-        result.keyframe_b = &first->second;
-        result.frame_a = first->first;
-        result.frame_b = first->first;
+	KeyframePair<T> result;
+	
+	if (keyframes.empty()) {
+		return result;
+	}
+	
+	if (keyframes.size() == 1) {
+		auto it = keyframes.begin();
+		result.keyframe_a = &it->second;
+		result.keyframe_b = &it->second;
+		result.frame_a = it->first;
+		result.frame_b = it->first;
 		result.ratio = 0.0f;
-        return result;
-    }
-    
-    if (upper == keyframes.end()) {
-        auto last = std::prev(keyframes.end());
-        result.keyframe_a = &last->second;
-        result.keyframe_b = &last->second;
-        result.frame_a = last->first;
-        result.frame_b = last->first;
+		return result;
+	}
+	
+	auto upper = keyframes.upper_bound(frame);
+	
+	if (upper == keyframes.begin()) {
+		auto first = keyframes.begin();
+		result.keyframe_a = &first->second;
+		result.keyframe_b = &first->second;
+		result.frame_a = first->first;
+		result.frame_b = first->first;
 		result.ratio = 0.0f;
-        return result;
-    }
-    
-    auto keyframe_b_it = upper;
-    auto keyframe_a_it = std::prev(upper);
-    
-    result.keyframe_a = &keyframe_a_it->second;
-    result.keyframe_b = &keyframe_b_it->second;
-    result.frame_a = keyframe_a_it->first;
-    result.frame_b = keyframe_b_it->first;
-    
-    if (result.frame_b != result.frame_a) {
-        result.ratio = static_cast<float>(frame - result.frame_a) /
-                      static_cast<float>(result.frame_b - result.frame_a);
-    } else {
-        result.ratio = 0.0f;
-    }
-    
-    return result;
+		return result;
+	}
+	
+	if (upper == keyframes.end()) {
+		auto last = std::prev(keyframes.end());
+		result.keyframe_a = &last->second;
+		result.keyframe_b = &last->second;
+		result.frame_a = last->first;
+		result.frame_b = last->first;
+		result.ratio = 0.0f;
+		return result;
+	}
+	
+	auto keyframe_b_it = upper;
+	auto keyframe_a_it = std::prev(upper);
+	
+	result.keyframe_a = &keyframe_a_it->second;
+	result.keyframe_b = &keyframe_b_it->second;
+	result.frame_a = keyframe_a_it->first;
+	result.frame_b = keyframe_b_it->first;
+	
+	if (result.frame_b != result.frame_a) {
+		result.ratio = static_cast<float>(frame - result.frame_a) /
+					  static_cast<float>(result.frame_b - result.frame_a);
+	}
+	else {
+		result.ratio = 0.0f;
+	}
+	
+	return result;
 }
 
 template<typename T>
 T interpolateKeyframe(const Keyframe::Data<T>& keyframe_a,
-                     const Keyframe::Data<T>& keyframe_b,
-                     float dt, float ratio) {
-    return interpolation::calculate(keyframe_a, keyframe_b, dt, ratio);
+					 const Keyframe::Data<T>& keyframe_b,
+					 float dt, float ratio) {
+	return interpolation::calculate(keyframe_a, keyframe_b, dt, ratio);
 }
 
 } // namespace util
