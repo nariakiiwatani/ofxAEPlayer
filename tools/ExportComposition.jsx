@@ -1556,7 +1556,7 @@ function trackMatteTypeToString(t){
             
             for (var frame = 0; frame <= duration; frame++) {
                 var time = toTime(frame + offset);
-                var extractedValue = extractValue(prop, time, decimalPlaces, customProcessor);
+                var extractedValue = extractValue(prop, time, decimalPlaces, customProcessor, fps);
                                 
                 var hasChanged = (prevValue === null) || !valuesAreEqual(extractedValue, prevValue);
                 
@@ -1614,7 +1614,7 @@ function trackMatteTypeToString(t){
                 result = extractAnimatedProperty(prop, offset, end-start, fps, DEC, customProcessor);
             }
         } else {
-            result = extractValue(prop, toTime(offset), DEC, customProcessor);
+            result = extractValue(prop, toTime(offset), DEC, customProcessor, fps);
         }
         return result;
     }

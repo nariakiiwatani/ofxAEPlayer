@@ -164,7 +164,7 @@ bool Layer::setFrame(int frame)
 		if(source_) {
 			int source_frame = frame;
 			if(time_remap_.setFrame(frame)) {
-				time_remap_.tryExtract(source_frame);
+				source_frame = time_remap_.get();
 			}
 			if(source_->setFrame(source_frame)) {
 				ret |= true;
