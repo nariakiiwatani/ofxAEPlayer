@@ -8,12 +8,12 @@ void ofApp::setup(){
     ofBackground(64, 64, 64);
     
     // Initialize variables
-    isPlaying = false;
-    showDebugInfo = true;
+    is_playing_ = false;
+    show_debug_info_ = true;
 
 	comp_ = std::make_shared<ofx::ae::Composition>();
     // Load composition using CompositionManager singleton
-	if (comp_->load("Clouds_AL-Gold.json")) {
+	if (comp_->load("Edit_Rough.json")) {
 		ofLogNotice("ofApp") << "Composition loaded successfully";
 		const auto& info = comp_->getInfo();
 		ofLogNotice("ofApp") << "Duration: " << info.duration;
@@ -24,12 +24,12 @@ void ofApp::setup(){
 		comp_.reset();
 	}
 	timeline_ = 0;
-	isPlaying = true;
+	is_playing_ = true;
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-    if (isPlaying && comp_) {
+    if (is_playing_ && comp_) {
 		const auto& info = comp_->getInfo();
 		if(++timeline_ >= info.end_frame) {
 			timeline_ = info.start_frame;
@@ -45,16 +45,17 @@ void ofApp::draw(){
     ofClear(64, 64, 64);
 
 	ofPushMatrix();
-	float scale = 0.3f;
+	float scale = 0.6f;
 	ofScale(scale, scale);
+	float duration = 60;
+	ofTranslate(ofMap(ofWrap(ofGetElapsedTimef(), 0, duration), 0, duration, 0, -comp_->getWidth()+ofGetWidth()), 0);
 	if (comp_) {
 		comp_->draw(0,0);
 	}
 	ofPopMatrix();
 
-    // Draw controls and debug info
-    drawControls();
-    if (showDebugInfo) {
+    if (show_debug_info_) {
+		drawControls();
         drawDebugInfo();
     }
 }
@@ -78,7 +79,7 @@ void ofApp::drawDebugInfo(){
 
     ofSetColor(255);
     string info = "Debug Info:\n";
-    info += "Playing: " + string(isPlaying ? "Yes" : "No") + "\n";
+    info += "Playing: " + string(is_playing_ ? "Yes" : "No") + "\n";
     info += "frame: " + ofToString(comp_->getCurrentTime(), 2) + "s\n";
     const auto& compInfo = comp_->getInfo();
     float duration = static_cast<float>(compInfo.duration) / compInfo.fps;
@@ -120,8 +121,8 @@ void ofApp::drawDebugInfo(){
 void ofApp::keyPressed(int key){
     switch(key) {
         case ' ':
-            isPlaying = !isPlaying;
-            ofLogNotice("ofApp") << "Playback " << (isPlaying ? "started" : "paused");
+            is_playing_ = !is_playing_;
+            ofLogNotice("ofApp") << "Playback " << (is_playing_ ? "started" : "paused");
             break;
             
         case 'r':
@@ -132,7 +133,7 @@ void ofApp::keyPressed(int key){
             
         case 'd':
         case 'D':
-            showDebugInfo = !showDebugInfo;
+            show_debug_info_ = !show_debug_info_;
             break;
             
         case OF_KEY_LEFT:

@@ -3,76 +3,84 @@
 
 namespace ofx { namespace ae {
 
-MaskPath::MaskPath() : closed(false) {
+MaskPath::MaskPath() : closed(false)
+{
 }
 
-MaskPath::~MaskPath() {
+MaskPath::~MaskPath()
+{
 }
 
-void MaskPath::addVertex(const MaskVertex& vertex) {
+void MaskPath::addVertex(const MaskVertex& vertex)
+{
 	vertices.push_back(vertex);
 }
 
-void MaskPath::addVertex(const glm::vec2& position) {
+void MaskPath::addVertex(const glm::vec2& position)
+{
 	vertices.push_back(MaskVertex(position));
 }
 
-void MaskPath::clear() {
+void MaskPath::clear()
+{
 	vertices.clear();
 }
 
-glm::vec2 MaskPath::evaluateAt(float t) const {
-	if (vertices.empty()) return glm::vec2(0, 0);
-	if (vertices.size() == 1) return vertices[0].position;
+glm::vec2 MaskPath::evaluateAt(float t) const
+{
+	if(vertices.empty()) return glm::vec2(0, 0);
+	if(vertices.size() == 1) return vertices[0].position;
 
 	int segmentCount = closed ? vertices.size() : vertices.size() - 1;
-	if (segmentCount <= 0) return vertices[0].position;
+	if(segmentCount <= 0) return vertices[0].position;
 
 	float segmentT = t * segmentCount;
 	int segmentIndex = (int)segmentT;
 	float localT = segmentT - segmentIndex;
 
-	if (segmentIndex >= segmentCount) {
+	if(segmentIndex >= segmentCount) {
 		segmentIndex = segmentCount - 1;
 		localT = 1.0f;
 	}
 
 	int nextIndex = (segmentIndex + 1) % vertices.size();
-	if (!closed && nextIndex >= vertices.size()) {
+	if(!closed && nextIndex >= vertices.size()) {
 		nextIndex = vertices.size() - 1;
 	}
 
 	return glm::mix(vertices[segmentIndex].position, vertices[nextIndex].position, localT);
 }
 
-void MaskPath::generatePolyline(ofPolyline& polyline, int resolution) const {
+void MaskPath::generatePolyline(ofPolyline& polyline, int resolution) const
+{
 	polyline.clear();
 
-	if (vertices.empty()) return;
+	if(vertices.empty()) return;
 
-	for (int i = 0; i <= resolution; i++) {
+	for(int i = 0; i <= resolution; i++) {
 		float t = (float)i / resolution;
 		glm::vec2 point = evaluateAt(t);
 		polyline.addVertex(point.x, point.y);
 	}
 
-	if (closed) {
+	if(closed) {
 		polyline.setClosed(true);
 	}
 }
 
-void MaskPath::setFromPathData(const PathData& pathData) {
+void MaskPath::setFromPathData(const PathData& pathData)
+{
 	clear();
 	closed = pathData.closed;
 	
-	for (size_t i = 0; i < pathData.vertices.size(); ++i) {
+	for(size_t i = 0; i < pathData.vertices.size(); ++i) {
 		MaskVertex vertex;
 		vertex.position = pathData.vertices[i];
 		
-		if (i < pathData.inTangents.size()) {
+		if(i < pathData.inTangents.size()) {
 			vertex.inTangent = pathData.inTangents[i];
 		}
-		if (i < pathData.outTangents.size()) {
+		if(i < pathData.outTangents.size()) {
 			vertex.outTangent = pathData.outTangents[i];
 		}
 		vertex.closed = closed;
@@ -81,24 +89,25 @@ void MaskPath::setFromPathData(const PathData& pathData) {
 	}
 }
 
-ofPath MaskPath::toOfPath() const {
+ofPath MaskPath::toOfPath() const
+{
 	ofPath path;
 	
-	if (vertices.empty()) {
+	if(vertices.empty()) {
 		return path;
 	}
 	
-	if (vertices.size() == 1) {
+	if(vertices.size() == 1) {
 		path.moveTo(vertices[0].position);
 		return path;
 	}
 	
 	path.moveTo(vertices[0].position);
 	
-	for (size_t i = 0; i < vertices.size(); ++i) {
+	for(size_t i = 0; i < vertices.size(); ++i) {
 		size_t nextIndex = (i + 1) % vertices.size();
 		
-		if (!closed && nextIndex == 0) {
+		if(!closed && nextIndex == 0) {
 			break;
 		}
 		
@@ -110,16 +119,17 @@ ofPath MaskPath::toOfPath() const {
 		
 		bool hasCurve = (glm::length(outTangent) > 0.001f || glm::length(inTangent) > 0.001f);
 		
-		if (hasCurve) {
+		if(hasCurve) {
 			glm::vec2 cp1 = currentVertex + outTangent;
 			glm::vec2 cp2 = nextVertex + inTangent;
 			path.bezierTo(cp1, cp2, nextVertex);
-		} else {
+		}
+		else {
 			path.lineTo(nextVertex);
 		}
 	}
 	
-	if (closed) {
+	if(closed) {
 		path.close();
 	}
 	
@@ -131,21 +141,24 @@ Mask::Mask()
 , inverted(false)
 , enabled(true)
 , opacity(1.f)
-, expansion(0.f) {
+, expansion(0.f)
+{
 }
 
-Mask::~Mask() {
+Mask::~Mask()
+{
 }
 
-void Mask::renderToFbo(ofFbo& target) const {
-	if (!enabled) return;
+void Mask::renderToFbo(ofFbo& target) const
+{
+	if(!enabled) return;
 
 	target.begin();
 	ofClear(0, 0, 0, 0);
 	ofFloatColor color{opacity,opacity,opacity,1};
 
 	ofPushStyle();
-	if (inverted) {
+	if(inverted) {
 		ofSetColor(color);
 		ofDrawRectangle(0, 0, target.getWidth(), target.getHeight());
 
@@ -162,19 +175,21 @@ void Mask::renderToFbo(ofFbo& target) const {
 	ofPopStyle();
 	target.end();
 
-	if (feather.outer > 0 || feather.inner > 0) {
+	if(feather.outer > 0 || feather.inner > 0) {
 		applyFeather(target);
 	}
 }
 
-void Mask::renderPath(const MaskPath& path) const {
-	if (path.getVertexCount() < 2) return;
+void Mask::renderPath(const MaskPath& path) const
+{
+	if(path.getVertexCount() < 2) return;
 
 	ofPath pathObj = path.toOfPath();
 	pathObj.draw();
 }
 
-void Mask::setFromMaskAtomData(const MaskAtomData& atomData) {
+void Mask::setFromMaskAtomData(const MaskAtomData& atomData)
+{
 	MaskPath newPath;
 	newPath.setFromPathData(atomData.shape);
 	setPath(newPath);
@@ -186,18 +201,20 @@ void Mask::setFromMaskAtomData(const MaskAtomData& atomData) {
 	setMode(atomData.mode);
 }
 
-void Mask::applyFeather(ofFbo& target) const {
+void Mask::applyFeather(ofFbo& target) const
+{
 }
 
-ofRectangle Mask::getBounds() const {
-	if (path.getVertexCount() == 0) {
+ofRectangle Mask::getBounds() const
+{
+	if(path.getVertexCount() == 0) {
 		return ofRectangle(0, 0, 0, 0);
 	}
 
 	float minX = FLT_MAX, minY = FLT_MAX;
 	float maxX = -FLT_MAX, maxY = -FLT_MAX;
 
-	for (const auto& vertex : path.getVertices()) {
+	for(const auto& vertex : path.getVertices()) {
 		minX = std::min(minX, vertex.position.x);
 		minY = std::min(minY, vertex.position.y);
 		maxX = std::max(maxX, vertex.position.x);
@@ -207,17 +224,18 @@ ofRectangle Mask::getBounds() const {
 	return ofRectangle(minX, minY, maxX - minX, maxY - minY);
 }
 
-bool Mask::containsPoint(const glm::vec2& point) const {
-	if (path.getVertexCount() < 3) return false;
+bool Mask::containsPoint(const glm::vec2& point) const
+{
+	if(path.getVertexCount() < 3) return false;
 
 	bool inside = false;
 	const auto& vertices = path.getVertices();
 
-	for (size_t i = 0, j = vertices.size() - 1; i < vertices.size(); j = i++) {
+	for(size_t i = 0, j = vertices.size() - 1; i < vertices.size(); j = i++) {
 		const glm::vec2& vi = vertices[i].position;
 		const glm::vec2& vj = vertices[j].position;
 
-		if (((vi.y > point.y) != (vj.y > point.y)) &&
+		if(((vi.y > point.y) != (vj.y > point.y)) &&
 			(point.x < (vj.x - vi.x) * (point.y - vi.y) / (vj.y - vi.y) + vi.x)) {
 			inside = !inside;
 		}
@@ -226,37 +244,44 @@ bool Mask::containsPoint(const glm::vec2& point) const {
 	return inside;
 }
 
-MaskCollection::MaskCollection() {
+MaskCollection::MaskCollection()
+{
 }
 
-MaskCollection::~MaskCollection() {
+MaskCollection::~MaskCollection()
+{
 }
 
-void MaskCollection::addMask(const Mask& mask) {
+void MaskCollection::addMask(const Mask& mask)
+{
 	masks.push_back(mask);
 }
 
-void MaskCollection::removeMask(size_t index) {
-	if (index < masks.size()) {
+void MaskCollection::removeMask(size_t index)
+{
+	if(index < masks.size()) {
 		masks.erase(masks.begin() + index);
 	}
 }
 
-void MaskCollection::clear() {
+void MaskCollection::clear()
+{
 	masks.clear();
 }
 
-bool MaskCollection::hasActiveMasks() const {
-	for (const auto& mask : masks) {
-		if (mask.isEnabled()) {
+bool MaskCollection::hasActiveMasks() const
+{
+	for(const auto& mask : masks) {
+		if(mask.isEnabled()) {
 			return true;
 		}
 	}
 	return false;
 }
 
-void MaskCollection::renderCombined(ofFbo& target) const {
-	if (masks.empty()) {
+void MaskCollection::renderCombined(ofFbo& target) const
+{
+	if(masks.empty()) {
 		target.begin();
 		ofClear(255, 255, 255, 255);
 		target.end();
@@ -268,21 +293,22 @@ void MaskCollection::renderCombined(ofFbo& target) const {
 	target.end();
 
 	bool isFirst = true;
-	for (const auto& mask : masks) {
-		if (mask.isEnabled()) {
+	for(const auto& mask : masks) {
+		if(mask.isEnabled()) {
 			combineMasks(target, mask, isFirst);
 			isFirst = false;
 		}
 	}
 
-	if (isFirst) {
+	if(isFirst) {
 		target.begin();
 		ofClear(255, 255, 255, 255);
 		target.end();
 	}
 }
 
-void MaskCollection::combineMasks(ofFbo& target, const Mask& mask, bool isFirst) const {
+void MaskCollection::combineMasks(ofFbo& target, const Mask& mask, bool isFirst) const
+{
 	ofFbo maskFbo;
 	maskFbo.allocate(target.getWidth(), target.getHeight(), GL_RGBA);
 
@@ -291,7 +317,7 @@ void MaskCollection::combineMasks(ofFbo& target, const Mask& mask, bool isFirst)
 	target.begin();
 
 	ofPushStyle();
-	if (isFirst) {
+	if(isFirst) {
 		ofSetColor(ofFloatColor::white);
 		maskFbo.draw(0, 0);
 	} else {
@@ -318,13 +344,14 @@ void MaskCollection::combineMasks(ofFbo& target, const Mask& mask, bool isFirst)
 	target.end();
 }
 
-void MaskCollection::setupFromMaskProp(const MaskProp& maskProp) {
+void MaskCollection::setupFromMaskProp(const MaskProp& maskProp)
+{
 	clear();
 	
 	std::vector<MaskAtomData> atoms;
 	maskProp.tryExtract(atoms);
-	for (const auto& atomData : atoms) {
-		if (!atomData.shape.vertices.empty()) {
+	for(const auto& atomData : atoms) {
+		if(!atomData.shape.vertices.empty()) {
 			Mask mask;
 			mask.setFromMaskAtomData(atomData);
 			addMask(mask);
@@ -332,4 +359,4 @@ void MaskCollection::setupFromMaskProp(const MaskProp& maskProp) {
 	}
 }
 
-}} // namespace ae::ofx
+}} // namespace ofx::ae

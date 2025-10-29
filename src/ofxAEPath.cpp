@@ -2,42 +2,51 @@
 #include "ofxAEVisitor.h"
 
 namespace ofx { namespace ae {
-void EllipseData::accept(Visitor& visitor) const {
+void EllipseData::accept(Visitor& visitor) const
+{
 	visitor.visit(*this);
 }
 
-void RectangleData::accept(Visitor& visitor) const {
+void RectangleData::accept(Visitor& visitor) const
+{
 	visitor.visit(*this);
 }
 
-void PolygonData::accept(Visitor& visitor) const {
+void PolygonData::accept(Visitor& visitor) const
+{
 	visitor.visit(*this);
 }
 
-void PathData::accept(Visitor& visitor) const {
+void PathData::accept(Visitor& visitor) const
+{
 	visitor.visit(*this);
 }
 
-void FillData::accept(Visitor& visitor) const {
+void FillData::accept(Visitor& visitor) const
+{
 	visitor.visit(*this);
 }
 
-void StrokeData::accept(Visitor& visitor) const {
+void StrokeData::accept(Visitor& visitor) const
+{
 	visitor.visit(*this);
 }
 
-void GroupData::accept(Visitor& visitor) const {
+void GroupData::accept(Visitor& visitor) const
+{
 	visitor.visit(*this);
 }
 
-void ShapeData::accept(Visitor& visitor) const {
+void ShapeData::accept(Visitor& visitor) const
+{
 	visitor.visit(*this);
 }
 
-PathData PathData::operator+(const PathData& other) const {
+PathData PathData::operator+(const PathData& other) const
+{
 	PathData result = *this;
-	if (vertices.size() == other.vertices.size()) {
-		for (size_t i = 0; i < vertices.size(); ++i) {
+	if(vertices.size() == other.vertices.size()) {
+		for(size_t i = 0; i < vertices.size(); ++i) {
 			result.vertices[i] += other.vertices[i];
 			result.inTangents[i] += other.inTangents[i];
 			result.outTangents[i] += other.outTangents[i];
@@ -46,10 +55,11 @@ PathData PathData::operator+(const PathData& other) const {
 	return result;
 }
 
-PathData PathData::operator-(const PathData& other) const {
+PathData PathData::operator-(const PathData& other) const
+{
 	PathData result = *this;
-	if (vertices.size() == other.vertices.size()) {
-		for (size_t i = 0; i < vertices.size(); ++i) {
+	if(vertices.size() == other.vertices.size()) {
+		for(size_t i = 0; i < vertices.size(); ++i) {
 			result.vertices[i] -= other.vertices[i];
 			result.inTangents[i] -= other.inTangents[i];
 			result.outTangents[i] -= other.outTangents[i];
@@ -58,9 +68,10 @@ PathData PathData::operator-(const PathData& other) const {
 	return result;
 }
 
-PathData PathData::operator*(float t) const {
+PathData PathData::operator*(float t) const
+{
 	PathData result = *this;
-	for (size_t i = 0; i < vertices.size(); ++i) {
+	for(size_t i = 0; i < vertices.size(); ++i) {
 		result.vertices[i] *= t;
 		result.inTangents[i] *= t;
 		result.outTangents[i] *= t;
@@ -68,10 +79,11 @@ PathData PathData::operator*(float t) const {
 	return result;
 }
 
-ofPath PathData::toOfPath() const {
+ofPath PathData::toOfPath() const
+{
 	ofPath path;
 
-	if (vertices.empty()) {
+	if(vertices.empty()) {
 		return path;
 	}
 
@@ -81,10 +93,10 @@ ofPath PathData::toOfPath() const {
 
 	path.moveTo(vertices[0]);
 
-	for (size_t i = 0; i < numVertices; i++) {
+	for(size_t i = 0; i < numVertices; i++) {
 		size_t nextIndex = (i + 1) % numVertices;
 
-		if (!closed && nextIndex == 0) {
+		if(!closed && nextIndex == 0) {
 			break;
 		}
 
@@ -100,14 +112,15 @@ ofPath PathData::toOfPath() const {
 		bool hasCurve = (outTangent.x != 0 || outTangent.y != 0 ||
 						inTangent.x != 0 || inTangent.y != 0);
 
-		if (hasCurve) {
+		if(hasCurve) {
 			path.bezierTo(cp1, cp2, nextVertex);
-		} else {
+		}
+		else {
 			path.lineTo(nextVertex);
 		}
 	}
 
-	if (closed) {
+	if(closed) {
 		path.close();
 	}
 

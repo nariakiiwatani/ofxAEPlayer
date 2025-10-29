@@ -1,7 +1,9 @@
-#include "ofxAEVideoSource.h"
+#include "ofLog.h"
+
 #include "ofxAEVisitor.h"
 #include "../utils/ofxAEAssetManager.h"
-#include "ofLog.h"
+
+#include "ofxAEVideoSource.h"
 
 namespace ofx { namespace ae {
 
@@ -10,7 +12,7 @@ bool VideoSource::load(const std::filesystem::path &filepath)
 	filepath_ = filepath;
 	player_ = AssetManager::getInstance().getVideo(filepath);
 	
-	if (player_) {
+	if(player_) {
 		ofLogVerbose("VideoSource") << "Loaded video via AssetManager: " << filepath;
 		return true;
 	} else {
@@ -21,31 +23,35 @@ bool VideoSource::load(const std::filesystem::path &filepath)
 
 bool VideoSource::setFrame(int frame)
 {
-	if (!player_) return false;
+	if(!player_) return false;
 	
 	player_->setFrame(frame);
 	player_->update();
 	return player_->isFrameNew();
 }
 
-void VideoSource::draw(float x, float y, float w, float h) const {
-	if (player_) {
+void VideoSource::draw(float x, float y, float w, float h) const
+{
+	if(player_) {
 		player_->draw(x, y, w, h);
 	}
 }
 
-float VideoSource::getWidth() const {
+float VideoSource::getWidth() const
+{
 	return player_ ? player_->getWidth() : 0.0f;
 }
 
-float VideoSource::getHeight() const {
+float VideoSource::getHeight() const
+{
 	return player_ ? player_->getHeight() : 0.0f;
 }
 
-std::string VideoSource::getDebugInfo() const {
+std::string VideoSource::getDebugInfo() const
+{
 	std::ostringstream oss;
 	oss << "VideoSource[";
-	if (player_) {
+	if(player_) {
 		oss << filepath_.filename().string() << ", "
 		    << getWidth() << "x" << getHeight();
 	} else {
@@ -55,7 +61,8 @@ std::string VideoSource::getDebugInfo() const {
 	return oss.str();
 }
 
-void VideoSource::accept(Visitor& visitor) {
+void VideoSource::accept(Visitor &visitor)
+{
 	visitor.visit(*this);
 }
 

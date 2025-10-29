@@ -12,15 +12,15 @@ namespace ofx { namespace ae {
 bool ShapeSource::setup(const ofJson &json)
 {
 	visitor_ = std::make_shared<PathExtractionVisitor>();
-	if (!json.contains("shape")) {
+	if(!json.contains("shape")) {
 		ofLogWarning("ShapeSource") << "No shape data found in JSON";
 		return false;
 	}
 
-	const auto& shapeJson = json["shape"];
+	const auto &shapeJson = json["shape"];
 
 	ofJson keyframes = {};
-	if (json.contains("keyframes") && json["keyframes"].contains("shape")) {
+	if(json.contains("keyframes") && json["keyframes"].contains("shape")) {
 		keyframes = json["keyframes"]["shape"];
 	}
 
@@ -29,14 +29,16 @@ bool ShapeSource::setup(const ofJson &json)
 	return true;
 }
 
-void ShapeSource::update() {
+void ShapeSource::update()
+{
 	if(shape_props_.tryExtract(shape_data_)) {
 		visitor_ = std::make_shared<PathExtractionVisitor>();
 		visitor_->visit(shape_data_);
 	}
 }
 
-bool ShapeSource::setFrame(int frame) {
+bool ShapeSource::setFrame(int frame)
+{
     return shape_props_.setFrame(frame);
 }
 
@@ -45,7 +47,8 @@ bool ShapeSource::tryExtract(ShapeData &dst) const
 	return shape_props_.tryExtract(dst);
 }
 
-void ShapeSource::draw(float x, float y, float w, float h) const {
+void ShapeSource::draw(float x, float y, float w, float h) const
+{
 	auto bb = visitor_->getBoundingBox();
 	ofPushMatrix();
 	ofTranslate(x,y);
@@ -54,13 +57,14 @@ void ShapeSource::draw(float x, float y, float w, float h) const {
 	ofPopMatrix();
 }
 
-float ShapeSource::getWidth() const {
+float ShapeSource::getWidth() const
+{
 	return visitor_->getBoundingBox().width;
 }
 
-float ShapeSource::getHeight() const {
+float ShapeSource::getHeight() const
+{
 	return visitor_->getBoundingBox().height;
-
 }
 
 ofRectangle ShapeSource::getBoundingBox() const
@@ -69,7 +73,8 @@ ofRectangle ShapeSource::getBoundingBox() const
 }
 
 
-void ShapeSource::accept(Visitor& visitor) {
+void ShapeSource::accept(Visitor &visitor)
+{
 	visitor.visit(*this);
 }
 

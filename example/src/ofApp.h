@@ -25,8 +25,8 @@ public:
 
 private:
 	std::shared_ptr<ofx::ae::Composition> comp_;
-	bool isPlaying;
-	bool showDebugInfo;
+	bool is_playing_;
+	bool show_debug_info_;
 
 	int timeline_;
 

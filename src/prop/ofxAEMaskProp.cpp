@@ -4,7 +4,8 @@
 
 namespace ofx { namespace ae {
 
-MaskAtomProp::MaskAtomProp() {
+MaskAtomProp::MaskAtomProp()
+{
     registerProperty<PathDataProp>("/shape");
     registerProperty<VecProp<2>>("/feather");
     registerProperty<PercentProp>("/opacity");
@@ -12,40 +13,40 @@ MaskAtomProp::MaskAtomProp() {
     registerProperty<BoolProp>("/inverted");
     registerProperty<MaskModeProp>("/mode");
 
-    registerExtractor<MaskAtomData>([this](MaskAtomData& atom) -> bool {
+    registerExtractor<MaskAtomData>([this](MaskAtomData &atom) -> bool {
         bool success = true;
         
-        if (!getProperty<PathDataProp>("/shape")->tryExtract(atom.shape)) {
+        if(!getProperty<PathDataProp>("/shape")->tryExtract(atom.shape)) {
             ofLogWarning("PropertyExtraction") << "Failed to extract mask shape, using default";
             atom.shape = PathData();
             success = false;
         }
         
-        if (!getProperty<VecProp<2>>("/feather")->tryExtract(atom.feather)) {
+        if(!getProperty<VecProp<2>>("/feather")->tryExtract(atom.feather)) {
             ofLogWarning("PropertyExtraction") << "Failed to extract mask feather, using default";
             atom.feather = glm::vec2(0.0f, 0.0f);
             success = false;
         }
         
-        if (!getProperty<FloatProp>("/opacity")->tryExtract(atom.opacity)) {
+        if(!getProperty<FloatProp>("/opacity")->tryExtract(atom.opacity)) {
             ofLogWarning("PropertyExtraction") << "Failed to extract mask opacity, using default";
             atom.opacity = 100.0f;
             success = false;
         }
         
-        if (!getProperty<FloatProp>("/offset")->tryExtract(atom.offset)) {
+        if(!getProperty<FloatProp>("/offset")->tryExtract(atom.offset)) {
             ofLogWarning("PropertyExtraction") << "Failed to extract mask offset, using default";
             atom.offset = 0.0f;
             success = false;
         }
         
-        if (!getProperty<BoolProp>("/inverted")->tryExtract(atom.inverted)) {
+        if(!getProperty<BoolProp>("/inverted")->tryExtract(atom.inverted)) {
             ofLogWarning("PropertyExtraction") << "Failed to extract mask inverted, using default";
             atom.inverted = false;
             success = false;
         }
 
-		if (!getProperty<MaskModeProp>("/mode")->tryExtract(atom.mode)) {
+		if(!getProperty<MaskModeProp>("/mode")->tryExtract(atom.mode)) {
             ofLogWarning("PropertyExtraction") << "Failed to extract mask mode, using default";
             atom.mode = MaskMode::ADD;
             success = false;
@@ -55,21 +56,23 @@ MaskAtomProp::MaskAtomProp() {
     });
 }
 
-void MaskAtomProp::accept(Visitor& visitor) {
+void MaskAtomProp::accept(Visitor &visitor)
+{
     PropertyGroup::accept(visitor);
 }
 
-MaskProp::MaskProp() {
-    registerExtractor<std::vector<MaskAtomData>>([this](std::vector<MaskAtomData>& masks) -> bool {
+MaskProp::MaskProp()
+{
+    registerExtractor<std::vector<MaskAtomData>>([this](std::vector<MaskAtomData> &masks) -> bool {
 		masks.clear();
 		masks.reserve(properties_.size());
 
 		bool success = true;
 
-		for (const auto& prop : properties_) {
-			if (auto maskAtomProp = dynamic_cast<const MaskAtomProp*>(prop.get())) {
+		for(const auto &prop : properties_) {
+			if(auto maskAtomProp = dynamic_cast<const MaskAtomProp *>(prop.get())) {
 				MaskAtomData atom;
-				if (maskAtomProp->tryExtract(atom)) {
+				if(maskAtomProp->tryExtract(atom)) {
 					masks.push_back(atom);
 				} else {
 					ofLogWarning("PropertyExtraction") << "Failed to extract mask atom, skipping";
@@ -84,22 +87,23 @@ MaskProp::MaskProp() {
     });
 }
 
-void MaskProp::setup(const ofJson &base, const ofJson &keyframes) {
+void MaskProp::setup(const ofJson &base, const ofJson &keyframes)
+{
     clear();
     
-    if (!base.is_array()) {
+    if(!base.is_array()) {
         return;
     }
     
-    for (size_t i = 0; i < base.size(); ++i) {
-        const auto& atomBase = base[i];
+    for(size_t i = 0; i < base.size(); ++i) {
+        const auto &atomBase = base[i];
         
-        if (atomBase.is_null()) {
+        if(atomBase.is_null()) {
             addProperty<PropertyBase>();
             continue;
         }
         ofJson atomKeyframes = ofJson::object();
-        if (keyframes.is_array() && i < keyframes.size() && !keyframes[i].is_null()) {
+        if(keyframes.is_array() && i < keyframes.size() && !keyframes[i].is_null()) {
             atomKeyframes = keyframes[i];
         }
         
@@ -107,16 +111,17 @@ void MaskProp::setup(const ofJson &base, const ofJson &keyframes) {
     }
 }
 
-void MaskProp::setupMaskAtom(const ofJson &atomBase, const ofJson &atomKeyframes) {
+void MaskProp::setupMaskAtom(const ofJson &atomBase, const ofJson &atomKeyframes)
+{
     auto maskAtom = addProperty<MaskAtomProp>();
     
-    if (atomBase.contains("atom")) {
-        const auto& atom = atomBase["atom"];
+    if(atomBase.contains("atom")) {
+        const auto &atom = atomBase["atom"];
         
         ofJson shapeBase = atom.contains("shape") ? atom["shape"] : ofJson::object();
         ofJson shapeKeyframes = ofJson::object();
         
-        if (atomKeyframes.contains("atom") && atomKeyframes["atom"].contains("shape")) {
+        if(atomKeyframes.contains("atom") && atomKeyframes["atom"].contains("shape")) {
             shapeKeyframes = atomKeyframes["atom"]["shape"];
         }
         
@@ -136,7 +141,8 @@ void MaskProp::setupMaskAtom(const ofJson &atomBase, const ofJson &atomKeyframes
     }
 }
 
-void MaskProp::accept(Visitor& visitor) {
+void MaskProp::accept(Visitor &visitor)
+{
     PropertyArray::accept(visitor);
 }
 

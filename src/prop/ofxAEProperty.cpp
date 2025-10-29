@@ -3,15 +3,18 @@
 
 namespace ofx { namespace ae {
 
-void PropertyBase::accept(Visitor& visitor) {
+void PropertyBase::accept(Visitor &visitor)
+{
 	visitor.visit(*this);
 }
 
-void PropertyGroup::accept(Visitor& visitor) {
+void PropertyGroup::accept(Visitor &visitor)
+{
 	visitor.visit(*this);
 }
 
-void PropertyArray::accept(Visitor& visitor) {
+void PropertyArray::accept(Visitor &visitor)
+{
 	visitor.visit(*this);
 }
 

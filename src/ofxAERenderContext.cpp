@@ -1,5 +1,8 @@
-#include "ofxAERenderContext.h"
+#include <stack>
+
 #include "ofLog.h"
+
+#include "ofxAERenderContext.h"
 
 namespace ofx { namespace ae {
 static std::stack<RenderContext::Style> stack;
@@ -10,7 +13,8 @@ RenderContext::Style& getTop()
 	return stack.empty() ? root : stack.top();
 }
 }
-const RenderContext::Style& RenderContext::getCurrentStyle() {
+const RenderContext::Style& RenderContext::getCurrentStyle()
+{
 	return getTop();
 }
 

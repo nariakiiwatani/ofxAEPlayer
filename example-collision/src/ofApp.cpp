@@ -2,7 +2,8 @@
 #include "ofxAEVisitorUtils.h"
 
 //--------------------------------------------------------------
-void ofApp::setup(){
+void ofApp::setup()
+{
 	ofSetFrameRate(60);
 	
 	// Load composition
@@ -20,7 +21,8 @@ void ofApp::setup(){
 }
 
 //--------------------------------------------------------------
-void ofApp::update(){
+void ofApp::update()
+{
 	if(comp_) {
 		// Update timeline
 		if(++timeline_ >= comp_->getInfo().duration) {
@@ -33,7 +35,8 @@ void ofApp::update(){
 }
 
 //--------------------------------------------------------------
-void ofApp::draw(){
+void ofApp::draw()
+{
 	ofBackground(40);
 	
 	// Draw composition
@@ -73,14 +76,15 @@ void ofApp::draw(){
 }
 
 //--------------------------------------------------------------
-void ofApp::setupGrid() {
+void ofApp::setupGrid()
+{
 	gridPoints_.clear();
 	
 	float stepX = ofGetWidth() / (float)gridResolution_;
 	float stepY = ofGetHeight() / (float)gridResolution_;
 	
-	for (int x = 0; x < gridResolution_; x++) {
-		for (int y = 0; y < gridResolution_; y++) {
+	for(int x = 0; x < gridResolution_; x++) {
+		for(int y = 0; y < gridResolution_; y++) {
 			float px = x * stepX + stepX * 0.5f;
 			float py = y * stepY + stepY * 0.5f;
 			gridPoints_.push_back(glm::vec2(px, py));

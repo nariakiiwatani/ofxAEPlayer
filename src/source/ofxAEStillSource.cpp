@@ -1,7 +1,9 @@
-#include "ofxAEStillSource.h"
-#include "ofxAEVisitor.h"
-#include "ofxAEAssetManager.h"
 #include "ofLog.h"
+
+#include "ofxAEAssetManager.h"
+#include "ofxAEVisitor.h"
+
+#include "ofxAEStillSource.h"
 
 namespace ofx { namespace ae {
 
@@ -9,7 +11,7 @@ bool StillSource::load(const std::filesystem::path &filepath) {
 	filepath_ = filepath;
 	texture_ = AssetManager::getInstance().getTexture(filepath);
 	
-	if (texture_) {
+	if(texture_) {
 		ofLogVerbose("StillSource") << "Loaded texture via AssetManager: " << filepath;
 		return true;
 	} else {
@@ -19,7 +21,7 @@ bool StillSource::load(const std::filesystem::path &filepath) {
 }
 
 void StillSource::draw(float x, float y, float w, float h) const {
-	if (texture_) {
+	if(texture_) {
 		texture_->draw(x, y, w, h);
 	}
 }
@@ -35,7 +37,7 @@ float StillSource::getHeight() const {
 std::string StillSource::getDebugInfo() const {
 	std::ostringstream oss;
 	oss << "StillSource[";
-	if (texture_) {
+	if(texture_) {
 		oss << filepath_.filename().string() << ", "
 		    << getWidth() << "x" << getHeight();
 	} else {

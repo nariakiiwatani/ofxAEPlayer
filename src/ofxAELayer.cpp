@@ -1,11 +1,13 @@
+#include <algorithm>
+#include <fstream>
+
+#include "ofLog.h"
+#include "ofUtils.h"
+
 #include "ofxAELayer.h"
 #include "utils/TransformNode.h"
 #include "ofxAEKeyframe.h"
 #include "ofxAEVisitor.h"
-#include "ofLog.h"
-#include "ofUtils.h"
-#include <fstream>
-#include <algorithm>
 #include "JsonFuncs.h"
 
 namespace ofx { namespace ae {
@@ -48,7 +50,8 @@ std::vector<Layer::SourceResolver> BUILTIN_RESOLVERS = {
 };
 
 std::unique_ptr<ofShader> mask_shader;
-void drawWithMask(ofTexture &src, ofTexture &mask, float x, float y, float w, float h) {
+void drawWithMask(ofTexture &src, ofTexture &mask, float x, float y, float w, float h)
+{
 	if(!mask_shader) {
 		mask_shader = std::make_unique<ofShader>();
 		mask_shader->setupShaderFromSource(GL_VERTEX_SHADER, R"(#version 150
@@ -57,7 +60,8 @@ in vec4 position;
 in vec2 texcoord;
 out vec2 uv;
 
-void main(){
+void main()
+{
   gl_Position = modelViewProjectionMatrix * position;
   uv = texcoord;
 })");
@@ -68,7 +72,8 @@ uniform sampler2DRect mask_tex;
 in vec2 uv;
 out vec4 fragColor;
 
-void main(){
+void main()
+{
 	fragColor = texture(src_tex, uv);
 	fragColor.a *= texture(mask_tex, uv).r;
 }
@@ -97,11 +102,13 @@ void main(){
 
 std::vector<Layer::SourceResolver> Layer::resolvers_;
 
-void Layer::registerResolver(SourceResolver resolver) {
+void Layer::registerResolver(SourceResolver resolver)
+{
 	resolvers_.push_back(resolver);
 }
 
-void Layer::clearResolvers() {
+void Layer::clearResolvers()
+{
 	resolvers_.clear();
 }
 
@@ -130,7 +137,8 @@ std::unique_ptr<LayerSource> Layer::resolveSource(const ofJson& json, const std:
 	return nullptr;
 }
 
-bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
+bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir)
+{
 #define EXTRACT(n) json::extract(json, #n, n)
 #define EXTRACT_(n) json::extract(json, #n, n##_)
 	EXTRACT_(name);
@@ -157,7 +165,7 @@ bool Layer::setup(const ofJson& json, const std::filesystem::path &base_dir) {
 	}
 
 	auto source = resolveSource(json, base_dir);
-	if (source) {
+	if(source) {
 		setSource(std::move(source));
 	} else {
 		ofLogVerbose("Layer") << "No source resolved for layer: " << name_;
@@ -173,7 +181,7 @@ void Layer::update()
 {
 	refreshMatrix();
 
-	if (source_) {
+	if(source_) {
 		source_->update();
 	}
 }
@@ -190,7 +198,7 @@ bool Layer::setFrame(int frame)
 	
 	if(transform_.setFrame(frame)) {
 		TransformData t;
-		if (!transform_.tryExtract(t)) {
+		if(!transform_.tryExtract(t)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract TransformData, using defaults";
 		}
 		TransformNode::setAnchorPoint(t.anchor);
@@ -261,10 +269,10 @@ void Layer::updateLayerFBO()
 	auto bb = source_->getBoundingBox();
 	if(bb.isEmpty()) return;
 
-	if (layer_fbo_.getWidth() != bb.width || layer_fbo_.getHeight() != bb.height) {
+	if(layer_fbo_.getWidth() != bb.width || layer_fbo_.getHeight() != bb.height) {
 		layer_fbo_.allocate(bb.width, bb.height, GL_RGBA);
 	}
-	if (mask_fbo_.getWidth() != bb.width || mask_fbo_.getHeight() != bb.height) {
+	if(mask_fbo_.getWidth() != bb.width || mask_fbo_.getHeight() != bb.height) {
 		mask_fbo_.allocate(bb.width, bb.height, GL_RGBA);
 	}
 
@@ -301,46 +309,53 @@ void Layer::updateLayerFBO()
 
 
 
-float Layer::getHeight() const {
-    if (source_) {
+float Layer::getHeight() const
+{
+    if(source_) {
         return source_->getHeight();
     }
     return 0.0f;
 }
 
-float Layer::getWidth() const {
-    if (source_) {
+float Layer::getWidth() const
+{
+    if(source_) {
         return source_->getWidth();
     }
     return 0.0f;
 }
 
-void Layer::setSource(std::unique_ptr<LayerSource> source) {
+void Layer::setSource(std::unique_ptr<LayerSource> source)
+{
     source_ = std::move(source);
 }
 
-LayerSource::SourceType Layer::getSourceType() const {
-    if (source_) {
+LayerSource::SourceType Layer::getSourceType() const
+{
+    if(source_) {
         return source_->getSourceType();
     }
     
 	return LayerSource::UNKNOWN;
 }
 
-std::string Layer::getDebugInfo() const {
+std::string Layer::getDebugInfo() const
+{
     std::stringstream info;
     info << "Layer[" << name_ << "] ";
     info << "Source: " << (source_ ? source_->getDebugInfo() : "None") << " ";
     return info.str();
 }
 
-bool Layer::load(const std::string &filepath) {
+bool Layer::load(const std::string &filepath)
+{
 	ofJson json = ofLoadJson(filepath);
 	auto base_dir = ofFilePath::getEnclosingDirectory(filepath);
 	return setup(json, base_dir);
 }
 
-void Layer::accept(Visitor& visitor) {
+void Layer::accept(Visitor& visitor)
+{
 	visitor.visit(*this);
 }
 }} // namespace ofx::ae

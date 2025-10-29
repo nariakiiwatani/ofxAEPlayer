@@ -1,7 +1,9 @@
-#include "ofxAEAssetKey.h"
+#include <sstream>
+
 #include "ofLog.h"
 #include "ofUtils.h"
-#include <sstream>
+
+#include "ofxAEAssetKey.h"
 
 namespace ofx { namespace ae {
 
@@ -15,7 +17,7 @@ AssetKey::AssetKey(const std::filesystem::path& path, AssetType type, const std:
 void AssetKey::canonicalizePath(const std::filesystem::path& path) {
     try {
         // Convert to absolute canonical path to handle relative paths and symlinks
-        if (std::filesystem::exists(path)) {
+        if(std::filesystem::exists(path)) {
             canonical_path_ = std::filesystem::canonical(path);
         } else {
             // If file doesn't exist yet, use absolute path
@@ -28,10 +30,10 @@ void AssetKey::canonicalizePath(const std::filesystem::path& path) {
 }
 
 bool AssetKey::operator<(const AssetKey& other) const {
-    if (canonical_path_ != other.canonical_path_) {
+    if(canonical_path_ != other.canonical_path_) {
         return canonical_path_ < other.canonical_path_;
     }
-    if (type_ != other.type_) {
+    if(type_ != other.type_) {
         return type_ < other.type_;
     }
     return parameters_ < other.parameters_;
@@ -50,7 +52,7 @@ bool AssetKey::operator!=(const AssetKey& other) const {
 std::string AssetKey::toString() const {
     std::ostringstream oss;
     oss << assetTypeToString(type_) << ":" << canonical_path_.string();
-    if (!parameters_.empty()) {
+    if(!parameters_.empty()) {
         oss << "?" << parameters_;
     }
     return oss.str();
@@ -76,9 +78,9 @@ std::string AssetKey::assetTypeToString(AssetType type) {
 }
 
 AssetKey::AssetType AssetKey::stringToAssetType(const std::string& typeStr) {
-    if (typeStr == "texture") return AssetType::TEXTURE;
-    if (typeStr == "video") return AssetType::VIDEO;
-    if (typeStr == "composition") return AssetType::COMPOSITION;
+    if(typeStr == "texture") return AssetType::TEXTURE;
+    if(typeStr == "video") return AssetType::VIDEO;
+    if(typeStr == "composition") return AssetType::COMPOSITION;
     return AssetType::UNKNOWN;
 }
 

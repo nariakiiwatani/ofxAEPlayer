@@ -1,12 +1,14 @@
 #pragma once
 
+#include <vector>
+
+#include "ofGraphicsBaseTypes.h"
+#include "ofPath.h"
+
+#include "ofxAEMask.h"
+#include "ofxAEPath.h"
 #include "ofxAEProperty.h"
 #include "ofxAEShapeProp.h"
-#include "ofPath.h"
-#include "ofxAEPath.h"
-#include "ofxAEMask.h"
-#include "ofGraphicsBaseTypes.h"
-#include <vector>
 
 namespace ofx { namespace ae {
 
@@ -17,7 +19,7 @@ public:
 	MaskModeProp() : Property<MaskMode>() {}
 
 	MaskMode parse(const ofJson& json) const override {
-		if (json.is_string()) {
+		if(json.is_string()) {
 			std::string str = json.get<std::string>();
 			return maskModeFromString(str);
 		} else {

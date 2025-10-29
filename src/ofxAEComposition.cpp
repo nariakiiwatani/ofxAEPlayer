@@ -1,9 +1,11 @@
+#include <fstream>
+
+#include "ofLog.h"
+#include "ofUtils.h"
+
 #include "ofxAEComposition.h"
 #include "ofxAELayer.h"
 #include "ofxAEVisitor.h"
-#include "ofLog.h"
-#include "ofUtils.h"
-#include <fstream>
 #include "JsonFuncs.h"
 
 namespace ofx { namespace ae {
@@ -13,8 +15,8 @@ bool Composition::load(const std::filesystem::path &filepath)
 	return setup(ofLoadJson(filepath), ofFilePath::getEnclosingDirectory(filepath));
 }
 
-
-bool Composition::setup(const ofJson &json, const std::filesystem::path &base_dir) {
+bool Composition::setup(const ofJson &json, const std::filesystem::path &base_dir)
+{
 #define EXTRACT_INFO2(k,n) json::extract(json, #k, info_.n)
 #define EXTRACT_INFO(n) EXTRACT_INFO2(n, n)
 	EXTRACT_INFO(duration);
@@ -27,8 +29,8 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 #undef EXTRACT_INFO
 
 	info_.layers.clear();
-	if (json.contains("layers") && json["layers"].is_array()) {
-		for (const auto &layer : json["layers"]) {
+	if(json.contains("layers") && json["layers"].is_array()) {
+		for(const auto &layer : json["layers"]) {
 #define EXTRACT_LAYER2(k,n) json::extract(layer, #k, info.n)
 #define EXTRACT_LAYER(n) EXTRACT_LAYER2(n, n)
 			Info::LayerInfo info;
@@ -51,8 +53,8 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 		}
 	}
 
-	if (json.contains("markers")) {
-		if (!Marker::parseMarkers(json["markers"], info_.markers)) {
+	if(json.contains("markers")) {
+		if(!Marker::parseMarkers(json["markers"], info_.markers)) {
 			ofLogWarning("ofxAEComposition") << "Failed to parse markers";
 		}
 	}
@@ -64,7 +66,7 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 	for(auto info : info_.layers) {
 		std::filesystem::path layer_file = base_dir / info.filepath;
 
-		if (!std::filesystem::exists(layer_file)) {
+		if(!std::filesystem::exists(layer_file)) {
 			ofLogWarning("ofxAEComposition") << "Layer file not found: " << layer_file;
 			continue;
 		}
@@ -111,7 +113,7 @@ bool Composition::setFrame(int frame)
 		if(found == end(layer_offsets_)) return 0;
 		return found->second;
 	};
-	for (auto &layer : layers_) {
+	for(auto &layer : layers_) {
 		ret |= layer->setFrame(frame - offset(layer));
 	}
 	current_frame_ = frame;
@@ -119,12 +121,13 @@ bool Composition::setFrame(int frame)
 }
 void Composition::update()
 {
-	for (auto &layer : layers_) {
+	for(auto &layer : layers_) {
 		layer->update();
 	}
 }
 
-void Composition::draw(float x, float y, float w, float h) const {
+void Composition::draw(float x, float y, float w, float h) const
+{
 	ofPushMatrix();
 	ofTranslate(x, y);
 	ofScale(w / info_.width, h / info_.height);
@@ -139,30 +142,36 @@ void Composition::draw(float x, float y, float w, float h) const {
 	ofPopMatrix();
 }
 
-float Composition::getHeight() const {
+float Composition::getHeight() const
+{
 	return static_cast<float>(info_.height);
 }
 
-float Composition::getWidth() const {
+float Composition::getWidth() const
+{
 	return static_cast<float>(info_.width);
 }
 
-const Composition::Info& Composition::getInfo() const {
+const Composition::Info& Composition::getInfo() const
+{
 	return info_;
 }
 
-std::shared_ptr<Layer> Composition::getLayer(const std::string &name) const {
+std::shared_ptr<Layer> Composition::getLayer(const std::string &name) const
+{
 	for(auto &&[n,l] : name_layers_map_) {
 		if(n == name) return l.lock();
 	}
 	return nullptr;
 }
 
-std::vector<std::shared_ptr<Layer>> Composition::getLayers() const {
+std::vector<std::shared_ptr<Layer>> Composition::getLayers() const
+{
 	return layers_;
 }
 
-void Composition::accept(Visitor& visitor) {
+void Composition::accept(Visitor &visitor)
+{
 	visitor.visit(*this);
 }
 }}

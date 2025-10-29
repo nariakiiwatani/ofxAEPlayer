@@ -1,20 +1,22 @@
 #pragma once
 
 #include <filesystem>
-#include <string>
 #include <memory>
+#include <string>
 #include <vector>
+
 #include "ofGraphicsBaseTypes.h"
 #include "ofJson.h"
-#include "ofxAEMarker.h"
+
 #include "ofxAEKeyframe.h"
-#include "ofxAETransformProp.h"
 #include "ofxAELayerSource.h"
-#include "ofxAETrackMatte.h"
-#include "ofxAEMaskProp.h"
+#include "ofxAEMarker.h"
 #include "ofxAEMask.h"
-#include "TransformNode.h"
+#include "ofxAEMaskProp.h"
+#include "ofxAETrackMatte.h"
+#include "ofxAETransformProp.h"
 #include "Hierarchical.h"
+#include "TransformNode.h"
 
 namespace ofx { namespace ae {
 class Visitor;
@@ -32,7 +34,7 @@ public:
 	static void clearResolvers();
 
 	Layer();
-	void accept(Visitor& visitor);
+	void accept(Visitor &visitor);
 
 	bool load(const std::string& base_dir);
 	bool setup(const ofJson& json, const std::filesystem::path &source_dir="");
@@ -48,9 +50,9 @@ public:
 	bool isVisible() const { return is_visible_; }
 
 	void setSource(std::unique_ptr<LayerSource> source);
-	LayerSource* getSource() const { return source_.get(); }
+	LayerSource *getSource() const { return source_.get(); }
 	template<typename T>
-	T* getSource() const {
+	T *getSource() const {
 		return dynamic_cast<T*>(source_.get());
 	}
 	LayerSource::SourceType getSourceType() const;
