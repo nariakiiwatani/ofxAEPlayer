@@ -6,7 +6,7 @@
 
 namespace ofx { namespace ae { namespace utils {
 
-float ShapePathGenerator::signedArea(const ofPolyline& pl)
+float ShapePathGenerator::signedArea(const ofPolyline &pl)
 {
     const auto& v = pl.getVertices();
     if(v.size() < 3) return 0.f;
@@ -17,7 +17,7 @@ float ShapePathGenerator::signedArea(const ofPolyline& pl)
     return (float)(0.5 * a);
 }
 
-ofPath ShapePathGenerator::enforceWinding(const ofPath& src, WindingDirection direction)
+ofPath ShapePathGenerator::enforceWinding(const ofPath &src, WindingDirection direction)
 {
     int desiredSign = getDesiredSign(direction);
     
@@ -28,7 +28,7 @@ ofPath ShapePathGenerator::enforceWinding(const ofPath& src, WindingDirection di
         auto v = poly.getVertices();
         if(v.size() < 3) continue;
         bool ccw = signedArea(poly) > 0;
-        if((ccw ? +1 : -1) != desiredSign){
+        if((ccw ? +1 : -1) != desiredSign) {
             std::reverse(v.begin(), v.end());
         }
         out.moveTo(v[0]);
@@ -38,24 +38,28 @@ ofPath ShapePathGenerator::enforceWinding(const ofPath& src, WindingDirection di
     return out;
 }
 
-ofPath ShapePathGenerator::createPath(const EllipseData& e)
+ofPath ShapePathGenerator::createPath(const EllipseData &e)
 {
     ofPath path;
     path.ellipse(e.position, e.size.x, e.size.y);
     return enforceWinding(path, e.direction);
 }
 
-ofPath ShapePathGenerator::createPath(const RectangleData& r)
+ofPath ShapePathGenerator::createPath(const RectangleData &r)
 {
     ofPath path;
     float x=r.position.x - r.size.x*0.5f;
     float y=r.position.y - r.size.y*0.5f;
-    if(r.roundness>0) path.rectRounded(x,y,r.size.x,r.size.y,r.roundness);
-    else              path.rectangle(x,y,r.size.x,r.size.y);
+	if(r.roundness>0) {
+		path.rectRounded(x,y,r.size.x,r.size.y,r.roundness);
+	}
+	else {
+		path.rectangle(x,y,r.size.x,r.size.y);
+	}
     return enforceWinding(path, r.direction);
 }
 
-ofPath ShapePathGenerator::createPath(const PolygonData& polygon)
+ofPath ShapePathGenerator::createPath(const PolygonData &polygon)
 {
     ofPath path;
     
@@ -98,14 +102,13 @@ ofPath ShapePathGenerator::createPath(const PolygonData& polygon)
     return path;
 }
 
-ofPath ShapePathGenerator::createPath(const PathData& data)
+ofPath ShapePathGenerator::createPath(const PathData &data)
 {
     return data.toOfPath();
 }
 
-std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const EllipseData& data)
+std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const EllipseData &data)
 {
-    // For ellipse: center at position, extends by size/2 in both directions
     float halfWidth = data.size.x * 0.5f;
     float halfHeight = data.size.y * 0.5f;
     
@@ -117,9 +120,8 @@ std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const EllipseData&
     );
 }
 
-std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const RectangleData& data)
+std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const RectangleData &data)
 {
-    // For rectangle: center at position, extends by size/2 in both directions
     float halfWidth = data.size.x * 0.5f;
     float halfHeight = data.size.y * 0.5f;
     
@@ -131,13 +133,12 @@ std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const RectangleDat
     );
 }
 
-std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const PolygonData& data)
+std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const PolygonData &data)
 {
     if(data.points < 3) {
-        return std::nullopt; // Invalid polygon
+        return std::nullopt;
     }
     
-    // For polygon/star: calculate all vertices and find min/max bounds
     bool isStar = (data.type == 2);
     float outerRadius = data.outerRadius;
     float innerRadius = isStar ? data.innerRadius : outerRadius;
@@ -150,7 +151,6 @@ std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const PolygonData&
     float minY = std::numeric_limits<float>::max();
     float maxY = std::numeric_limits<float>::lowest();
     
-    // Check all outer vertices
     for(int i = 0; i < data.points; i++) {
         float angle = startAngle + i * angleStep;
         float x = data.position.x + cos(angle) * outerRadius;
@@ -161,7 +161,6 @@ std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const PolygonData&
         minY = std::min(minY, y);
         maxY = std::max(maxY, y);
         
-        // For stars, also check inner vertices
         if(isStar) {
             float innerAngle = angle + angleStep * 0.5f;
             float innerX = data.position.x + cos(innerAngle) * innerRadius;
@@ -177,29 +176,25 @@ std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const PolygonData&
     return ofRectangle(minX, minY, maxX - minX, maxY - minY);
 }
 
-std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const PathData& data)
+std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const PathData &data)
 {
     if(data.vertices.empty()) {
-        return std::nullopt; // No vertices to calculate bounds
+        return std::nullopt;
     }
     
-    // Find min/max of all vertices
     float minX = std::numeric_limits<float>::max();
     float maxX = std::numeric_limits<float>::lowest();
     float minY = std::numeric_limits<float>::max();
     float maxY = std::numeric_limits<float>::lowest();
     
-    for(const auto& vertex : data.vertices) {
+    for(const auto &vertex : data.vertices) {
         minX = std::min(minX, vertex.x);
         maxX = std::max(maxX, vertex.x);
         minY = std::min(minY, vertex.y);
         maxY = std::max(maxY, vertex.y);
     }
     
-    // Also consider control points for bezier curves
-    for(const auto& tangent : data.inTangents) {
-        // Note: tangents are relative to vertices, so we need to consider them
-        // in combination with vertices for accurate bounds of bezier curves
+    for(const auto &tangent : data.inTangents) {
         for(size_t i = 0; i < data.vertices.size() && i < data.inTangents.size(); i++) {
             glm::vec2 controlPoint = data.vertices[i] + data.inTangents[i];
             minX = std::min(minX, controlPoint.x);
@@ -209,7 +204,7 @@ std::optional<ofRectangle> ShapePathGenerator::getBoundingBox(const PathData& da
         }
     }
     
-    for(const auto& tangent : data.outTangents) {
+    for(const auto &tangent : data.outTangents) {
         for(size_t i = 0; i < data.vertices.size() && i < data.outTangents.size(); i++) {
             glm::vec2 controlPoint = data.vertices[i] + data.outTangents[i];
             minX = std::min(minX, controlPoint.x);

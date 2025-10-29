@@ -1,7 +1,7 @@
 #include "ofxAEVisitorUtils.h"
-#include "ofxAELayer.h"
-#include "ofxAETransformProp.h"
-#include "ofxAEFillRule.h"
+#include "../core/ofxAELayer.h"
+#include "../prop/ofxAETransformProp.h"
+#include "../data/Enums.h"
 
 namespace ofx { namespace ae {
 
@@ -18,7 +18,7 @@ PathExtractionVisitor::PathExtractionVisitor(const GroupData &group)
 	visitChildren(group);
 }
 
-void PathExtractionVisitor::visit(const EllipseData& data) {
+void PathExtractionVisitor::visit(const EllipseData &data) {
 	path_.append(utils::ShapePathGenerator::createPath(data));
 	auto bb = utils::ShapePathGenerator::getBoundingBox(data);
 	if(bb) {
@@ -28,7 +28,7 @@ void PathExtractionVisitor::visit(const EllipseData& data) {
 	Visitor::visit(data);
 }
 
-void PathExtractionVisitor::visit(const RectangleData& data) {
+void PathExtractionVisitor::visit(const RectangleData &data) {
 	path_.append(utils::ShapePathGenerator::createPath(data));
 	auto bb = utils::ShapePathGenerator::getBoundingBox(data);
 	if(bb) {
@@ -38,7 +38,7 @@ void PathExtractionVisitor::visit(const RectangleData& data) {
 	Visitor::visit(data);
 }
 
-void PathExtractionVisitor::visit(const PolygonData& data) {
+void PathExtractionVisitor::visit(const PolygonData &data) {
 	path_.append(utils::ShapePathGenerator::createPath(data));
 	auto bb = utils::ShapePathGenerator::getBoundingBox(data);
 	if(bb) {
@@ -48,7 +48,7 @@ void PathExtractionVisitor::visit(const PolygonData& data) {
 	Visitor::visit(data);
 }
 
-void PathExtractionVisitor::visit(const PathData& data) {
+void PathExtractionVisitor::visit(const PathData &data) {
 	path_.append(utils::ShapePathGenerator::createPath(data));
 	auto bb = utils::ShapePathGenerator::getBoundingBox(data);
 	if(bb) {
@@ -58,7 +58,7 @@ void PathExtractionVisitor::visit(const PathData& data) {
 	Visitor::visit(data);
 }
 
-void PathExtractionVisitor::visit(const FillData& data) {
+void PathExtractionVisitor::visit(const FillData &data) {
 	ofPath p = path_;
 
 	p.setFillColor(data.color);
@@ -78,7 +78,7 @@ void PathExtractionVisitor::visit(const FillData& data) {
 	Visitor::visit(data);
 }
 
-void PathExtractionVisitor::visit(const StrokeData& data) {
+void PathExtractionVisitor::visit(const StrokeData &data) {
 	ofPath p = path_;
 
 	p.setStrokeColor(data.color);
@@ -96,7 +96,7 @@ void PathExtractionVisitor::visit(const StrokeData& data) {
 	Visitor::visit(data);
 }
 
-void PathExtractionVisitor::visit(const GroupData& group) {
+void PathExtractionVisitor::visit(const GroupData &group) {
 	PathExtractionVisitor visitor(group);
 	auto item = std::make_shared<RenderGroupItem>(visitor.getRenderer());
 	auto bb = item->getBB();
@@ -172,7 +172,7 @@ void PathExtractionVisitor::RenderGroupItem::draw(float alpha) const
 }
 
 namespace {
-static inline glm::vec2 applyMat2D(const ofMatrix4x4& M, float x, float y){
+static inline glm::vec2 applyMat2D(const ofMatrix4x4 &M, float x, float y){
 	glm::vec4 h = ofVec4f(x, y, 0.0f, 1.0f) * M;
 	if(h.w != 0.0f){ h.x /= h.w; h.y /= h.w; }
 	return {h.x, h.y};
@@ -196,7 +196,9 @@ ofRectangle getTransformed(const ofRectangle &src, const ofMatrix4x4 &transform)
 	const float maxy = std::max(std::max(p0.y, p1.y), std::max(p2.y, p3.y));
 
 	return ofRectangle(minx, miny, maxx - minx, maxy - miny);
-}}
+}
+}
+
 ofRectangle PathExtractionVisitor::RenderGroupItem::getBB() const
 {
 	ofRectangle ret;

@@ -11,13 +11,13 @@ class Visitor;
 class VideoSource : public LayerSource
 {
 public:
-	void accept(Visitor& visitor) override;
+	void accept(Visitor &visitor) override;
 	bool load(const std::filesystem::path &filepath) override;
 	bool setFrame(int frame) override;
 	void draw(float x, float y, float w, float h) const override;
 	float getWidth() const override;
 	float getHeight() const override;
-	SourceType getSourceType() const override { return VIDEO; }
+	SourceType getSourceType() const override { return SourceType::VIDEO; }
 	std::string getDebugInfo() const override;
 
 private:

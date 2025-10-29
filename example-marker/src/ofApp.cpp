@@ -1,6 +1,6 @@
 #include "ofApp.h"
 
-#include "ofxAEMarker.h"
+#include "ofxAEMarkerUtils.h"
 
 //--------------------------------------------------------------
 void ofApp::setup(){

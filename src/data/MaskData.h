@@ -1,8 +1,8 @@
 #pragma once
 
 #include <glm/vec2.hpp>
-#include "ofxAEPath.h"
-#include "../core/ofxAEMask.h"
+#include "PathData.h"
+#include "Enums.h"
 
 namespace ofx { namespace ae {
 

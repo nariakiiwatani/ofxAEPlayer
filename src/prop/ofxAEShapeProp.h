@@ -2,22 +2,21 @@
 
 #include "ofxAEProperty.h"
 #include "ofxAETransformProp.h"
-#include "ofxAEBlendMode.h"
-#include "ofxAEFillRule.h"
-#include "ofxAEWindingDirection.h"
-#include "../data/ofxAEPath.h"
-#include "ofMain.h"
+#include "../utils/ofxAEBlendMode.h"
+#include "../data/Enums.h"
+#include "../data/PathData.h"
 #include <memory>
 
 namespace ofx { namespace ae {
 
 class Visitor;
 
-class BlendModeProp : public Property<BlendMode> {
+class BlendModeProp : public Property<BlendMode>
+{
 public:
 	BlendModeProp() : Property<BlendMode>() {}
 
-	BlendMode parse(const ofJson& json) const override {
+	BlendMode parse(const ofJson &json) const override {
 		if (json.is_string()) {
 			std::string blendModeStr = json.get<std::string>();
 			return blendModeFromString(blendModeStr);
@@ -27,11 +26,12 @@ public:
 		}
 	}
 };
-class FillRuleProp : public Property<FillRule> {
+class FillRuleProp : public Property<FillRule>
+{
 public:
 	FillRuleProp() : Property<FillRule>() {}
 
-	FillRule parse(const ofJson& json) const override {
+	FillRule parse(const ofJson &json) const override {
 		if (json.is_string()) {
 			return fillRuleFromString(json.get<std::string>());
 		} else {
@@ -40,11 +40,12 @@ public:
 		}
 	}
 };
-class WindingDirectionProp : public Property<WindingDirection> {
+class WindingDirectionProp : public Property<WindingDirection>
+{
 public:
 	WindingDirectionProp() : Property<WindingDirection>() {}
 
-	WindingDirection parse(const ofJson& json) const override {
+	WindingDirection parse(const ofJson &json) const override {
 		if (json.is_string()) {
 			return windingDirectionFromString(json.get<std::string>());
 		} else {
@@ -63,7 +64,7 @@ public:
 };
 
 struct ShapeData : public GroupData {
-	void accept(Visitor& visitor) const override;
+	void accept(Visitor &visitor) const override;
 };
 
 class EllipseProp : public PropertyGroup
@@ -74,7 +75,7 @@ public:
 		registerProperty<VecProp<2>>("/position");
 		registerProperty<WindingDirectionProp>("/direction");
 
-		registerExtractor<EllipseData>([this](EllipseData& e) -> bool {
+		registerExtractor<EllipseData>([this](EllipseData &e) -> bool {
 			bool success = true;
 			
 			if (!getProperty<VecProp<2>>("/size")->tryExtract(e.size)) {
@@ -155,7 +156,7 @@ public:
 		registerProperty<FloatProp>("/innerRoundness");
 		registerProperty<FloatProp>("/outerRoundness");
 		
-		registerExtractor<PolygonData>([this](PolygonData& p) -> bool {
+		registerExtractor<PolygonData>([this](PolygonData &p) -> bool {
 			bool success = true;
 			
 			if (!getProperty<WindingDirectionProp>("/direction")->tryExtract(p.direction)) {
@@ -225,7 +226,7 @@ public:
 		
 		registerProperty<PathDataProp>("/shape");
 		
-		registerExtractor<PathData>([this](PathData& p) -> bool {
+		registerExtractor<PathData>([this](PathData &p) -> bool {
 			bool success = true;
 			
 			if (!getProperty<PathDataProp>("/shape")->tryExtract(p)) {
@@ -265,7 +266,7 @@ public:
 		registerProperty<BlendModeProp>("/blendMode");
 		registerProperty<IntProp>("/compositeOrder");
 		
-		registerExtractor<FillData>([this](FillData& f) -> bool {
+		registerExtractor<FillData>([this](FillData &f) -> bool {
 			bool success = true;
 			
 			if (!getProperty<ColorProp>("/color")->tryExtract(f.color)) {
@@ -316,7 +317,7 @@ public:
 		registerProperty<BlendModeProp>("/blendMode");
 		registerProperty<IntProp>("/compositeOrder");
 		
-		registerExtractor<StrokeData>([this](StrokeData& s) -> bool {
+		registerExtractor<StrokeData>([this](StrokeData &s) -> bool {
 			bool success = true;
 			
 			if (!getProperty<ColorProp>("/color")->tryExtract(s.color)) {
@@ -388,7 +389,5 @@ public:
 	GroupProp();
 	void setup(const ofJson &base, const ofJson &keyframes) override;
 };
-
-
 
 }}

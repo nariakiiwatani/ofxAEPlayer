@@ -10,12 +10,12 @@ class Visitor;
 class StillSource : public LayerSource
 {
 public:
-	void accept(Visitor& visitor) override;
+	void accept(Visitor &visitor) override;
 	bool load(const std::filesystem::path &filepath) override;
 	void draw(float x, float y, float w, float h) const override;
 	float getWidth() const override;
 	float getHeight() const override;
-	SourceType getSourceType() const override { return STILL; }
+	SourceType getSourceType() const override { return SourceType::STILL; }
 	std::string getDebugInfo() const override;
 	
 private:

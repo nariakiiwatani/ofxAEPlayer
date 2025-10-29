@@ -37,7 +37,7 @@ bool SequenceSource::setFrame(int frame)
 	return true;
 }
 
-void SequenceSource::accept(Visitor& visitor) {
+void SequenceSource::accept(Visitor &visitor) {
 	visitor.visit(*this);
 }
 

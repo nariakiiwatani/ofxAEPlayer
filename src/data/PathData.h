@@ -1,12 +1,11 @@
 #pragma once
 
 #include "ofPath.h"
-#include "ofxAEFillRule.h"
-#include "ofxAEWindingDirection.h"
-#include "ofxAEBlendMode.h"
+#include "../data/Enums.h"
+#include "../utils/ofxAEBlendMode.h"
 #include "ofColor.h"
 #include <glm/vec2.hpp>
-#include "ofxAETransform.h"
+#include "TransformData.h"
 
 namespace ofx { namespace ae {
 class Visitor;

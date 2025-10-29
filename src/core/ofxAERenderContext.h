@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ofGraphics.h"
-#include "ofxAEBlendMode.h"
+#include "../utils/ofxAEBlendMode.h"
 
 namespace ofx { namespace ae {
 

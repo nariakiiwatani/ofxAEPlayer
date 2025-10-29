@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ofxAEProperty.h"
-#include "ofxAETransform.h"
+#include "../data/TransformData.h"
 
 namespace ofx { namespace ae {
 class TransformProp : public PropertyGroup
@@ -14,7 +14,7 @@ public:
 		registerProperty<FloatProp>("/rotateZ");
 		registerProperty<PercentProp>("/opacity");
 
-		registerExtractor<TransformData>([this](TransformData& t) -> bool {
+		registerExtractor<TransformData>([this](TransformData &t) -> bool {
 			bool success = true;
 
 			if (!getProperty<VecProp<3>>("/anchor")->tryExtract(t.anchor)) {

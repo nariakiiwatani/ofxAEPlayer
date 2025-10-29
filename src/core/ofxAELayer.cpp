@@ -5,10 +5,10 @@
 #include "ofUtils.h"
 
 #include "ofxAELayer.h"
-#include "core/TransformNode.h"
-#include "ofxAEKeyframe.h"
+#include "../libs/TransformNode.h"
+#include "../prop/ofxAEKeyframe.h"
 #include "ofxAEVisitor.h"
-#include "JsonFuncs.h"
+#include "../libs/JsonFuncs.h"
 
 namespace ofx { namespace ae {
 
@@ -152,7 +152,6 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 		transform_.setup(json["transform"], kf);
 	}
 	
-	// Time remap setup - automatically enable if timeRemap data exists
 	if(json.contains("timeRemap")) {
 		auto&& time_remap_kf = json.value("/keyframes/timeRemap"_json_pointer, ofJson{});
 		time_remap_.setup(json["timeRemap"], time_remap_kf);
@@ -330,13 +329,13 @@ void Layer::setSource(std::unique_ptr<LayerSource> source)
     source_ = std::move(source);
 }
 
-LayerSource::SourceType Layer::getSourceType() const
+SourceType Layer::getSourceType() const
 {
     if(source_) {
         return source_->getSourceType();
     }
     
-	return LayerSource::UNKNOWN;
+	return SourceType::UNKNOWN;
 }
 
 std::string Layer::getDebugInfo() const

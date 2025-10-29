@@ -13,19 +13,18 @@ namespace ofx { namespace ae {
 std::unique_ptr<LayerSource> LayerSource::createSourceOfType(SourceType type)
 {
 	switch(type) {
-		case SOLID:
+		case SourceType::SOLID:
 			return std::make_unique<SolidSource>();
-		case COMPOSITION:
+		case SourceType::COMPOSITION:
 			return std::make_unique<CompositionSource>();
-		case SHAPE:
+		case SourceType::SHAPE:
 			return std::make_unique<ShapeSource>();
 		
-		// New media source types
-		case STILL:
+		case SourceType::STILL:
 			return std::make_unique<StillSource>();
-		case VIDEO:
+		case SourceType::VIDEO:
 			return std::make_unique<VideoSource>();
-		case SEQUENCE:
+		case SourceType::SEQUENCE:
 			return std::make_unique<SequenceSource>();
 		
 		// TODO: Implement support for CAMERA, LIGHT, ADJUSTMENT, TEXT, NULL_OBJECT source types

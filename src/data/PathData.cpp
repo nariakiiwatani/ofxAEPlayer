@@ -1,4 +1,4 @@
-#include "ofxAEPath.h"
+#include "PathData.h"
 #include "ofxAEVisitor.h"
 
 namespace ofx { namespace ae {

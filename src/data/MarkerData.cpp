@@ -2,11 +2,12 @@
 
 #include "ofLog.h"
 
-#include "ofxAEMarker.h"
+#include "MarkerData.h"
 
 namespace ofx { namespace ae {
 
-bool Marker::parseMarkers(const ofJson &marker_data, std::vector<MarkerData> &result) {
+bool Marker::parseMarkers(const ofJson &marker_data, std::vector<MarkerData> &result)
+{
 	result.clear();
 	
 	if(!marker_data.is_array()) {
@@ -41,7 +42,8 @@ bool Marker::parseMarkers(const ofJson &marker_data, std::vector<MarkerData> &re
 	return !result.empty();
 }
 
-std::vector<MarkerData> Marker::getMarkersInRange(const std::vector<MarkerData> &markers, int start_frame, int end_frame) {
+std::vector<MarkerData> Marker::getMarkersInRange(const std::vector<MarkerData> &markers, int start_frame, int end_frame)
+{
 	std::vector<MarkerData> result;
 	
 	for(const auto &marker : markers) {
@@ -55,7 +57,8 @@ std::vector<MarkerData> Marker::getMarkersInRange(const std::vector<MarkerData> 
 	return result;
 }
 
-const MarkerData* Marker::findMarkerByComment(const std::vector<MarkerData> &markers, const std::string &comment) {
+const MarkerData* Marker::findMarkerByComment(const std::vector<MarkerData> &markers, const std::string &comment)
+{
 	for(const auto &marker : markers) {
 		if(marker.comment == comment) {
 			return &marker;
@@ -64,7 +67,8 @@ const MarkerData* Marker::findMarkerByComment(const std::vector<MarkerData> &mar
 	return nullptr;
 }
 
-const MarkerData* Marker::findMarkerByFrame(const std::vector<MarkerData> &markers, int frame) {
+const MarkerData* Marker::findMarkerByFrame(const std::vector<MarkerData> &markers, int frame)
+{
 	for(const auto &marker : markers) {
 		if(frame >= marker.frame && frame <= marker.frame + marker.length) {
 			return &marker;
@@ -73,7 +77,8 @@ const MarkerData* Marker::findMarkerByFrame(const std::vector<MarkerData> &marke
 	return nullptr;
 }
 
-std::vector<const MarkerData*> Marker::findMarkersWithDuration(const std::vector<MarkerData> &markers) {
+std::vector<const MarkerData*> Marker::findMarkersWithDuration(const std::vector<MarkerData> &markers)
+{
 	std::vector<const MarkerData*> result;
 	
 	for(const auto &marker : markers) {

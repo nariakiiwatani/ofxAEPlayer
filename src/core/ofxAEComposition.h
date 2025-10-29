@@ -2,8 +2,8 @@
 
 #include "ofGraphicsBaseTypes.h"
 #include "ofJson.h"
-#include "ofxAEMarker.h"
-#include "ofxAETrackMatte.h"
+#include "../data/MarkerData.h"
+#include "../utils/ofxAETrackMatte.h"
 
 namespace ofx { namespace ae {
 

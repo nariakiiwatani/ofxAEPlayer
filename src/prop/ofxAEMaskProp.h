@@ -5,8 +5,9 @@
 #include "ofGraphicsBaseTypes.h"
 #include "ofPath.h"
 
-#include "../core/ofxAEMask.h"
-#include "../data/ofxAEPath.h"
+#include "../data/Enums.h"
+#include "../data/PathData.h"
+#include "../data/MaskData.h"
 #include "ofxAEProperty.h"
 #include "ofxAEShapeProp.h"
 
@@ -27,17 +28,6 @@ public:
 			return MaskMode::ADD;
 		}
 	}
-};
-
-struct MaskAtomData {
-    PathData shape;
-    glm::vec2 feather{0.f, 0.f};
-    float opacity = 1.f;
-    float offset = 0.f;
-    bool inverted = false;
-    MaskMode mode = static_cast<MaskMode>(0);
-    
-    void accept(Visitor &visitor) const;
 };
 
 

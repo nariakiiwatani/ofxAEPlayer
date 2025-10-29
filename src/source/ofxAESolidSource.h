@@ -11,7 +11,7 @@ class Visitor;
 class SolidSource : public LayerSource
 {
 public:
-	void accept(Visitor& visitor) override;
+	void accept(Visitor &visitor) override;
 	bool setup(const ofJson &json) override {
 		size_.x = json["width"];
 		size_.y = json["height"];
@@ -31,7 +31,7 @@ public:
 	float getWidth() const override { return size_.x; }
 	float getHeight() const override { return size_.y; }
 
-	SourceType getSourceType() const override { return SOLID; }
+	SourceType getSourceType() const override { return SourceType::SOLID; }
 	std::string getDebugInfo() const override { return "SolidSource"; }
 private:
 	glm::ivec2 size_;

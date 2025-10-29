@@ -17,11 +17,9 @@ AssetKey::AssetKey(const std::filesystem::path& path, AssetType type, const std:
 void AssetKey::canonicalizePath(const std::filesystem::path& path)
 {
     try {
-        // Convert to absolute canonical path to handle relative paths and symlinks
         if(std::filesystem::exists(path)) {
             canonical_path_ = std::filesystem::canonical(path);
         } else {
-            // If file doesn't exist yet, use absolute path
             canonical_path_ = std::filesystem::absolute(path);
         }
     } catch (const std::filesystem::filesystem_error& e) {
@@ -69,7 +67,6 @@ std::size_t AssetKey::hash() const
     std::size_t h2 = std::hash<int>{}(static_cast<int>(type_));
     std::size_t h3 = std::hash<std::string>{}(parameters_);
     
-    // Combine hashes using a common technique
     return h1 ^ (h2 << 1) ^ (h3 << 2);
 }
 

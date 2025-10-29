@@ -2,7 +2,7 @@
 
 #include "ofLog.h"
 
-#include "ofxAEVisitor.h"
+#include "../core/ofxAEVisitor.h"
 #include "../utils/ofxAEAssetManager.h"
 
 #include "ofxAECompositionSource.h"
@@ -15,7 +15,8 @@ CompositionSource::CompositionSource()
 {
 }
 
-bool CompositionSource::load(const std::filesystem::path& filepath) {
+bool CompositionSource::load(const std::filesystem::path &filepath)
+{
 	filepath_ = filepath;
 	composition_ = AssetManager::getInstance().getComposition(filepath);
 	
@@ -33,35 +34,40 @@ bool CompositionSource::setFrame(int frame)
 	return composition_ && composition_->setFrame(frame);
 }
 
-void CompositionSource::update() {
+void CompositionSource::update()
+{
     if(!composition_) {
         return;
     }
 	composition_->update();
 }
 
-void CompositionSource::draw(float x, float y, float w, float h) const {
+void CompositionSource::draw(float x, float y, float w, float h) const
+{
     if(!composition_) {
         return;
     }
 	composition_->draw(x, y, w, h);
 }
 
-float CompositionSource::getWidth() const {
+float CompositionSource::getWidth() const
+{
     if(!composition_) {
         return 0.0f;
     }
     return composition_->getWidth();
 }
 
-float CompositionSource::getHeight() const {
+float CompositionSource::getHeight() const
+{
     if(!composition_) {
         return 0.0f;
     }
     return composition_->getHeight();
 }
 
-std::string CompositionSource::getDebugInfo() const {
+std::string CompositionSource::getDebugInfo() const
+{
     std::stringstream ss;
     ss << "CompositionSource[";
     if(composition_) {
@@ -75,7 +81,8 @@ std::string CompositionSource::getDebugInfo() const {
     return ss.str();
 }
 
-void CompositionSource::accept(Visitor& visitor) {
+void CompositionSource::accept(Visitor &visitor)
+{
 	visitor.visit(*this);
 }
 

@@ -6,46 +6,30 @@
 #include <memory>
 #include <functional>
 
-// Forward declarations
 namespace ofx { namespace ae {
     class Composition;
 }}
 
 namespace ofx { namespace ae {
 
-/**
- * AssetManager - Singleton class for managing shared assets
- * Simple single-threaded implementation for preventing duplicate loading
- */
 class AssetManager
 {
 public:
-    // Singleton access
     static AssetManager& getInstance();
     
-    // Delete copy constructor and assignment operator
     AssetManager(const AssetManager&) = delete;
     AssetManager& operator=(const AssetManager&) = delete;
     
-    /**
-     * Asset access methods
-     */
-    std::shared_ptr<ofTexture> getTexture(const std::filesystem::path& path);
-    std::shared_ptr<ofVideoPlayer> getVideo(const std::filesystem::path& path);
-    std::shared_ptr<Composition> getComposition(const std::filesystem::path& path);
-    
-    /**
-     * Cache management
-     */
+    std::shared_ptr<ofTexture> getTexture(const std::filesystem::path &path);
+    std::shared_ptr<ofVideoPlayer> getVideo(const std::filesystem::path &path);
+    std::shared_ptr<Composition> getComposition(const std::filesystem::path &path);
+
     void cleanup();
     void clearTextureCache();
     void clearVideoCache();
     void clearCompositionCache();
     void clearAllCaches();
     
-    /**
-     * Statistics
-     */
     struct AssetStats {
         CacheStats texture_stats;
         CacheStats video_stats;
@@ -60,23 +44,17 @@ public:
     
     AssetStats getStats() const;
     void resetStats();
-    
-    /**
-     * Debug utilities
-     */
-    std::string getDebugInfo() const;
+
+	std::string getDebugInfo() const;
     void logCacheStats() const;
     
 private:
-    // Private constructor for singleton
     AssetManager() = default;
     
-    // Asset caches
     AssetCache<ofTexture> texture_cache_;
     AssetCache<ofVideoPlayer> video_cache_;
     AssetCache<Composition> composition_cache_;
     
-    // Asset loading functions
     std::shared_ptr<ofTexture> createTexture(const std::filesystem::path& path);
     std::shared_ptr<ofVideoPlayer> createVideo(const std::filesystem::path& path);
     std::shared_ptr<Composition> createComposition(const std::filesystem::path& path);

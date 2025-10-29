@@ -101,7 +101,7 @@ void ofApp::drawDebugInfo()
             
             // Test the sourceType field using the new API
             auto sourceTypeEnum = layer->getSourceType();
-            string sourceType = ofx::ae::LayerSource::sourceTypeToString(sourceTypeEnum);
+            string sourceType = ofx::ae::toString(sourceTypeEnum);
             
             if(sourceType.empty()) {
                 info += "[NO SOURCE TYPE]";

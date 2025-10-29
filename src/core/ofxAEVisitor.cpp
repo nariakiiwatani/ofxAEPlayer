@@ -15,37 +15,37 @@ void Visitor::visit(const Layer &layer)
 		const LayerSource *source = layer.getSource();
 		if(source) {
 			switch(source->getSourceType()) {
-				case LayerSource::SHAPE: {
+				case SourceType::SHAPE: {
 					if(const ShapeSource *shapeSource = dynamic_cast<const ShapeSource*>(source)) {
 						visit(*shapeSource);
 					}
 					break;
 				}
-				case LayerSource::VIDEO: {
+				case SourceType::VIDEO: {
 					if(const VideoSource *videoSource = dynamic_cast<const VideoSource*>(source)) {
 						visit(*videoSource);
 					}
 					break;
 				}
-				case LayerSource::STILL: {
+				case SourceType::STILL: {
 					if(const StillSource *stillSource = dynamic_cast<const StillSource*>(source)) {
 						visit(*stillSource);
 					}
 					break;
 				}
-				case LayerSource::SEQUENCE: {
+				case SourceType::SEQUENCE: {
 					if(const SequenceSource *seqSource = dynamic_cast<const SequenceSource*>(source)) {
 						visit(*seqSource);
 					}
 					break;
 				}
-				case LayerSource::COMPOSITION: {
+				case SourceType::COMPOSITION: {
 					if(const CompositionSource *compSource = dynamic_cast<const CompositionSource*>(source)) {
 						visit(*compSource);
 					}
 					break;
 				}
-				case LayerSource::SOLID: {
+				case SourceType::SOLID: {
 					if(const SolidSource *solidSource = dynamic_cast<const SolidSource*>(source)) {
 						visit(*solidSource);
 					}

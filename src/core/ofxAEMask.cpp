@@ -1,5 +1,9 @@
+#include "ofGraphics.h"
+#include "ofFbo.h"
+
 #include "ofxAEMask.h"
-#include "ofxAEMaskProp.h"
+#include "../data/MaskData.h"
+#include "../prop/ofxAEMaskProp.h"
 
 namespace ofx { namespace ae {
 

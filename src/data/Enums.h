@@ -66,7 +66,32 @@ enum class WindingDirection {
 	UNKNOWN
 };
 
-// BlendMode utility functions
+enum class MaskMode {
+	ADD,
+	SUBTRACT,
+	INTERSECT,
+	LIGHTEN,
+	DARKEN,
+	DIFFERENCE,
+	UNKNOWN
+};
+
+enum class SourceType {
+	SHAPE,        // Vector shapes and paths
+	COMPOSITION,  // Nested compositions (pre-comps)
+	SOLID,        // Solid color layers
+	CAMERA,       // 3D camera layers
+	LIGHT,        // 3D light layers
+	ADJUSTMENT,   // Adjustment layers (effects only)
+	TEXT,         // Text layers with typography
+	NULL_OBJECT,  // Null objects for hierarchy/parenting
+	STILL,        // Still images via TexturePlayer
+	VIDEO,        // Video files via ofVideoPlayer
+	SEQUENCE,     // Image sequences via SequencePlayer
+	UNKNOWN,
+	NUM_TYPES
+};
+
 inline BlendMode blendModeFromString(const std::string& str) {
 	static const std::unordered_map<std::string, BlendMode> map = {
 		{"NORMAL", BlendMode::NORMAL},
@@ -149,7 +174,6 @@ inline std::string toString(BlendMode mode) {
 	}
 }
 
-// TrackMatteType utility functions
 inline TrackMatteType trackMatteTypeFromString(const std::string& str) {
 	static const std::unordered_map<std::string, TrackMatteType> map = {
 		{"NO_TRACK_MATTE", TrackMatteType::NO_TRACK_MATTE},
@@ -173,7 +197,6 @@ inline std::string toString(TrackMatteType type) {
 	}
 }
 
-// FillRule utility functions
 inline FillRule fillRuleFromString(const std::string& str) {
 	static const std::unordered_map<std::string, FillRule> map = {
 		{"NON_ZERO", FillRule::NON_ZERO},
@@ -199,7 +222,6 @@ inline ofPolyWindingMode toOf(FillRule rule) {
 	}
 }
 
-// WindingDirection utility functions
 inline WindingDirection windingDirectionFromString(const std::string& str) {
 	static const std::unordered_map<std::string, WindingDirection> map = {
 		{"DEFAULT", WindingDirection::DEFAULT},
@@ -231,8 +253,64 @@ inline int getDesiredSign(WindingDirection direction) {
 	}
 }
 
-// External function declarations
-extern void applyBlendMode(BlendMode mode);
-extern std::unique_ptr<ofShader> createShaderForTrackMatteType(TrackMatteType type);
+inline MaskMode maskModeFromString(const std::string& str) {
+	static const std::unordered_map<std::string, MaskMode> map = {
+		{"ADD", MaskMode::ADD},
+		{"SUBTRACT", MaskMode::SUBTRACT},
+		{"INTERSECT", MaskMode::INTERSECT},
+		{"LIGHTEN", MaskMode::LIGHTEN},
+		{"DARKEN", MaskMode::DARKEN},
+		{"DIFFERENCE", MaskMode::DIFFERENCE}
+	};
+	auto it = map.find(str);
+	return (it != map.end()) ? it->second : MaskMode::UNKNOWN;
+}
+
+inline std::string toString(MaskMode mode) {
+	switch (mode) {
+		case MaskMode::ADD: return "ADD";
+		case MaskMode::SUBTRACT: return "SUBTRACT";
+		case MaskMode::INTERSECT: return "INTERSECT";
+		case MaskMode::LIGHTEN: return "LIGHTEN";
+		case MaskMode::DARKEN: return "DARKEN";
+		case MaskMode::DIFFERENCE: return "DIFFERENCE";
+		default: return "UNKNOWN";
+	}
+}
+
+inline std::string toString(SourceType type) {
+	switch (type) {
+		case SourceType::SHAPE: return "shape";
+		case SourceType::COMPOSITION: return "composition";
+		case SourceType::SOLID: return "solid";
+		case SourceType::CAMERA: return "camera";
+		case SourceType::LIGHT: return "light";
+		case SourceType::ADJUSTMENT: return "adjustment";
+		case SourceType::TEXT: return "text";
+		case SourceType::NULL_OBJECT: return "null";
+		case SourceType::STILL: return "still";
+		case SourceType::VIDEO: return "video";
+		case SourceType::SEQUENCE: return "sequence";
+		default: return "unknown";
+	}
+}
+
+inline SourceType sourceTypeFromString(const std::string& name) {
+	static const std::unordered_map<std::string, SourceType> map = {
+		{"shape", SourceType::SHAPE},
+		{"composition", SourceType::COMPOSITION},
+		{"solid", SourceType::SOLID},
+		{"camera", SourceType::CAMERA},
+		{"light", SourceType::LIGHT},
+		{"adjustment", SourceType::ADJUSTMENT},
+		{"text", SourceType::TEXT},
+		{"null", SourceType::NULL_OBJECT},
+		{"still", SourceType::STILL},
+		{"video", SourceType::VIDEO},
+		{"sequence", SourceType::SEQUENCE}
+	};
+	auto it = map.find(name);
+	return (it != map.end()) ? it->second : SourceType::UNKNOWN;
+}
 
 }}

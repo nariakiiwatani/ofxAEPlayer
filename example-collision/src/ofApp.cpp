@@ -63,13 +63,11 @@ void ofApp::draw()
 	};
 
 	auto layer = comp_->getLayer("collision");
-	ofx::ae::utils::PathExtractionVisitor path;
-	path.visit(*layer);
-	auto &&paths = path.getPaths();
+	ofx::ae::PathExtractionVisitor path;
+	layer->accept(path);
+	const auto &p = path.getPath();
 	for (const auto& point : gridPoints_) {
-		bool hit = std::any_of(begin(paths), end(paths), [point,isHit](const ofPath &p) {
-			return isHit(p,point);
-		});
+		bool hit = isHit(p, point);
 		ofSetColor(hit ? ofColor::red : ofColor::white);
 		ofDrawCircle(point.x, point.y, hit ? 4 : 2);
 	}

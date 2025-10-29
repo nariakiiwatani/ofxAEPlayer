@@ -8,15 +8,15 @@
 #include "ofGraphicsBaseTypes.h"
 #include "ofJson.h"
 
-#include "ofxAEKeyframe.h"
-#include "ofxAELayerSource.h"
-#include "ofxAEMarker.h"
-#include "core/ofxAEMask.h"
-#include "ofxAEMaskProp.h"
-#include "ofxAETrackMatte.h"
-#include "ofxAETransformProp.h"
-#include "core/Hierarchical.h"
-#include "core/TransformNode.h"
+#include "../prop/ofxAEKeyframe.h"
+#include "../source/ofxAELayerSource.h"
+#include "../data/MarkerData.h"
+#include "ofxAEMask.h"
+#include "../prop/ofxAEMaskProp.h"
+#include "../utils/ofxAETrackMatte.h"
+#include "../prop/ofxAETransformProp.h"
+#include "../libs/Hierarchical.h"
+#include "../libs/TransformNode.h"
 
 namespace ofx { namespace ae {
 class Visitor;
@@ -55,7 +55,7 @@ public:
 	T* getSource() const {
 		return dynamic_cast<T*>(source_.get());
 	}
-	LayerSource::SourceType getSourceType() const;
+	SourceType getSourceType() const;
 
 	void setName(const std::string &name) { name_ = name; }
 	const std::string& getName() const { return name_; }

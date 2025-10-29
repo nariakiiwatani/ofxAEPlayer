@@ -13,13 +13,13 @@ class CompositionSource : public LayerSource
 public:
     CompositionSource();
     
-	void accept(Visitor& visitor) override;
+	void accept(Visitor &visitor) override;
 	bool load(const std::filesystem::path &filepath) override;
 	bool setFrame(int frame) override;
 	void update() override;
     void draw(float x, float y, float w, float h) const override;
 
-    SourceType getSourceType() const override { return COMPOSITION; }
+    SourceType getSourceType() const override { return SourceType::COMPOSITION; }
     float getWidth() const override;
     float getHeight() const override;
     std::string getDebugInfo() const override;

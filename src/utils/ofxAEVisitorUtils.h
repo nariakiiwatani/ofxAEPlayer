@@ -13,7 +13,8 @@
 namespace ofx { namespace ae {
 
 template<typename T, typename Predicate>
-class FindVisitor : public Visitor {
+class FindVisitor : public Visitor
+{
 public:
     explicit FindVisitor(Predicate predicate) : predicate_(predicate) {}
     
@@ -40,11 +41,12 @@ private:
 };
 
 template<typename T>
-class CollectVisitor : public Visitor {
+class CollectVisitor : public Visitor
+{
 public:
     using Visitor::visit;
     
-    void visit(const T& item) override {
+    void visit(const T &item) override {
         items_.push_back(const_cast<T*>(&item));
         Visitor::visit(item);
     }
@@ -61,18 +63,19 @@ private:
     std::vector<T*> items_;
 };
 
-class PathExtractionVisitor : public Visitor {
+class PathExtractionVisitor : public Visitor
+{
 public:
 	PathExtractionVisitor();
 	PathExtractionVisitor(const GroupData &group);
 	~PathExtractionVisitor()=default;
-    void visit(const EllipseData& ellipse) override;
-    void visit(const RectangleData& rectangle) override;
-    void visit(const PolygonData& polygon) override;
-    void visit(const PathData& pathData) override;
-    void visit(const FillData& fill) override;
-    void visit(const StrokeData& stroke) override;
-	void visit(const GroupData& group) override;
+    void visit(const EllipseData &ellipse) override;
+    void visit(const RectangleData &rectangle) override;
+    void visit(const PolygonData &polygon) override;
+    void visit(const PathData &pathData) override;
+    void visit(const FillData &fill) override;
+    void visit(const StrokeData &stroke) override;
+	void visit(const GroupData &group) override;
 
 	struct RenderItem {
 		ofMatrix4x4 transform=ofMatrix4x4::newIdentityMatrix();
@@ -117,7 +120,7 @@ private:
 class RenderItemExtractionVisitor : public Visitor
 {
 public:
-	void visit(const GroupData& group) override;
+	void visit(const GroupData &group) override;
 	ofPath getAccumulatedPath() const { return path_; }
 private:
 	ofPath path_;

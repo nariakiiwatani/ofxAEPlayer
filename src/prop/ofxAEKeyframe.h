@@ -3,11 +3,9 @@
 #include <cmath>
 #include <algorithm>
 #include <map>
-#include "data/ofxAEPath.h"
-#include "core/ofxAEMask.h"
+#include "data/PathData.h"
+#include "data/Enums.h"
 #include "utils/ofxAEBlendMode.h"
-#include "utils/ofxAEFillRule.h"
-#include "utils/ofxAEWindingDirection.h"
 #include "data/KeyframeData.h"
 
 namespace ofx { namespace ae {

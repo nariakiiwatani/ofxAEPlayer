@@ -3,7 +3,7 @@
 
 namespace ofx { namespace ae {
 
-PathData PathDataProp::parse(const ofJson& json) const
+PathData PathDataProp::parse(const ofJson &json) const
 {
     PathData pathData;
     
@@ -45,11 +45,11 @@ PathData PathDataProp::parse(const ofJson& json) const
 
 ShapeProp::ShapeProp()
 {
-	registerExtractor<ShapeData>([this](ShapeData& t) -> bool {
+	registerExtractor<ShapeData>([this](ShapeData &t) -> bool {
 		try {
-			auto& data = t.data;
+			auto &data = t.data;
 			data.clear();
-			for(const auto& prop : properties_) {
+			for(const auto &prop : properties_) {
 				if(auto ellipseProp = dynamic_cast<const EllipseProp*>(prop.get())) {
 					auto ellipse = std::make_unique<EllipseData>();
 					if(!ellipseProp->tryExtract(*ellipse)) {
@@ -114,7 +114,7 @@ ShapeProp::ShapeProp()
 	});
 }
 
-void ShapeProp::setup(const ofJson& base, const ofJson& keyframes)
+void ShapeProp::setup(const ofJson &base, const ofJson &keyframes)
 {
 	clear();
 
@@ -148,7 +148,7 @@ GroupProp::GroupProp()
 	registerProperty<TransformProp>("/transform");
 	registerProperty<ShapeProp>("/shape");
 
-	registerExtractor<GroupData>([this](GroupData& g) -> bool {
+	registerExtractor<GroupData>([this](GroupData &g) -> bool {
 		bool success = true;
 
 		if(!getProperty<BlendModeProp>("/blendMode")->tryExtract(g.blendMode)) {
@@ -173,7 +173,7 @@ GroupProp::GroupProp()
 	});
 }
 
-void GroupProp::setup(const ofJson& base, const ofJson& keyframes)
+void GroupProp::setup(const ofJson &base, const ofJson &keyframes)
 {
 	PropertyGroup::setup(base, keyframes);
 	auto sb = base.contains("shape") ? base["shape"] : ofJson{};

@@ -3,7 +3,8 @@
 
 namespace ofx { namespace ae {
 
-void SolidSource::accept(Visitor& visitor) {
+void SolidSource::accept(Visitor &visitor)
+{
 	visitor.visit(*this);
 }
 

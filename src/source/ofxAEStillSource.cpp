@@ -7,7 +7,8 @@
 
 namespace ofx { namespace ae {
 
-bool StillSource::load(const std::filesystem::path &filepath) {
+bool StillSource::load(const std::filesystem::path &filepath)
+{
 	filepath_ = filepath;
 	texture_ = AssetManager::getInstance().getTexture(filepath);
 	
@@ -20,21 +21,25 @@ bool StillSource::load(const std::filesystem::path &filepath) {
 	}
 }
 
-void StillSource::draw(float x, float y, float w, float h) const {
+void StillSource::draw(float x, float y, float w, float h) const
+{
 	if(texture_) {
 		texture_->draw(x, y, w, h);
 	}
 }
 
-float StillSource::getWidth() const {
+float StillSource::getWidth() const
+{
 	return texture_ ? texture_->getWidth() : 0.0f;
 }
 
-float StillSource::getHeight() const {
+float StillSource::getHeight() const
+{
 	return texture_ ? texture_->getHeight() : 0.0f;
 }
 
-std::string StillSource::getDebugInfo() const {
+std::string StillSource::getDebugInfo() const
+{
 	std::ostringstream oss;
 	oss << "StillSource[";
 	if(texture_) {
@@ -47,7 +52,8 @@ std::string StillSource::getDebugInfo() const {
 	return oss.str();
 }
 
-void StillSource::accept(Visitor& visitor) {
+void StillSource::accept(Visitor &visitor)
+{
 	visitor.visit(*this);
 }
 

@@ -11,7 +11,7 @@ class PathExtractionVisitor;
 class ShapeSource : public LayerSource
 {
 public:
-	void accept(Visitor& visitor) override;
+	void accept(Visitor &visitor) override;
 
 	bool setup(const ofJson &json) override;
 	void update() override;
@@ -19,7 +19,7 @@ public:
 	bool setFrame(int frame) override;
 	ofRectangle getBoundingBox() const override;
 
-	SourceType getSourceType() const override { return SHAPE; }
+	SourceType getSourceType() const override { return SourceType::SHAPE; }
 	bool tryExtract(ShapeData &dst) const;
 	float getWidth() const override;
 	float getHeight() const override;
