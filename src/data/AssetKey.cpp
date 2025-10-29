@@ -3,7 +3,7 @@
 #include "ofLog.h"
 #include "ofUtils.h"
 
-#include "ofxAEAssetKey.h"
+#include "AssetKey.h"
 
 namespace ofx { namespace ae {
 

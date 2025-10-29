@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ofxAEAssetCache.h"
-#include "ofxAEAssetKey.h"
+#include "../data/AssetKey.h"
 #include "ofMain.h"
 #include <memory>
 #include <functional>

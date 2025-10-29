@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ofxAEAssetKey.h"
+#include "../data/AssetKey.h"
 #include "ofMain.h"
 #include <map>
 #include <memory>
