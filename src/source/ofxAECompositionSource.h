@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ofxAELayerSource.h"
-#include "ofxAEComposition.h"
+#include "../core/ofxAEComposition.h"
 #include <memory>
 
 namespace ofx { namespace ae {

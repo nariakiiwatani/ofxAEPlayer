@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ofxAEComposition.h"
+#include "core/ofxAEComposition.h"
 
 namespace ofx {
 namespace ae {
