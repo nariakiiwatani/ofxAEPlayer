@@ -352,7 +352,6 @@ class GroupProp : public PropertyGroup
 {
 public:
 	GroupProp();
-	void setup(const ofJson &base, const ofJson &keyframes) override;
 };
 
 }}

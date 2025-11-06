@@ -135,7 +135,6 @@ var PROPERTY_MAPPING_CONFIG = {
     },
 
     "ADBE Vector Shape": {
-        merge: {shapeType: "shape"}
     },
 
     "ADBE Vector Stroke Dash 1":   { wrapInObject: "dash1" },
@@ -1748,9 +1747,15 @@ function trackMatteTypeToString(t){
                         var childProp = property.property(i);
                         var child = extractPropertiesRecursive(childProp, options, layer, offset);
                         if (child) {
-                            for (var key in child) {
-                                if (child.hasOwnProperty(key)) {
-                                    result[key] = child[key];
+                            if(child instanceof Array) {
+                                // WARNING: たぶん正しくない。NAMED_GROUPをキーフレームで展開する場合の処理はどう書く？
+                                result = child;
+                            }
+                            else {
+                                for (var key in child) {
+                                    if (child.hasOwnProperty(key)) {
+                                        result[key] = child[key];
+                                    }
                                 }
                             }
                         }
@@ -1769,7 +1774,18 @@ function trackMatteTypeToString(t){
             if (config.merge) {
                 for (var key in config.merge) {
                     if (config.merge.hasOwnProperty(key)) {
-                        result[key] = config.merge[key];
+                        if(result instanceof Array) {
+                            // WARNING: 多分正しくない。キーフレームデータ以外にも配列で返ってくるやつがいたらどうする？
+                            result = result.map(function(item){
+                                if (item !== null && item.value !== null) {
+                                    item.value[key] = config.merge[key];
+                                }
+                                return item;
+                            });
+                        }
+                        else {
+                            result[key] = config.merge[key];
+                        }
                     }
                 }
             }

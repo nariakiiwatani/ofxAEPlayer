@@ -174,12 +174,4 @@ GroupProp::GroupProp()
 	});
 }
 
-void GroupProp::setup(const ofJson &base, const ofJson &keyframes)
-{
-	PropertyGroup::setup(base, keyframes);
-	auto sb = base.contains("shape") ? base["shape"] : ofJson{};
-	auto sk = keyframes.contains("shape") ? keyframes["shape"] : ofJson{};
-	getProperty<ShapeProp>("/shape")->setup(sb, sk);
-}
-
 }}
