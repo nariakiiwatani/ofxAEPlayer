@@ -3,7 +3,7 @@
 
 namespace ofx { namespace ae {
 
-PathData PathDataProp::parse(const ofJson &json) const
+PathData PathProp::parse(const ofJson &json) const
 {
 	PathData pathData;
 	
@@ -36,7 +36,7 @@ PathData PathDataProp::parse(const ofJson &json) const
 	}
 	
 	if(json.contains("direction")) {
-		pathData.direction = json["direction"];
+		pathData.direction = windingDirectionFromString(json["direction"]);
 	}
 	
 	return pathData;

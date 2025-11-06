@@ -147,6 +147,9 @@ void Visitor::visitChildren(const GroupData &group)
 			else if(const GroupData *group = dynamic_cast<const GroupData*>(shapePtr.get())) {
 				visit(*group);
 			}
+			else if(const PathData *path = dynamic_cast<const PathData*>(shapePtr.get())) {
+				visit(*path);
+			}
 			else if(const ShapeData *nestedShape = dynamic_cast<const ShapeData*>(shapePtr.get())) {
 				visit(*nestedShape);
 			}

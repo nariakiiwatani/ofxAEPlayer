@@ -58,10 +58,10 @@ public:
 	}
 };
 
-class PathDataProp : public Property<PathData>
+class PathProp : public Property<PathData>
 {
 public:
-	PathDataProp() : Property<PathData>() {}
+	PathProp() : Property<PathData>() {}
 	
 	PathData parse(const ofJson &json) const override;
 };
@@ -218,44 +218,6 @@ public:
 			
 			return success;
 		});
-	}
-};
-
-class PathProp : public PropertyGroup
-{
-public:
-	PathProp() {
-		registerProperty<WindingDirectionProp>("/direction");
-
-		registerProperty<PathDataProp>("/shape");
-		
-		registerExtractor<PathData>([this](PathData &p) -> bool {
-			bool success = true;
-			
-			if (!getProperty<PathDataProp>("/shape")->tryExtract(p)) {
-				ofLogWarning("PropertyExtraction") << "Failed to extract path shape data, using default";
-				p = PathData(); // Use default
-				success = false;
-			}
-			
-			if (!getProperty<WindingDirectionProp>("/direction")->tryExtract(p.direction)) {
-				ofLogWarning("PropertyExtraction") << "Failed to extract path direction, using default";
-				p.direction = WindingDirection::DEFAULT;
-				success = false;
-			}
-			
-			return success;
-		});
-	}
-	
-	void setup(const ofJson &base, const ofJson &keyframes) override {
-		PropertyGroup::setup(base, keyframes);
-		
-		if (base.contains("shape")) {
-			auto shapeBase = base["shape"];
-			auto shapeKeyframes = keyframes.contains("shape") ? keyframes["shape"] : ofJson{};
-			getProperty<PathDataProp>("/shape")->setup(shapeBase, shapeKeyframes);
-		}
 	}
 };
 

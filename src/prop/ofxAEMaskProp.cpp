@@ -6,7 +6,7 @@ namespace ofx { namespace ae {
 
 MaskAtomProp::MaskAtomProp()
 {
-	registerProperty<PathDataProp>("/shape");
+	registerProperty<PathProp>("/shape");
 	registerProperty<VecProp<2>>("/feather");
 	registerProperty<PercentProp>("/opacity");
 	registerProperty<FloatProp>("/offset");
@@ -16,7 +16,7 @@ MaskAtomProp::MaskAtomProp()
 	registerExtractor<MaskAtomData>([this](MaskAtomData &atom) -> bool {
 		bool success = true;
 		
-		if(!getProperty<PathDataProp>("/shape")->tryExtract(atom.shape)) {
+		if(!getProperty<PathProp>("/shape")->tryExtract(atom.shape)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract mask shape, using default";
 			atom.shape = PathData();
 			success = false;
@@ -127,7 +127,7 @@ void MaskProp::setupMaskAtom(const ofJson &atomBase, const ofJson &atomKeyframes
 			shapeKeyframes = atomKeyframes["atom"]["shape"];
 		}
 		
-		maskAtom->getProperty<PathDataProp>("/shape")->setup(shapeBase, shapeKeyframes);
+		maskAtom->getProperty<PathProp>("/shape")->setup(shapeBase, shapeKeyframes);
 		
 		ofJson featherBase = atom.contains("feather") ? atom["feather"] : ofJson::array({0, 0});
 		float opacityBase = atom.contains("opacity") ? atom["opacity"].get<float>() : 100.0f;
