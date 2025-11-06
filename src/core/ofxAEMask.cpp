@@ -344,7 +344,6 @@ void MaskCollection::combineMasks(ofFbo &target, const Mask &mask, bool isFirst)
 
 		ofSetColor(ofFloatColor::white);
 		maskFbo.draw(0, 0);
-		ofEnableBlendMode(OF_BLENDMODE_ALPHA);
 	}
 	ofPopStyle();
 	target.end();

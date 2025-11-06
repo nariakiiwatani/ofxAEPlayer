@@ -225,8 +225,8 @@ class PathProp : public PropertyGroup
 {
 public:
 	PathProp() {
-		registerProperty<IntProp>("/direction");
-		
+		registerProperty<WindingDirectionProp>("/direction");
+
 		registerProperty<PathDataProp>("/shape");
 		
 		registerExtractor<PathData>([this](PathData &p) -> bool {

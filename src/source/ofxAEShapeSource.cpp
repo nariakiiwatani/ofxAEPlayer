@@ -49,11 +49,13 @@ bool ShapeSource::tryExtract(ShapeData &dst) const
 
 void ShapeSource::draw(float x, float y, float w, float h) const
 {
+	float alpha = RenderContext::getCurrentStyle().color.a;
+
 	auto bb = visitor_->getBoundingBox();
 	ofPushMatrix();
 	ofTranslate(x,y);
 	ofScale(w/bb.width, h/bb.height);
-	visitor_->getRenderer().draw();
+	visitor_->getRenderer().draw(alpha);
 	ofPopMatrix();
 }
 

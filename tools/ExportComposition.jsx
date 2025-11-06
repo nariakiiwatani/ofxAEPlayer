@@ -2,6 +2,19 @@ var scriptFile = File($.fileName);
 var scriptFolder = scriptFile.parent;
 $.evalFile(File(scriptFolder.fullName + "/json2.js"));
 
+// Object.keys polyfill for ExtendScript compatibility
+if (!Object.keys) {
+	Object.keys = function(obj) {
+		var keys = [];
+		for (var key in obj) {
+			if (obj.hasOwnProperty(key)) {
+				keys.push(key);
+			}
+		}
+		return keys;
+	};
+}
+
 // ===== PROPERTY MAPPING CONFIGURATION SYSTEM =====
 
 // After Effectsプロパティのマッピング設定 - matchNameごとの完全な処理設定
@@ -285,76 +298,87 @@ var PROPERTY_MAPPING_CONFIG = {
 
 };
 
-function blendingModeToString(mode) {
+// ===== BLEND MODE MAPPING SYSTEM =====
+
+function createModeMapping(mappings, defaultValue) {
     var map = {};
-    map[BlendingMode.NORMAL] = "NORMAL";
-    map[BlendingMode.DISSOLVE] = "DISSOLVE";
-    map[BlendingMode.DANCING_DISSOLVE] = "DANCING_DISSOLVE";
-    map[BlendingMode.DARKEN] = "DARKEN";
-    map[BlendingMode.MULTIPLY] = "MULTIPLY";
-    map[BlendingMode.COLOR_BURN] = "COLOR_BURN";
-    map[BlendingMode.LINEAR_BURN] = "LINEAR_BURN";
-    map[BlendingMode.DARKER_COLOR] = "DARKER_COLOR";
-    map[BlendingMode.LIGHTEN] = "LIGHTEN";
-    map[BlendingMode.SCREEN] = "SCREEN";
-    map[BlendingMode.COLOR_DODGE] = "COLOR_DODGE";
-    map[BlendingMode.LINEAR_DODGE] = "LINEAR_DODGE";
-    map[BlendingMode.LIGHTER_COLOR] = "LIGHTER_COLOR";
-    map[BlendingMode.OVERLAY] = "OVERLAY";
-    map[BlendingMode.SOFT_LIGHT] = "SOFT_LIGHT";
-    map[BlendingMode.HARD_LIGHT] = "HARD_LIGHT";
-    map[BlendingMode.VIVID_LIGHT] = "VIVID_LIGHT";
-    map[BlendingMode.LINEAR_LIGHT] = "LINEAR_LIGHT";
-    map[BlendingMode.PIN_LIGHT] = "PIN_LIGHT";
-    map[BlendingMode.HARD_MIX] = "HARD_MIX";
-    map[BlendingMode.DIFFERENCE] = "DIFFERENCE";
-    map[BlendingMode.EXCLUSION] = "EXCLUSION";
-    map[BlendingMode.SUBTRACT] = "SUBTRACT";
-    map[BlendingMode.DIVIDE] = "DIVIDE";
-    map[BlendingMode.HUE] = "HUE";
-    map[BlendingMode.SATURATION] = "SATURATION";
-    map[BlendingMode.COLOR] = "COLOR";
-    map[BlendingMode.LUMINOSITY] = "LUMINOSITY";
-    map[BlendingMode.ADD] = "ADD";
-    map[BlendingMode.CLASSIC_COLOR_DODGE] = "CLASSIC_COLOR_DODGE";
-    map[BlendingMode.CLASSIC_COLOR_BURN] = "CLASSIC_COLOR_BURN";
-    map[BlendingMode.LIGHTEN_COLOR_DODGE] = "LIGHTEN_COLOR_DODGE";
-    map[BlendingMode.LIGHTEN_COLOR_BURN] = "LIGHTEN_COLOR_BURN";
-    return map.hasOwnProperty(mode) ? map[mode] : "UNKNOWN";
+    for (var i = 0; i < mappings.length; i++) {
+        map[mappings[i].key] = mappings[i].value;
+    }
+    return function(mode) {
+        return map.hasOwnProperty(mode) ? map[mode] : defaultValue;
+    };
+}
+
+function blendingModeToString(mode) {
+    var blendingModeMap = createModeMapping([
+        {key: BlendingMode.NORMAL, value: "NORMAL"},
+        {key: BlendingMode.DISSOLVE, value: "DISSOLVE"},
+        {key: BlendingMode.DANCING_DISSOLVE, value: "DANCING_DISSOLVE"},
+        {key: BlendingMode.DARKEN, value: "DARKEN"},
+        {key: BlendingMode.MULTIPLY, value: "MULTIPLY"},
+        {key: BlendingMode.COLOR_BURN, value: "COLOR_BURN"},
+        {key: BlendingMode.LINEAR_BURN, value: "LINEAR_BURN"},
+        {key: BlendingMode.DARKER_COLOR, value: "DARKER_COLOR"},
+        {key: BlendingMode.LIGHTEN, value: "LIGHTEN"},
+        {key: BlendingMode.SCREEN, value: "SCREEN"},
+        {key: BlendingMode.COLOR_DODGE, value: "COLOR_DODGE"},
+        {key: BlendingMode.LINEAR_DODGE, value: "LINEAR_DODGE"},
+        {key: BlendingMode.LIGHTER_COLOR, value: "LIGHTER_COLOR"},
+        {key: BlendingMode.OVERLAY, value: "OVERLAY"},
+        {key: BlendingMode.SOFT_LIGHT, value: "SOFT_LIGHT"},
+        {key: BlendingMode.HARD_LIGHT, value: "HARD_LIGHT"},
+        {key: BlendingMode.VIVID_LIGHT, value: "VIVID_LIGHT"},
+        {key: BlendingMode.LINEAR_LIGHT, value: "LINEAR_LIGHT"},
+        {key: BlendingMode.PIN_LIGHT, value: "PIN_LIGHT"},
+        {key: BlendingMode.HARD_MIX, value: "HARD_MIX"},
+        {key: BlendingMode.DIFFERENCE, value: "DIFFERENCE"},
+        {key: BlendingMode.EXCLUSION, value: "EXCLUSION"},
+        {key: BlendingMode.SUBTRACT, value: "SUBTRACT"},
+        {key: BlendingMode.DIVIDE, value: "DIVIDE"},
+        {key: BlendingMode.HUE, value: "HUE"},
+        {key: BlendingMode.SATURATION, value: "SATURATION"},
+        {key: BlendingMode.COLOR, value: "COLOR"},
+        {key: BlendingMode.LUMINOSITY, value: "LUMINOSITY"},
+        {key: BlendingMode.ADD, value: "ADD"},
+        {key: BlendingMode.CLASSIC_COLOR_DODGE, value: "CLASSIC_COLOR_DODGE"},
+        {key: BlendingMode.CLASSIC_COLOR_BURN, value: "CLASSIC_COLOR_BURN"},
+        {key: BlendingMode.LIGHTEN_COLOR_DODGE, value: "LIGHTEN_COLOR_DODGE"},
+        {key: BlendingMode.LIGHTEN_COLOR_BURN, value: "LIGHTEN_COLOR_BURN"}
+    ], "UNKNOWN");
+    
+    return blendingModeMap(mode);
 }
 
 function vectorBlendModeToString(mode) {
-    var map = {};
-    map[1] = "NORMAL";
-
-    map[3] = "DARKER";
-    map[4] = "MULTIPLY";
-    map[5] = "COLOR_BURN";
-    map[6] = "LINEAR_BURN";
-    map[7] = "DARKER_COLOR";
-
-    map[9] = "LIGHTER";
-    map[10] = "SCREEN";
-    map[11] = "COLOR_DODGE";
-    map[12] = "LINEAR_DODGE";
-    map[13] = "LIGHTER_COLOR";
-
-    map[15] = "OVERLAY";
-    map[16] = "SOFT_LIGHT";
-    map[17] = "HARD_LIGHT";
-    map[18] = "LINEAR_LIGHT";
-    map[19] = "VIVID_LIGHT";
-    map[20] = "PIN_LIGHT";
-    map[21] = "HARD_MIX";
-
-    map[23] = "DIVIDE";
-    map[24] = "EXCLUSION";
-
-    map[26] = "HUE";
-    map[27] = "SATURATION";
-    map[28] = "COLOR";
-    map[29] = "BRIGHTNESS";
-    return map.hasOwnProperty(mode) ? map[mode] : "NORMAL";
+    var vectorBlendModeMap = createModeMapping([
+        {key: 1, value: "NORMAL"},
+        {key: 3, value: "DARKER"},
+        {key: 4, value: "MULTIPLY"},
+        {key: 5, value: "COLOR_BURN"},
+        {key: 6, value: "LINEAR_BURN"},
+        {key: 7, value: "DARKER_COLOR"},
+        {key: 9, value: "LIGHTER"},
+        {key: 10, value: "SCREEN"},
+        {key: 11, value: "COLOR_DODGE"},
+        {key: 12, value: "LINEAR_DODGE"},
+        {key: 13, value: "LIGHTER_COLOR"},
+        {key: 15, value: "OVERLAY"},
+        {key: 16, value: "SOFT_LIGHT"},
+        {key: 17, value: "HARD_LIGHT"},
+        {key: 18, value: "LINEAR_LIGHT"},
+        {key: 19, value: "VIVID_LIGHT"},
+        {key: 20, value: "PIN_LIGHT"},
+        {key: 21, value: "HARD_MIX"},
+        {key: 23, value: "DIVIDE"},
+        {key: 24, value: "EXCLUSION"},
+        {key: 26, value: "HUE"},
+        {key: 27, value: "SATURATION"},
+        {key: 28, value: "COLOR"},
+        {key: 29, value: "BRIGHTNESS"}
+    ], "NORMAL");
+    
+    return vectorBlendModeMap(mode);
 }
 
 function windingDirectionToString(direction) {
@@ -390,6 +414,48 @@ function timeRemapToFrames(value, fps) {
     return value;
 }
 
+// ===== COMMON UTILITY FUNCTIONS =====
+
+function copyFileWithDateCheck(sourceFile, destFile, fileName, logContext) {
+    try {
+        var shouldCopy = true;
+        if (destFile.exists) {
+            var sourceModified = sourceFile.modified;
+            var destModified = destFile.modified;
+            shouldCopy = sourceModified > destModified;
+            if (!shouldCopy) {
+                debugLog("FileCopy", "File already up to date, skipping: " + fileName, null, "verbose");
+                return true; // Success, but no copy needed
+            }
+        }
+        
+        if (shouldCopy) {
+            sourceFile.copy(destFile);
+            debugLog("FileCopy", "File copied: " + fileName, logContext, "verbose");
+        }
+        return true;
+    } catch (e) {
+        debugLog("FileCopy", "Error copying file: " + fileName + " - " + e.toString(), logContext, "error");
+        return false;
+    }
+}
+
+function safelyProcessLayerProperty(layer, propertyName, processor, errorLevel) {
+    errorLevel = errorLevel || "error";
+    try {
+        return processor();
+    } catch (error) {
+        var layerName = layer ? layer.name : "unknown";
+        var errorMessage = "ERROR: Failed to process " + propertyName + " for layer " + layerName + ": " + error.toString();
+        debugLog("LayerProcessing", errorMessage, {
+            layerName: layerName,
+            propertyName: propertyName,
+            error: error.message
+        }, errorLevel);
+        return null;
+    }
+}
+
 function trackMatteTypeToString(t){
     var map = {};
     map[TrackMatteType.NO_TRACK_MATTE]   = "NO_TRACK_MATTE";
@@ -406,13 +472,6 @@ function trackMatteTypeToString(t){
     }
     if (typeof String.prototype.fsSanitized !== 'function') {
         String.prototype.fsSanitized = function(){ return this.replace(/[\\\/\:\*\?\"\<\>\|]/g, "_"); };
-    }
-    if (typeof Object.prototype.keys !== 'function') {
-        Object.prototype.keys = function(){
-            var keys = [];
-            for (var k in this){ if (this.hasOwnProperty(k)) keys.push(k); }
-            return keys;
-        };
     }
     if (typeof Array.prototype.map !== 'function') {
         Array.prototype.map = function(callback, thisArg){
@@ -453,9 +512,6 @@ function trackMatteTypeToString(t){
             }
             return res;
         };
-    }
-    if (typeof Array.isArray !== 'function') {
-        Array.isArray = function(arg){ return Object.prototype.toString.call(arg) === '[object Array]'; };
     }
 
     function getSourceType(layer) {
@@ -1467,11 +1523,11 @@ function trackMatteTypeToString(t){
     function extractKeyframeBasedProperty(prop, offset, fps, decimalPlaces, customProcessor) {
         try {
             if (!prop) {
-                debugLog("extractKeyframeBasedProperty", "prop is null");
+                debugLog("extractKeyframeBasedProperty", "prop is null", null, "verbose");
                 return null;
             }
             
-            debugLog("extractKeyframeBasedProperty", "Processing property: " + (prop.matchName || prop.name || "unnamed"));
+            debugLog("extractKeyframeBasedProperty", "Processing property: " + (prop.matchName || prop.name || "unnamed"), null, "verbose");
             
 
             function toFrame(t){ return Math.round(t * fps); }
@@ -1480,7 +1536,7 @@ function trackMatteTypeToString(t){
 
             if (nk === 0) {
                 // No animation - only return initial value info
-                debugLog("extractKeyframeBasedProperty", "No animation detected, returning initial value only");
+                debugLog("extractKeyframeBasedProperty", "No animation detected, returning initial value only", null, "verbose");
                 return null;
             }
 
@@ -1532,16 +1588,16 @@ function trackMatteTypeToString(t){
     function extractAnimatedProperty(prop, offset, duration, fps, decimalPlaces, customProcessor) {
         try {
             if (!prop) {
-                debugLog("extractAnimatedProperty", "prop is null");
+                debugLog("extractAnimatedProperty", "prop is null", null, "verbose");
                 return null;
             }
             
-            debugLog("extractAnimatedProperty", "Processing property: " + (prop.matchName || prop.name || "unnamed"));
+            debugLog("extractAnimatedProperty", "Processing property: " + (prop.matchName || prop.name || "unnamed"), null, "verbose");
             
             var nk = (typeof prop.numKeys === 'number') ? prop.numKeys : 0;
             if (nk === 0) {
                 // No animation - only return initial value info
-                debugLog("extractAnimatedProperty", "No animation detected, returning initial value only");
+                debugLog("extractAnimatedProperty", "No animation detected, returning initial value only", null, "verbose");
                 return null;
             }
             
@@ -1586,7 +1642,7 @@ function trackMatteTypeToString(t){
             }
             
             debugLog("extractAnimatedProperty", "Extraction completed successfully", {
-                frameCount: (animationData.keys ? animationData.keys().length : 0)
+                frameCount: Object.keys(animationData).length
             });
             return animationData;
         } catch (e) {
@@ -1623,7 +1679,7 @@ function trackMatteTypeToString(t){
     function extractPropertiesRecursive(property, options, layer, offset) {
         try {
             if (!property) {
-                debugLog("extractPropertiesRecursive", "property is null", null, "warning");
+                debugLog("extractPropertiesRecursive", "property is null", null, "verbose");
                 return null;
             }
             
@@ -1634,7 +1690,7 @@ function trackMatteTypeToString(t){
 
             var config = PROPERTY_MAPPING_CONFIG[property.matchName];
             if (!config) {
-                debugLog("extractPropertiesRecursive", "No config found for matchName: " + property.matchName, null, "warning");
+                debugLog("extractPropertiesRecursive", "No config found for matchName: " + property.matchName, null, "verbose");
                 return null;
             }
             
@@ -1643,7 +1699,7 @@ function trackMatteTypeToString(t){
                 return null;
             }
             
-            debugLog("extractPropertiesRecursive", "Processing property: " + property.matchName);
+            debugLog("extractPropertiesRecursive", "Processing property: " + property.matchName, null, "verbose");
             
             var result = null;
 
@@ -1703,7 +1759,7 @@ function trackMatteTypeToString(t){
                         result.inverted = property.inverted;
                         result.mode = maskModeToString(property.maskMode);
                     }
-                    if(result.keys().length === 0) result = null;
+                    if(Object.keys(result).length === 0) result = null;
                     break;
             }
             if(result === null) {
@@ -1722,7 +1778,7 @@ function trackMatteTypeToString(t){
                 wrapped[config.wrapInObject] = result;
                 result = wrapped;
             }
-            debugLog("extractPropertiesRecursive", "Processing completed for: " + property.matchName);
+            debugLog("extractPropertiesRecursive", "Processing completed for: " + property.matchName, null, "verbose");
             return result;
         } catch (e) {
             debugLog("extractPropertiesRecursive", "Error in processing: " + e.toString(), null, "error");
@@ -1837,54 +1893,48 @@ function trackMatteTypeToString(t){
 
                 var resultData = {};
                 
-                // Safely extract basic layer properties
-                try {
+                // Safely extract basic layer properties using common error handling
+                safelyProcessLayerProperty(layer, "name", function() {
                     resultData["name"] = layer.name;
                     debugLog("LayerProcessing", "Set result data name");
-                } catch (nameSetError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to set result data name: " + nameSetError.toString());
-                }
+                    return layer.name;
+                });
                 
-                try {
-                    resultData["layerType"] = layer.matchName || "Unknown";
-                    debugLog("LayerProcessing", "Layer type: " + resultData["layerType"]);
-                } catch (matchNameError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to access layer.matchName: " + matchNameError.toString());
-                    resultData["layerType"] = "Unknown";
-                }
+                var layerType = safelyProcessLayerProperty(layer, "layerType", function() {
+                    var type = layer.matchName || "Unknown";
+                    debugLog("LayerProcessing", "Layer type: " + type);
+                    return type;
+                });
+                resultData["layerType"] = layerType || "Unknown";
                 
-                try {
-                    resultData["blendingMode"] = blendingModeToString(layer.blendingMode);
-                    debugLog("LayerProcessing", "Blending mode: " + resultData["blendingMode"]);
-                } catch (blendModeError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to access layer.blendingMode: " + blendModeError.toString());
-                    resultData["blendingMode"] = "NORMAL";
-                }
+                var blendMode = safelyProcessLayerProperty(layer, "blendingMode", function() {
+                    var mode = blendingModeToString(layer.blendingMode);
+                    debugLog("LayerProcessing", "Blending mode: " + mode);
+                    return mode;
+                });
+                resultData["blendingMode"] = blendMode || "NORMAL";
                 
-                var inPoint = 0;
-                var outPoint = 0;
-                try {
-                    inPoint = toFrame(layer.inPoint, true) - offset;
-                    outPoint = toFrame(layer.outPoint, true) - offset;
-                    resultData["in"] = inPoint;
-                    resultData["out"] = outPoint;
+                var timing = safelyProcessLayerProperty(layer, "timing", function() {
+                    var inPoint = toFrame(layer.inPoint, true) - offset;
+                    var outPoint = toFrame(layer.outPoint, true) - offset;
                     debugLog("LayerProcessing", "Layer timing - in: " + inPoint + ", out: " + outPoint);
-                } catch (timingError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to access layer timing: " + timingError.toString());
+                    return {"in": inPoint, "out": outPoint};
+                });
+                if (timing) {
+                    resultData["in"] = timing.in;
+                    resultData["out"] = timing.out;
+                } else {
                     resultData["in"] = 0;
                     resultData["out"] = 0;
                 }
-    
+
                 // Process source if it exists
                 debugLog("LayerProcessing", "Checking layer source...");
-                var sourceType = "none";
-                try {
-                    sourceType = getSourceType(layer);
-                    debugLog("LayerProcessing", "Source type determined: " + sourceType);
-                } catch (sourceTypeError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to determine source type: " + sourceTypeError.toString());
-                    sourceType = "unknown";
-                }
+                var sourceType = safelyProcessLayerProperty(layer, "sourceType", function() {
+                    var type = getSourceType(layer);
+                    debugLog("LayerProcessing", "Source type determined: " + type);
+                    return type;
+                }) || "unknown";
                 
                 try {
                     if (layer.source) {
@@ -1971,7 +2021,7 @@ function trackMatteTypeToString(t){
 
                 // Process markers
                 debugLog("LayerProcessing", "Checking layer markers...");
-                try {
+                safelyProcessLayerProperty(layer, "markers", function() {
                     if (layer.marker && layer.marker.numKeys > 0) {
                         debugLog("LayerProcessing", "Processing markers for layer: " + layer.name + " (marker count: " + layer.marker.numKeys + ")");
                         resultData["markers"] = extractMarkers(layer.marker, fps, offset);
@@ -1979,13 +2029,12 @@ function trackMatteTypeToString(t){
                     } else {
                         debugLog("LayerProcessing", "Layer has no markers: " + layer.name);
                     }
-                } catch (markerError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to process markers for layer " + layer.name + ": " + markerError.toString());
-                }
+                    return true;
+                });
                 
                 // Process properties (non-keyframe)
                 debugLog("LayerProcessing", "Processing properties (non-keyframe)...");
-                try {
+                safelyProcessLayerProperty(layer, "properties", function() {
                     options.keyframes = false;
                     var properties = extractPropertiesRecursive(layer, options, layer, offset);
                     if(properties) {
@@ -1999,13 +2048,12 @@ function trackMatteTypeToString(t){
                     } else {
                         debugLog("LayerProcessing", "No properties found for layer: " + layer.name);
                     }
-                } catch (propertiesError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to process properties for layer " + layer.name + ": " + propertiesError.toString());
-                }
+                    return properties;
+                });
 
                 // Process keyframes
                 debugLog("LayerProcessing", "Processing keyframes...");
-                try {
+                safelyProcessLayerProperty(layer, "keyframes", function() {
                     options.keyframes = true;
                     var keyframes = extractPropertiesRecursive(layer, options, layer, offset);
                     if(keyframes) {
@@ -2015,9 +2063,8 @@ function trackMatteTypeToString(t){
                     } else {
                         debugLog("LayerProcessing", "No keyframes found for layer: " + layer.name);
                     }
-                } catch (keyframesError) {
-                    debugLog("LayerProcessing", "ERROR: Failed to process keyframes for layer " + layer.name + ": " + keyframesError.toString());
-                }
+                    return keyframes;
+                });
     
             switch(sourceType) {
                 case "composition":
@@ -2146,24 +2193,8 @@ function trackMatteTypeToString(t){
                     } else {
                         // Regular file handling for non-PSD/AI files
                         var destFile = new File(assetFolder.fsName + "/" + fileName);
-                        try{
-                            // ファイルの更新日時をチェックして、更新のあるファイルのみコピー
-                            var shouldCopy = true;
-                            if (destFile.exists) {
-                                var sourceModified = layer.source.mainSource.file.modified;
-                                var destModified = destFile.modified;
-                                shouldCopy = sourceModified > destModified;
-                                if (!shouldCopy) {
-                                    debugLog("FileCopy", "File already up to date, skipping: " + fileName, null, "verbose");
-                                }
-                            }
-                            
-                            if (shouldCopy) {
-                                layer.source.mainSource.file.copy(destFile);
-                                debugLog("FileCopy", "File copied: " + fileName, null, "verbose");
-                            }
-                        }catch(e){
-                            alert("ファイルのコピー中にエラー: " + e.message);
+                        if (!copyFileWithDateCheck(layer.source.mainSource.file, destFile, fileName, {layerName: layer.name})) {
+                            alert("ファイルのコピー中にエラー: " + fileName);
                         }
                     }
                     break;
@@ -2178,24 +2209,8 @@ function trackMatteTypeToString(t){
                     for (var s=0; s<sequenceFiles.length; s++){
                         var sequenceFile = sequenceFiles[s];
                         var dest = new File(sequenceFolder.fsName + "/" + sequenceFile.name);
-                        try{
-                            // ファイルの更新日時をチェックして、更新のあるファイルのみコピー
-                            var shouldCopy = true;
-                            if (dest.exists) {
-                                var sourceModified = sequenceFile.modified;
-                                var destModified = dest.modified;
-                                shouldCopy = sourceModified > destModified;
-                                if (!shouldCopy) {
-                                    debugLog("FileCopy", "Sequence file already up to date, skipping: " + sequenceFile.name, null, "verbose");
-                                }
-                            }
-                            
-                            if (shouldCopy) {
-                                sequenceFile.copy(dest);
-                                debugLog("FileCopy", "Sequence file copied: " + sequenceFile.name, null, "verbose");
-                            }
-                        }catch(e){
-                            alert("ファイルのコピー中にエラー: " + e.message);
+                        if (!copyFileWithDateCheck(sequenceFile, dest, sequenceFile.name, {layerName: layer.name, sequenceIndex: s})) {
+                            alert("ファイルのコピー中にエラー: " + sequenceFile.name);
                         }
                     }
                     break;
@@ -2203,7 +2218,7 @@ function trackMatteTypeToString(t){
                     break;
             }
 
-                try{
+                if (!safelyProcessLayerProperty(layer, "fileSaving", function() {
                     var jsonString = JSON.stringify(resultData, null, 4);
                     var saveFile = new File(layerFolder.fsName + "/" + layerNameForFile + ".json");
                     saveFile.encoding = "UTF-8";
@@ -2211,9 +2226,9 @@ function trackMatteTypeToString(t){
                     saveFile.write(jsonString);
                     saveFile.close();
                     debugLog("LayerProcessing", "Successfully saved layer file: " + layerNameForFile + ".json");
-                }catch(e){
-                    debugLog("LayerProcessing", "ERROR: Failed to save layer file: " + e.toString());
-                    alert("ファイルの保存中にエラーが発生しました: " + e.message);
+                    return true;
+                }, "error")) {
+                    alert("ファイルの保存中にエラーが発生しました: " + layerNameForFile + ".json");
                 }
                 
                 debugLog("LayerProcessing", "=== Completed processing layer " + i + ": " + layer.name + " ===");
@@ -2242,5 +2257,41 @@ function trackMatteTypeToString(t){
         }
     }
 
+    // Test function for verifying refactored code (can be removed in production)
+    function testRefactoredFunctions() {
+        try {
+            // Test createModeMapping function
+            var testMap = createModeMapping([
+                {key: 1, value: "TEST1"},
+                {key: 2, value: "TEST2"}
+            ], "DEFAULT");
+            
+            if (testMap(1) !== "TEST1" || testMap(999) !== "DEFAULT") {
+                debugLog("Test", "createModeMapping test failed", null, "error");
+                return false;
+            }
+            
+            // Test blend mode functions
+            if (typeof blendingModeToString !== 'function' || typeof vectorBlendModeToString !== 'function') {
+                debugLog("Test", "Blend mode functions missing", null, "error");
+                return false;
+            }
+            
+            // Test utility functions
+            if (typeof copyFileWithDateCheck !== 'function' || typeof safelyProcessLayerProperty !== 'function') {
+                debugLog("Test", "Utility functions missing", null, "error");
+                return false;
+            }
+            
+            debugLog("Test", "All refactored functions available and basic tests passed", null, "notice");
+            return true;
+        } catch (e) {
+            debugLog("Test", "Error in refactored function tests: " + e.toString(), null, "error");
+            return false;
+        }
+    }
+    
+    // Initialize and test
+    testRefactoredFunctions();
     createUI(me);
 })(this);
