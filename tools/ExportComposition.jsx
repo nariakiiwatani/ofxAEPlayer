@@ -415,46 +415,6 @@ function timeRemapToFrames(value, fps) {
 
 // ===== COMMON UTILITY FUNCTIONS =====
 
-function copyFileWithDateCheck(sourceFile, destFile, fileName, logContext) {
-    try {
-        var shouldCopy = true;
-        if (destFile.exists) {
-            var sourceModified = sourceFile.modified;
-            var destModified = destFile.modified;
-            shouldCopy = sourceModified > destModified;
-            if (!shouldCopy) {
-                debugLog("FileCopy", "File already up to date, skipping: " + fileName, null, "verbose");
-                return true; // Success, but no copy needed
-            }
-        }
-        
-        if (shouldCopy) {
-            sourceFile.copy(destFile);
-            debugLog("FileCopy", "File copied: " + fileName, logContext, "verbose");
-        }
-        return true;
-    } catch (e) {
-        debugLog("FileCopy", "Error copying file: " + fileName + " - " + e.toString(), logContext, "error");
-        return false;
-    }
-}
-
-function safelyProcessLayerProperty(layer, propertyName, processor, errorLevel) {
-    errorLevel = errorLevel || "error";
-    try {
-        return processor();
-    } catch (error) {
-        var layerName = layer ? layer.name : "unknown";
-        var errorMessage = "ERROR: Failed to process " + propertyName + " for layer " + layerName + ": " + error.toString();
-        debugLog("LayerProcessing", errorMessage, {
-            layerName: layerName,
-            propertyName: propertyName,
-            error: error.message
-        }, errorLevel);
-        return null;
-    }
-}
-
 function trackMatteTypeToString(t){
     var map = {};
     map[TrackMatteType.NO_TRACK_MATTE]   = "NO_TRACK_MATTE";
@@ -465,6 +425,48 @@ function trackMatteTypeToString(t){
     return map.hasOwnProperty(t) ? map[t] : "UNKNOWN";
 }
 (function(me){
+    // ===== UTILITY FUNCTIONS (moved inside IIFE for debugLog access) =====
+    
+    function copyFileWithDateCheck(sourceFile, destFile, fileName, logContext) {
+        try {
+            var shouldCopy = true;
+            if (destFile.exists) {
+                var sourceModified = sourceFile.modified;
+                var destModified = destFile.modified;
+                shouldCopy = sourceModified > destModified;
+                if (!shouldCopy) {
+                    debugLog("FileCopy", "File already up to date, skipping: " + fileName, null, "verbose");
+                    return true; // Success, but no copy needed
+                }
+            }
+            
+            if (shouldCopy) {
+                sourceFile.copy(destFile);
+                debugLog("FileCopy", "File copied: " + fileName, logContext, "verbose");
+            }
+            return true;
+        } catch (e) {
+            debugLog("FileCopy", "Error copying file: " + fileName + " - " + e.toString(), logContext, "error");
+            return false;
+        }
+    }
+
+    function safelyProcessLayerProperty(layer, propertyName, processor, errorLevel) {
+        errorLevel = errorLevel || "error";
+        try {
+            return processor();
+        } catch (error) {
+            var layerName = layer ? layer.name : "unknown";
+            var errorMessage = "ERROR: Failed to process " + propertyName + " for layer " + layerName + ": " + error.toString();
+            debugLog("LayerProcessing", errorMessage, {
+                layerName: layerName,
+                propertyName: propertyName,
+                error: error.message
+            }, errorLevel);
+            return null;
+        }
+    }
+
     // polyfills
     if (typeof String.prototype.trim !== 'function') {
         String.prototype.trim = function(){ return this.replace(/^\s+|\s+$/g, ''); };
@@ -523,65 +525,67 @@ function trackMatteTypeToString(t){
             if (layer.source instanceof CompItem) {
                 return "composition";
             }
-        if (layer.source.mainSource instanceof SolidSource) {
-            return "solid";
-        }
-        if (layer.source.mainSource instanceof FileSource) {
-            var fileSource = layer.source.mainSource;
             
-            // ExtendScript APIの確実な静止画判定を使用
-            if (fileSource.isStill) {
-                return "still";
+            if (layer.source.mainSource instanceof SolidSource) {
+                return "solid";
             }
             
-            // FootageSourceのプロパティを使用した確実な判定
-            try {
-                var footageSource = layer.source;
+            if (layer.source.mainSource instanceof FileSource) {
+                var fileSource = layer.source.mainSource;
                 
-                // 動画・音声の有無を確認
-                var hasVideo = false;
-                var hasAudio = false;
+                // ExtendScript APIの確実な静止画判定を使用
+                if (fileSource.isStill) {
+                    return "still";
+                }
                 
+                // FootageSourceのプロパティを使用した確実な判定
                 try {
-                    hasVideo = footageSource.hasVideo;
-                    hasAudio = footageSource.hasAudio;
+                    var footageSource = layer.source;
+                    
+                    // 動画・音声の有無を確認
+                    var hasVideo = false;
+                    var hasAudio = false;
+                    
+                    try {
+                        hasVideo = footageSource.hasVideo;
+                        hasAudio = footageSource.hasAudio;
+                    } catch (e) {
+                        // プロパティにアクセスできない
+                        debugLog("getSourceType", "Cannot access footage properties", null, "warning");
+                    }
+                    
+                    var file = fileSource.file;
+                    if (file) {
+                        if (hasVideo && hasAudio) {
+                            // 映像+音声は確実に動画
+                            return "video";
+                        } else if (!hasVideo && hasAudio) {
+                            // 音声のみ
+                            return "audio";
+                        } else if (hasVideo && !hasAudio) {
+                            // 映像のみの場合は拡張子で判定
+                            var fileName = file.name;
+                            var fileNameLower = fileName.toLowerCase();
+                            
+                            // 静止画拡張子の場合は画像シーケンスと判定
+                            if (fileNameLower.match(/\.(jpg|jpeg|png|tiff|tga|exr|dpx|bmp|gif|psd)$/)) {
+                                return "sequence";
+                            }
+                            
+                            // その他の場合は動画
+                            return "video";
+                        } else {
+                            debugLog("getSourceType", "Cannot access footage properties, falling back to filename analysis: " + e.toString(), null, "warning");
+                        }
+                    }
                 } catch (e) {
-                    // プロパティにアクセスできない
-                    debugLog("getSourceType", "Cannot access footage properties", null, "warning");
+                    debugLog("getSourceType", "Error in advanced source type detection: " + e.toString(), null, "warning");
                 }
                 
-                var file = fileSource.file;
-                if (file) {
-                    if (hasVideo && hasAudio) {
-                        // 映像+音声は確実に動画
-                        return "video";
-                    } else if (!hasVideo && hasAudio) {
-                        // 音声のみ
-                        return "audio";
-                    } else if (hasVideo && !hasAudio) {
-                        // 映像のみの場合は拡張子で判定
-                        var fileName = file.name;
-                        var fileNameLower = fileName.toLowerCase();
-                        
-                        // 静止画拡張子の場合は画像シーケンスと判定
-                        if (fileNameLower.match(/\.(jpg|jpeg|png|tiff|tga|exr|dpx|bmp|gif|psd)$/)) {
-                            return "sequence";
-                        }
-                        
-                        // その他の場合は動画
-                        return "video";
-                    } else {
-                        debugLog("getSourceType", "Cannot access footage properties, falling back to filename analysis: " + e.toString(), null, "warning");
-                    }
-                }
-            } catch (e) {
-                debugLog("getSourceType", "Error in advanced source type detection: " + e.toString(), null, "warning");
+                return "footage"; // その他のフッテージ
             }
             
-            return "footage"; // その他のフッテージ
-        }
-        
-        return "unknown";
+            return "unknown";
         } catch (e) {
             debugLog("getSourceType", "Error determining source type: " + e.toString(), {
                 layerName: layer ? layer.name : "unknown",
