@@ -78,11 +78,9 @@ public:
 	void visit(const GroupData &group) override;
 
 	struct RenderItem {
-		ofMatrix4x4 transform=ofMatrix4x4::newIdentityMatrix();
-		float opacity=1;
 		BlendMode blend_mode=BlendMode::NORMAL;
 		virtual ofRectangle getBB() const=0;
-		virtual void draw(float alpha=1) const =0;
+		virtual void draw(float alpha=1) const=0;
 	};
 	struct RenderPathItem : public RenderItem {
 		RenderPathItem(const ofPath &p):path(p) {
@@ -93,6 +91,8 @@ public:
 		ofPath path;
 	};
 	struct RenderGroupItem : public RenderItem {
+		ofMatrix4x4 transform=ofMatrix4x4::newIdentityMatrix();
+		float opacity=1;
 		std::deque<std::shared_ptr<RenderItem>> item;
 		void draw(float alpha=1) const;
 		ofRectangle getBB() const;
@@ -108,13 +108,6 @@ private:
 	ofPath path_{};
 	ofRectangle bounding_box_;
 	RenderGroupItem renderer_;
-	RenderPathItem createPathItem(const ofPath &path) const {
-		RenderPathItem ret(path);
-		ret.transform = renderer_.transform;
-		ret.opacity = renderer_.opacity;
-		ret.blend_mode = renderer_.blend_mode;
-		return ret;
-	}
 };
 
 class RenderItemExtractionVisitor : public Visitor

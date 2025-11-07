@@ -113,21 +113,17 @@ void PathExtractionVisitor::visit(const GroupData &group) {
 
 void PathExtractionVisitor::RenderPathItem::draw(float alpha) const
 {
-	ofPushMatrix();
 	ofPushStyle();
-	ofMultMatrix(transform);
 	applyBlendMode(blend_mode);
-	float opacity = this->opacity*alpha;
 	auto mulOpacity = [](const ofFloatColor src, float opacity) {
 		return ofFloatColor{src.r, src.g, src.b, src.a*opacity};
 	};
 	auto p = path;
-	if(p.isFilled()) p.setFillColor(mulOpacity(p.getFillColor(), opacity));
-	if(p.hasOutline()) p.setStrokeColor(mulOpacity(p.getStrokeColor(), opacity));
+	if(p.isFilled()) p.setFillColor(mulOpacity(p.getFillColor(), alpha));
+	if(p.hasOutline()) p.setStrokeColor(mulOpacity(p.getStrokeColor(), alpha));
 	p.draw();
 
 	ofPopStyle();
-	ofPopMatrix();
 }
 
 bool PathExtractionVisitor::RenderGroupItem::needFbo() const
@@ -139,8 +135,8 @@ bool PathExtractionVisitor::RenderGroupItem::needFbo() const
 
 void PathExtractionVisitor::RenderGroupItem::draw(float alpha) const
 {
+	auto bb = getBB();
 	if(needFbo()) {
-		auto bb = getBB();
 		if(bb.isEmpty()) return;
 		fbo.allocate(bb.width, bb.height, GL_RGBA);
 		fbo.begin();
@@ -152,25 +148,22 @@ void PathExtractionVisitor::RenderGroupItem::draw(float alpha) const
 		}
 		ofPopMatrix();
 		fbo.end();
-		ofPushMatrix();
-		ofPushStyle();
-		ofMultMatrix(transform);
-		applyBlendMode(blend_mode);
+	}
+	
+	ofPushMatrix();
+	ofPushStyle();
+	ofMultMatrix(transform);
+	applyBlendMode(blend_mode);
+	if(needFbo()) {
 		fbo.draw(bb.x,bb.y);
-		ofPopStyle();
-		ofPopMatrix();
 	}
 	else {
-		ofPushMatrix();
-		ofPushStyle();
-		ofMultMatrix(transform);
-		applyBlendMode(blend_mode);
 		for(auto &&i : item) {
 			i->draw(this->opacity*alpha);
 		}
-		ofPopStyle();
-		ofPopMatrix();
 	}
+	ofPopStyle();
+	ofPopMatrix();
 }
 
 namespace {
