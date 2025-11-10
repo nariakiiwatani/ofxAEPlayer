@@ -1663,14 +1663,45 @@ function trackMatteTypeToString(t){
 
         var result;
         if (options.keyframes) {
+            // エクスプレッション検出: 有効なエクスプレッションが存在する場合は自動的にベイク
+            var hasExpression = false;
+            try {
+                hasExpression = prop.canSetExpression &&
+                              prop.expressionEnabled &&
+                              prop.expression &&
+                              prop.expression.trim() !== "";
+            } catch (e) {
+            }
+
             var nk = (typeof prop.numKeys === 'number') ? prop.numKeys : 0;
-            if(nk === 0) return null;
-            var start = toFrame(prop.keyTime(1));
-            var end = toFrame(prop.keyTime(nk));
-            if (!options.useFullFrameAnimation) {
-                result = extractKeyframeBasedProperty(prop, offset, fps, DEC, customProcessor);
+            
+            if (hasExpression) {
+                var layerInPoint = toFrame(layer.inPoint);
+                var layerOutPoint = toFrame(layer.outPoint);
+                var duration = layerOutPoint - layerInPoint;
+                
+                debugLog("ExpressionDetection",
+                         "Expression without keyframes, baking layer duration: " + duration + " frames",
+                         {
+                             propertyName: prop.name,
+                             layerInPoint: layerInPoint,
+                             layerOutPoint: layerOutPoint
+                         },
+                         "notice");
+                
+                result = extractAnimatedProperty(prop, offset, duration, fps, DEC, customProcessor);
+            } else if (nk > 0) {
+                var start = toFrame(prop.keyTime(1));
+                var end = toFrame(prop.keyTime(nk));
+                var duration = end - start;
+                var shouldBake = options.useFullFrameAnimation || hasExpression;
+                if (shouldBake) {
+                    result = extractAnimatedProperty(prop, offset, duration, fps, DEC, customProcessor);
+                } else {
+                    result = extractKeyframeBasedProperty(prop, offset, fps, DEC, customProcessor);
+                }
             } else {
-                result = extractAnimatedProperty(prop, offset, end-start, fps, DEC, customProcessor);
+                return null;
             }
         } else {
             result = extractValue(prop, toTime(offset), DEC, customProcessor, fps);
