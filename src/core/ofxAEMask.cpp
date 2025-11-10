@@ -337,6 +337,12 @@ void MaskCollection::combineMasks(ofFbo &target, const Mask &mask, bool isFirst)
 			case MaskMode::INTERSECT:
 				ofEnableBlendMode(OF_BLENDMODE_MULTIPLY);
 				break;
+			case MaskMode::LIGHTEN:
+				ofEnableBlendMode(OF_BLENDMODE_MAX);
+				break;
+			case MaskMode::DARKEN:
+				ofEnableBlendMode(OF_BLENDMODE_MIN);
+				break;
 			default:
 				ofEnableBlendMode(OF_BLENDMODE_ALPHA);
 				break;
