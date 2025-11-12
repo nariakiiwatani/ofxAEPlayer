@@ -1,11 +1,11 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofxAEPlayer.h"
-#include <algorithm>
+#include "ofVideoPlayer.h"
+#include "ofxAEComposition.h"
 
-class ofApp : public ofBaseApp{
-
+class ofApp : public ofBaseApp
+{
 public:
 	void setup();
 	void update();
@@ -24,13 +24,10 @@ public:
 	void gotMessage(ofMessage msg);
 
 private:
-	std::shared_ptr<ofx::ae::Composition> comp_;
-	bool is_playing_;
+	ofVideoPlayer player_;
+	ofx::ae::Composition::Info info_;
 	bool show_debug_info_;
 
-	int timeline_;
-
-	// GUI controls
 	void drawControls();
 	void drawDebugInfo();
 };
