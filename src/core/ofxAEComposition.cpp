@@ -20,11 +20,10 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 #define EXTRACT_INFO2(k,n) json::extract(json, #k, info_.n)
 #define EXTRACT_INFO(n) EXTRACT_INFO2(n, n)
 	EXTRACT_INFO(duration);
+	EXTRACT_INFO2(endTime, end_time);
 	EXTRACT_INFO(fps);
 	EXTRACT_INFO(width);
 	EXTRACT_INFO(height);
-	EXTRACT_INFO2(startFrame, start_frame);
-	EXTRACT_INFO2(endFrame, end_frame);
 #undef EXTRACT_INFO2
 #undef EXTRACT_INFO
 
@@ -38,7 +37,7 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 			EXTRACT_LAYER2(uniqueName, unique_name);
 			EXTRACT_LAYER2(file, filepath);
 			EXTRACT_LAYER(parent);
-			EXTRACT_LAYER(offset);
+			EXTRACT_LAYER2(startTime, offset);
 			EXTRACT_LAYER(visible);
 #undef EXTRACT_LAYER2
 #undef EXTRACT_LAYER
@@ -99,25 +98,28 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 		}
 	}
 
-	current_frame_ = -1;
+	current_time_ = -1.0;
+	setTime(0);
 	return !layers_.empty();
 }
 
-bool Composition::setFrame(int frame)
+bool Composition::setTime(double time)
 {
-	if(current_frame_ == frame) {
+	if(util::isNearTime(current_time_, time)) {
 		return false;
 	}
+	
 	bool ret = false;
 	auto offset = [this](std::shared_ptr<Layer> layer) {
 		auto found = layer_offsets_.find(layer);
-		if(found == end(layer_offsets_)) return 0;
-		return found->second;
+		if(found == end(layer_offsets_)) return 0.0;
+		return static_cast<double>(found->second);
 	};
+	
 	for(auto& layer : layers_) {
-		ret |= layer->setFrame(frame - offset(layer));
+		ret |= layer->setTime(time - offset(layer));
 	}
-	current_frame_ = frame;
+	current_time_ = time;
 	return ret;
 }
 void Composition::update()

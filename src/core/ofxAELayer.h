@@ -39,7 +39,12 @@ public:
 	bool load(const std::string &base_dir);
 	bool setup(const ofJson &json, const std::filesystem::path &source_dir="");
 	void update() override;
-	bool setFrame(int frame);
+
+	bool setTime(double time);
+	double getTime() const { return current_time_; }
+	double getInPoint() const { return in_time_; }
+	double getOutPoint() const { return out_time_; }
+	double getDuration() const { return out_time_ - in_time_; }
 	
 	using ofBaseDraws::draw;
 	void draw() const { draw(0,0); }
@@ -63,7 +68,7 @@ public:
 	void setBlendMode(BlendMode mode) { blend_mode_ = mode; }
 	BlendMode getBlendMode() const { return blend_mode_; }
 
-	bool isActiveAtFrame(int frame) const;
+	bool isActiveAtTime(double time) const;
 
 	void setTrackMatte(std::shared_ptr<Layer> src, TrackMatteType type) {
 		track_matte_layer_ = src;
@@ -84,8 +89,9 @@ private:
 	std::unique_ptr<LayerSource> source_;
 
 	std::string name_;
-	int in_, out_;
-	int current_frame_;
+	double in_time_ = 0.0;
+	double out_time_ = 0.0;
+	double current_time_ = 0.0;
 
 	TransformProp transform_;
 	FloatProp time_remap_;

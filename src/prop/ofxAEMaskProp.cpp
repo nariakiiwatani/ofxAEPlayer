@@ -140,12 +140,12 @@ void MaskProp::setupMaskAtom(const ofJson &atomBase, const ofJson &atomKeyframes
 		maskAtom->getProperty<FloatProp>("/offset")->setup(offsetBase, ofJson{});
 		maskAtom->getProperty<BoolProp>("/inverted")->setup(invertedBase, ofJson{});
 		maskAtom->getProperty<MaskModeProp>("/mode")->setup(modeBase, ofJson{});
+		}
 	}
-}
-
-void MaskProp::accept(Visitor &visitor)
-{
-	PropertyArray::accept(visitor);
-}
+	
+	void MaskProp::accept(Visitor &visitor)
+	{
+		PropertyArray::accept(visitor);
+	}
 
 }} // namespace ofx::ae

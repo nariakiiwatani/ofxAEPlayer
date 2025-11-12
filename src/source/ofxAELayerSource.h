@@ -23,7 +23,10 @@ public:
 	virtual bool load(const std::filesystem::path &filepath) { return setup(ofLoadJson(filepath)); }
 
 	virtual void update() override {}
-	virtual bool setFrame(int frame) { return false; }
+	
+	virtual bool setTime(double time) { return false; }
+	virtual double getTime() const { return 0.0; }
+	virtual double getDuration() const { return 0.0; }
 
 	using ofBaseDraws::draw;
 	virtual void draw(float x, float y, float w, float h) const override {}

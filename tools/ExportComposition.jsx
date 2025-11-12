@@ -287,8 +287,7 @@ var PROPERTY_MAPPING_CONFIG = {
     "ADBE Marker": { ignored: true },
     "ADBE Effect Parade": { ignored: true },
     "ADBE Time Remapping": {
-        wrapInObject: "timeRemap",
-        customProcessor: "timeRemapToFrames"
+        wrapInObject: "timeRemap"
     },
     "ADBE MTrackers": { ignored: true },
     "ADBE Vector Materials Group": { ignored: true },
@@ -406,12 +405,6 @@ function maskModeToString(mode) {
     map[MaskMode.DIFFERENCE] = "DIFFERENCE";
     return map.hasOwnProperty(mode) ? map[mode] : "ADD";
 }
-function timeRemapToFrames(value, fps) {
-    if (typeof value === 'number') {
-        return Math.round(value * fps);
-    }
-    return value;
-}
 
 // ===== COMMON UTILITY FUNCTIONS =====
 
@@ -513,6 +506,25 @@ function trackMatteTypeToString(t){
             }
             return res;
         };
+    }
+
+    function getFootageFrameRate(footageItem) {
+        try {
+            if (!(footageItem instanceof FootageItem)) {
+                return null;
+            }
+            
+            var mainSource = footageItem.mainSource;
+            
+            if (mainSource instanceof FileSource) {
+                return mainSource.conformFrameRate;
+            }
+            
+            return null;
+        } catch (e) {
+            debugLog("getFootageFrameRate", "Error getting footage frame rate: " + e.toString(), null, "warning");
+            return null;
+        }
     }
 
     function getSourceType(layer) {
@@ -855,7 +867,7 @@ function trackMatteTypeToString(t){
                 if (app.project.activeItem==null || !(app.project.activeItem instanceof CompItem)){ alert("コンポジションを選択してください。"); return; }
 
 
-                debugLog("ExecuteSystem", "Starting property extraction process", {
+                debugLog("ExecuteSystem", "Starting property extraction process (time-based export)", {
                     outputFolder: outputFolderPath,
                     useSharedAssets: useSharedAssets,
                     sharedAssetsPath: sharedAssetsPath,
@@ -863,6 +875,7 @@ function trackMatteTypeToString(t){
                 }, "notice");
 
                 app.beginUndoGroup("プロパティ抽出"); undoOpen=true;
+                
                 var options = {
                     outputFolderPath: outputFolderPath,
                     useSharedAssets: useSharedAssets,
@@ -1144,8 +1157,6 @@ function trackMatteTypeToString(t){
                         return windingDirectionToString(value);
                     case "fillRule":
                         return fillRuleToString(value);
-                    case "timeRemapToFrames":
-                        return timeRemapToFrames(value, fps);
                     default:
                         break;
                 }
@@ -1438,20 +1449,19 @@ function trackMatteTypeToString(t){
     }
 
     // ===== marker extractors =====
-    function extractMarkers(markers, fps, offsetFrame){
-        function toFrame(t){ return Math.round(t * fps); }
+    function extractMarkers(markers, offsetTime){
         var markerData = [];
         for (var i = 1; i <= markers.numKeys; i++) {
             var time = markers.keyTime(i);
             var markerValue = markers.keyValue(i);
-            var frame = toFrame(time) - offsetFrame;
-            var lengthFrames = toFrame(markerValue.duration);
+            var adjustedTime = time - offsetTime;
+            var duration = markerValue.duration;
             var comment = markerValue.comment ? markerValue.comment.replace(/[\r\n]+/g, '\n') : "";
             
             var markerInfo = {
-                frame: frame,
+                time: Number(adjustedTime.toFixed(6)),
                 comment: comment,
-                length: lengthFrames
+                duration: Number(duration.toFixed(6))
             };
             
             markerData.push(markerInfo);
@@ -1522,40 +1532,39 @@ function trackMatteTypeToString(t){
 
 
 
-    // キーフレームベースの抽出関数
-    function extractKeyframeBasedProperty(prop, offset, fps, decimalPlaces, customProcessor) {
+    // 時間ベースのキーフレーム抽出関数（統一版）
+    function extractKeyframeProperty(prop, offsetTime, fps, decimalPlaces, customProcessor) {
         try {
             if (!prop) {
-                debugLog("extractKeyframeBasedProperty", "prop is null", null, "verbose");
+                debugLog("extractKeyframeProperty", "prop is null", null, "verbose");
                 return null;
             }
             
-            debugLog("extractKeyframeBasedProperty", "Processing property: " + (prop.matchName || prop.name || "unnamed"), null, "verbose");
-            
-
-            function toFrame(t){ return Math.round(t * fps); }
+            debugLog("extractKeyframeProperty", "Processing property: " + (prop.matchName || prop.name || "unnamed"), null, "verbose");
 
             var nk = (typeof prop.numKeys === 'number') ? prop.numKeys : 0;
 
             if (nk === 0) {
-                // No animation - only return initial value info
-                debugLog("extractKeyframeBasedProperty", "No animation detected, returning initial value only", null, "verbose");
+                debugLog("extractKeyframeProperty", "No animation detected, returning initial value only", null, "verbose");
                 return null;
             }
 
-            // Extract keyframe data
+            // Extract keyframe data with time keys
             var keyframes = [];
             
             for (var i = 1; i <= nk; i++) {
                 try {
                     var keyTime = prop.keyTime(i);
-                    var keyFrame = toFrame(keyTime) - offset;
+                    var adjustedTime = keyTime - offsetTime;
+                    
+                    // Format time with 6 decimal places for precision (microseconds)
+                    var timeKey = Number(adjustedTime.toFixed(6));
                     
                     var keyValue = extractValue(prop, keyTime, decimalPlaces, customProcessor, fps);
                     
                     // キーフレーム情報を構築
                     var keyframeInfo = {
-                        frame: keyFrame,
+                        time: timeKey,
                         value: keyValue
                     };
                     
@@ -1574,16 +1583,17 @@ function trackMatteTypeToString(t){
                     keyframes.push(keyframeInfo);
                     
                 } catch (e) {
-                    debugLog("extractKeyframeBasedProperty", "Error extracting keyframe " + i + ": " + e.toString(), null, "warning");
+                    debugLog("extractKeyframeProperty", "Error extracting keyframe " + i + ": " + e.toString(), null, "warning");
                 }
             }
             
-            debugLog("extractKeyframeBasedProperty", "Keyframe extraction completed successfully", {
-                keyframeCount: keyframes.length
+            debugLog("extractKeyframeProperty", "Keyframe extraction completed successfully", {
+                keyframeCount: keyframes.length,
+                fps: fps
             });
             return keyframes;
         } catch (e) {
-            debugLog("extractKeyframeBasedProperty", "Error in keyframe extraction: " + e.toString(), null, "error");
+            debugLog("extractKeyframeProperty", "Error in keyframe extraction: " + e.toString(), null, "error");
             return null;
         }
     }
@@ -1654,7 +1664,7 @@ function trackMatteTypeToString(t){
         }
     }
 
-    function extractPropertyValue(prop, options, layer, offset, config) {
+    function extractPropertyValue(prop, options, layer, offsetTime, config) {
         var fps = layer.containingComp.frameRate;
         function toTime(f) { return f / fps; }
         function toFrame(t){ return Math.round(t * fps); }
@@ -1676,6 +1686,7 @@ function trackMatteTypeToString(t){
             var nk = (typeof prop.numKeys === 'number') ? prop.numKeys : 0;
             
             if (hasExpression) {
+                var offset = toFrame(offsetTime);
                 var layerInPoint = toFrame(layer.inPoint);
                 var layerOutPoint = toFrame(layer.outPoint);
                 var duration = layerOutPoint - layerInPoint;
@@ -1696,21 +1707,23 @@ function trackMatteTypeToString(t){
                 var duration = end - start;
                 var shouldBake = options.useFullFrameAnimation || hasExpression;
                 if (shouldBake) {
+                    var offset = toFrame(offsetTime);
                     result = extractAnimatedProperty(prop, offset, duration, fps, DEC, customProcessor);
                 } else {
-                    result = extractKeyframeBasedProperty(prop, offset, fps, DEC, customProcessor);
+                    // Always use time-based extraction (time-only export mode)
+                    result = extractKeyframeProperty(prop, offsetTime, fps, DEC, customProcessor);
                 }
             } else {
                 return null;
             }
         } else {
-            result = extractValue(prop, toTime(offset), DEC, customProcessor, fps);
+            result = extractValue(prop, offsetTime, DEC, customProcessor, fps);
         }
         return result;
     }
     
     // ===== 統一処理関数 =====
-    function extractPropertiesRecursive(property, options, layer, offset) {
+    function extractPropertiesRecursive(property, options, layer, offsetTime) {
         try {
             if (!property) {
                 debugLog("extractPropertiesRecursive", "property is null", null, "verbose");
@@ -1740,7 +1753,7 @@ function trackMatteTypeToString(t){
             var propType = property.propertyType;
             switch(propType) {
                 case PropertyType.PROPERTY:
-                    result = extractPropertyValue(property, options, layer, offset, config);
+                    result = extractPropertyValue(property, options, layer, offsetTime, config);
                     break;
                 case PropertyType.INDEXED_GROUP:
                     result = [];
@@ -1748,7 +1761,7 @@ function trackMatteTypeToString(t){
                     
                     for (var i = 1; i <= property.numProperties; i++) {
                         var childProp = property.property(i);
-                        var child = extractPropertiesRecursive(childProp, options, layer, offset);
+                        var child = extractPropertiesRecursive(childProp, options, layer, offsetTime);
                         
                         if (preserveIndexes) {
                             // インデックスを維持（nullも配列に追加）
@@ -1780,7 +1793,7 @@ function trackMatteTypeToString(t){
                     result = {};
                     for (var i = 1; i <= property.numProperties; i++) {
                         var childProp = property.property(i);
-                        var child = extractPropertiesRecursive(childProp, options, layer, offset);
+                        var child = extractPropertiesRecursive(childProp, options, layer, offsetTime);
                         if (child) {
                             if(child instanceof Array) {
                                 // WARNING: たぶん正しくない。NAMED_GROUPをキーフレームで展開する場合の処理はどう書く？
@@ -1887,18 +1900,24 @@ function trackMatteTypeToString(t){
         function toFrame(t, round){ return round ? Math.round(t * fps) : t * fps; }
 
         var compInfo = {};
-        compInfo["duration"]      = toFrame(comp.duration, true);
+        compInfo["version"]       = "2.0";
+        compInfo["exportMode"]    = "time";
+        compInfo["duration"]      = comp.duration;
         compInfo["fps"]           = fps;
         compInfo["width"]         = comp.width;
         compInfo["height"]        = comp.height;
-        var startFrame = toFrame(comp.workAreaStart, true);
-        compInfo["startFrame"]    = startFrame;
-        compInfo["endFrame"]      = toFrame((comp.workAreaStart + comp.workAreaDuration), true);
+        compInfo["startTime"]     = comp.workAreaStart;
+        compInfo["endTime"]       = comp.workAreaStart + comp.workAreaDuration;
         compInfo["layers"]        = [];
+        
+        debugLog("extractPropertiesForAllLayers", "Using time-based export (v2.0)", {
+            fps: fps,
+            duration: comp.duration
+        }, "notice");
         
         // コンポジションマーカーを追加
         if (comp.markerProperty.numKeys > 0) {
-            compInfo["markers"] = extractMarkers(comp.markerProperty, fps, startFrame);
+            compInfo["markers"] = extractMarkers(comp.markerProperty, comp.workAreaStart);
         }
 
         debugLog("extractPropertiesForAllLayers", "Total layers to process: " + comp.numLayers);
@@ -1928,8 +1947,7 @@ function trackMatteTypeToString(t){
                 layerInfo.uniqueName = layerNameForFile;
                 layerInfo.file = getRelativePath(outputFolder, layerFolder) + "/" + layerInfo.uniqueName + ".json";
                 layerInfo.visible = layer.enabled;
-                var offset = toFrame(layer.startTime, true);
-                layerInfo.offset = offset;
+                layerInfo.startTime = layer.startTime;
 
                 if (layer.parent) {
                     layerInfo.parent = layerUniqueName(layer.parent);
@@ -1966,8 +1984,8 @@ function trackMatteTypeToString(t){
                 resultData["blendingMode"] = blendMode || "NORMAL";
                 
                 var timing = safelyProcessLayerProperty(layer, "timing", function() {
-                    var inPoint = toFrame(layer.inPoint, true) - offset;
-                    var outPoint = toFrame(layer.outPoint, true) - offset;
+                    var inPoint = Number((layer.inPoint - layer.startTime).toFixed(6));
+                    var outPoint = Number((layer.outPoint - layer.startTime).toFixed(6));
                     var stretch = layer.stretch;  // Time Stretch/Reverse value
                     debugLog("LayerProcessing", "Layer timing - in: " + inPoint + ", out: " + outPoint + ", stretch: " + stretch);
                     return {"in": inPoint, "out": outPoint, "stretch": stretch};
@@ -2010,9 +2028,11 @@ function trackMatteTypeToString(t){
                                 break;
                             case "sequence":
                                 try {
-                                    source = layer.source.name;
+                                    // For sequences, we'll create a JSON metadata file
+                                    // The source will point to the JSON file, not the directory
+                                    source = layer.source.name + ".json";
                                     sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
-                                    debugLog("LayerProcessing", "Sequence source path: " + sourcePath);
+                                    debugLog("LayerProcessing", "Sequence source path (metadata): " + sourcePath);
                                 } catch (seqSourceError) {
                                     debugLog("LayerProcessing", "ERROR: Failed to process sequence source: " + seqSourceError.toString());
                                 }
@@ -2078,7 +2098,7 @@ function trackMatteTypeToString(t){
                 safelyProcessLayerProperty(layer, "markers", function() {
                     if (layer.marker && layer.marker.numKeys > 0) {
                         debugLog("LayerProcessing", "Processing markers for layer: " + layer.name + " (marker count: " + layer.marker.numKeys + ")");
-                        resultData["markers"] = extractMarkers(layer.marker, fps, offset);
+                        resultData["markers"] = extractMarkers(layer.marker, layer.startTime);
                         debugLog("LayerProcessing", "Successfully processed markers for layer: " + layer.name);
                     } else {
                         debugLog("LayerProcessing", "Layer has no markers: " + layer.name);
@@ -2090,7 +2110,7 @@ function trackMatteTypeToString(t){
                 debugLog("LayerProcessing", "Processing properties (non-keyframe)...");
                 safelyProcessLayerProperty(layer, "properties", function() {
                     options.keyframes = false;
-                    var properties = extractPropertiesRecursive(layer, options, layer, offset);
+                    var properties = extractPropertiesRecursive(layer, options, layer, layer.startTime);
                     if(properties) {
                         debugLog("LayerProcessing", "Processing properties for layer: " + layer.name);
                         for (var key in properties) {
@@ -2109,7 +2129,7 @@ function trackMatteTypeToString(t){
                 debugLog("LayerProcessing", "Processing keyframes...");
                 safelyProcessLayerProperty(layer, "keyframes", function() {
                     options.keyframes = true;
-                    var keyframes = extractPropertiesRecursive(layer, options, layer, offset);
+                    var keyframes = extractPropertiesRecursive(layer, options, layer, layer.startTime);
                     if(keyframes) {
                         debugLog("LayerProcessing", "Processing keyframes for layer: " + layer.name);
                         resultData["keyframes"] = keyframes;
@@ -2266,6 +2286,26 @@ function trackMatteTypeToString(t){
                         if (!copyFileWithDateCheck(sequenceFile, dest, sequenceFile.name, {layerName: layer.name, sequenceIndex: s})) {
                             alert("ファイルのコピー中にエラー: " + sequenceFile.name);
                         }
+                    }
+                    
+                    // Create metadata JSON file with fps and directory information
+                    try {
+                        var sequenceFps = getFootageFrameRate(layer.source);
+                        var sequenceMetadata = {
+                            fps: sequenceFps || comp.frameRate,
+                            directory: "./" + layer.source.name
+                        };
+                        
+                        var metadataFile = new File(assetFolder.fsName + "/" + layer.source.name + ".json");
+                        metadataFile.encoding = "UTF-8";
+                        metadataFile.open("w");
+                        metadataFile.write(JSON.stringify(sequenceMetadata, null, 4));
+                        metadataFile.close();
+                        
+                        debugLog("SequenceExport", "Created sequence metadata JSON: " + layer.source.name + ".json", {fps: sequenceFps}, "notice");
+                    } catch(e) {
+                        debugLog("SequenceExport", "Error creating sequence metadata: " + e.toString(), null, "error");
+                        alert("シーケンスメタデータの作成中にエラー: " + e.message);
                     }
                     break;
                 default:

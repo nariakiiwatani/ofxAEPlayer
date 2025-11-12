@@ -15,7 +15,11 @@ public:
 	
 	void accept(Visitor &visitor) override;
 	bool load(const std::filesystem::path &filepath) override;
-	bool setFrame(int frame) override;
+	
+	bool setTime(double time) override;
+	double getTime() const override;
+	double getDuration() const override;
+	
 	void update() override;
 	void draw(float x, float y, float w, float h) const override;
 
@@ -23,6 +27,9 @@ public:
 	float getWidth() const override;
 	float getHeight() const override;
 	std::string getDebugInfo() const override;
+	
+	void setComposition(std::shared_ptr<Composition> comp) { composition_ = comp; }
+	std::shared_ptr<Composition> getComposition() { return composition_; }
 	
 private:
 	std::shared_ptr<Composition> composition_;

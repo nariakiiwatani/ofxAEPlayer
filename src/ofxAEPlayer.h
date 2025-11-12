@@ -36,7 +36,8 @@ public:
 	
 	float getPosition() const override;
 	void setPosition(float pct) override;
-	void setFrame(int frame) override;
+	void setFrame(int frame) override { setFrame(static_cast<float>(frame)); }
+	void setFrame(float frame);
 	int getCurrentFrame() const override;
 	int getTotalNumFrames() const override;
 	
@@ -67,7 +68,7 @@ private:
 	void allocateFbo();
 	
 	void updatePlayback();
-	int constrainFrame(int frame) const;
+	double constrainTime(double time) const;
 	
 	Composition composition_;
 	
@@ -80,7 +81,7 @@ private:
 	float speed_;
 	
 	float last_update_time_;
-	int target_frame_;
+	double target_time_;
 	
 	ofPixels dummy_pixels_;
 	ofPixelFormat pixel_format_;

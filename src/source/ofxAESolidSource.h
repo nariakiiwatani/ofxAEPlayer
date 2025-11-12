@@ -3,6 +3,7 @@
 #include "ofxAELayerSource.h"
 #include "ofJson.h"
 #include "ofxAERenderContext.h"
+#include <limits>
 
 namespace ofx { namespace ae {
 
@@ -21,6 +22,10 @@ public:
 		return true;
 	}
 	void update() override {}
+	
+	bool setTime(double time) override { current_time_ = time; return false; }
+	double getTime() const override { return current_time_; }
+	double getDuration() const override { return std::numeric_limits<double>::max(); }
 
 	void draw(float x, float y, float w, float h) const override {
 		RenderContext::push();
@@ -33,8 +38,13 @@ public:
 
 	SourceType getSourceType() const override { return SourceType::SOLID; }
 	std::string getDebugInfo() const override { return "SolidSource"; }
+	
+	void setColor(const ofFloatColor &color) { color_ = color; }
+	void setSize(float width, float height) { size_.x = width; size_.y = height; }
+	
 private:
 	glm::ivec2 size_;
 	ofFloatColor color_;
+	double current_time_ = 0.0;
 };
 }} // namespace ofx::ae

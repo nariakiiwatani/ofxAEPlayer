@@ -61,6 +61,7 @@ void PathExtractionVisitor::visit(const PathData &data) {
 void PathExtractionVisitor::visit(const FillData &data) {
 	ofPath p = path_;
 
+	p.setStrokeWidth(0);
 	p.setFillColor(data.color);
 	p.setFilled(true);
 
@@ -82,6 +83,7 @@ void PathExtractionVisitor::visit(const FillData &data) {
 void PathExtractionVisitor::visit(const StrokeData &data) {
 	ofPath p = path_;
 
+	p.setFilled(false);
 	p.setStrokeColor(data.color);
 	p.setStrokeWidth(data.width);
 

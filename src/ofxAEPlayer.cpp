@@ -12,7 +12,7 @@ Player::Player()
 	, loop_state_(OF_LOOP_NONE)
 	, speed_(1.0f)
 	, last_update_time_(0.0f)
-	, target_frame_(0)
+	, target_time_(0.0)
 	, pixel_format_(OF_PIXELS_RGBA)
 	, use_fbo_(true)
 	, fbo_needs_update_(true)
@@ -24,8 +24,8 @@ bool Player::load(const of::filesystem::path &fileName)
 	bool result = composition_.load(fileName);
 	if(result) {
 		is_loaded_ = true;
-		target_frame_ = composition_.getInfo().start_frame;
-		composition_.setFrame(target_frame_);
+		target_time_ = 0.0;
+		composition_.setTime(target_time_);
 		last_update_time_ = ofGetElapsedTimef();
 		
 		if(use_fbo_) {
@@ -51,8 +51,8 @@ void Player::stop()
 {
 	is_playing_ = false;
 	is_paused_ = false;
-	target_frame_ = composition_.getInfo().start_frame;
-	composition_.setFrame(target_frame_);
+	target_time_ = 0.0;
+	composition_.setTime(0.0);
 }
 
 float Player::getWidth() const
@@ -105,58 +105,62 @@ void Player::updatePlayback()
 	float elapsed = current_time - last_update_time_;
 	last_update_time_ = current_time;
 
-	const auto &info = composition_.getInfo();
-	float frames_per_second = info.fps;
-	float frame_delta = elapsed * frames_per_second * speed_;
+	double time_delta = elapsed * speed_;
+	double new_time = target_time_ + time_delta;
 
-	int new_frame = target_frame_ + static_cast<int>(frame_delta);
+	double duration = composition_.getDuration();
 
 	switch(loop_state_) {
 		case OF_LOOP_NONE: {
-			new_frame = constrainFrame(new_frame);
-			if(new_frame >= info.end_frame) {
-				new_frame = info.end_frame;
+			new_time = constrainTime(new_time);
+			if(new_time >= duration) {
+				new_time = duration;
 				is_playing_ = false;
 			}
-			else if(new_frame < info.start_frame) {
-				new_frame = info.start_frame;
+			else if(new_time < 0.0) {
+				new_time = 0.0;
 				is_playing_ = false;
 			}
 			break;
 		}
 		case OF_LOOP_NORMAL: {
-			int range = info.end_frame - info.start_frame;
-			if(range > 0) {
-				new_frame = ((new_frame - info.start_frame) % range + range) % range + info.start_frame;
+			double start_time = 0.0;
+			if(duration > 0.0) {
+				double offset = new_time - start_time;
+				new_time = fmod(fmod(offset, duration) + duration, duration) + start_time;
 			}
 			break;
 		}
 		case OF_LOOP_PALINDROME: {
-			int range = info.end_frame - info.start_frame;
-			if(range > 0) {
-				int total_frames = range * 2;
-				int wrapped = ((new_frame - info.start_frame) % total_frames + total_frames) % total_frames;
+			double start_time = 0.0;
+			double end_time = duration;
+			double range = end_time - start_time;
+			if(range > 0.0) {
+				double total_duration = range * 2.0;
+				double offset = new_time - start_time;
+				double wrapped = fmod(fmod(offset, total_duration) + total_duration, total_duration);
 				if(wrapped >= range) {
-					new_frame = info.end_frame - (wrapped - range);
+					new_time = end_time - (wrapped - range);
 				}
 				else {
-					new_frame = info.start_frame + wrapped;
+					new_time = start_time + wrapped;
 				}
 			}
 			break;
 		}
 	}
 
-	if(new_frame != target_frame_) {
-		target_frame_ = new_frame;
-		is_frame_new_ = composition_.setFrame(target_frame_);
+	if(new_time != target_time_) {
+		target_time_ = new_time;
+		is_frame_new_ = composition_.setTime(target_time_);
 	}
 }
 
-int Player::constrainFrame(int frame) const
+double Player::constrainTime(double time) const
 {
-	const auto &info = composition_.getInfo();
-	return ofClamp(frame, info.start_frame, info.end_frame);
+	double start_time = 0.0;
+	double end_time = composition_.getDuration();
+	return ofClamp(time, start_time, end_time);
 }
 
 bool Player::isFrameNew() const
@@ -170,7 +174,7 @@ void Player::close()
 	is_playing_ = false;
 	is_paused_ = false;
 	is_frame_new_ = false;
-	target_frame_ = 0;
+	target_time_ = 0.0;
 }
 
 bool Player::setPixelFormat(ofPixelFormat pixelFormat)
@@ -199,12 +203,11 @@ float Player::getPosition() const
 	if(!is_loaded_) {
 		return 0.0f;
 	}
-	const auto &info = composition_.getInfo();
-	int range = info.end_frame - info.start_frame;
-	if(range <= 0) {
+	double duration = composition_.getDuration();
+	if(duration <= 0.0) {
 		return 0.0f;
 	}
-	return static_cast<float>(target_frame_ - info.start_frame) / static_cast<float>(range);
+	return static_cast<float>(target_time_ / duration);
 }
 
 void Player::setPosition(float pct)
@@ -212,27 +215,27 @@ void Player::setPosition(float pct)
 	if(!is_loaded_) {
 		return;
 	}
-	const auto &info = composition_.getInfo();
-	int range = info.end_frame - info.start_frame;
-	target_frame_ = info.start_frame + static_cast<int>(pct * range);
-	target_frame_ = constrainFrame(target_frame_);
-	composition_.setFrame(target_frame_);
+	double duration = composition_.getDuration();
+	target_time_ = pct * duration;
+	target_time_ = constrainTime(target_time_);
+	composition_.setTime(target_time_);
 	is_frame_new_ = true;
 }
 
-void Player::setFrame(int frame)
+void Player::setFrame(float frame)
 {
 	if(!is_loaded_) {
 		return;
 	}
-	target_frame_ = constrainFrame(frame);
-	composition_.setFrame(target_frame_);
+	double time = frame / composition_.getFps();
+	target_time_ = constrainTime(time);
+	composition_.setTime(target_time_);
 	is_frame_new_ = true;
 }
 
 int Player::getCurrentFrame() const
 {
-	return target_frame_;
+	return static_cast<int>(target_time_ * composition_.getFps());
 }
 
 int Player::getTotalNumFrames() const
@@ -240,8 +243,7 @@ int Player::getTotalNumFrames() const
 	if(!is_loaded_) {
 		return 0;
 	}
-	const auto &info = composition_.getInfo();
-	return info.end_frame - info.start_frame;
+	return static_cast<int>(composition_.getDuration() * composition_.getFps());
 }
 
 void Player::setLoopState(ofLoopType state)
@@ -269,8 +271,7 @@ float Player::getDuration() const
 	if(!is_loaded_) {
 		return 0.0f;
 	}
-	const auto &info = composition_.getInfo();
-	return static_cast<float>(info.end_frame - info.start_frame) / info.fps;
+	return static_cast<float>(composition_.getDuration());
 }
 
 bool Player::getIsMovieDone() const
@@ -278,23 +279,35 @@ bool Player::getIsMovieDone() const
 	if(!is_loaded_) {
 		return true;
 	}
-	const auto &info = composition_.getInfo();
-	return !is_playing_ && target_frame_ >= info.end_frame;
+	double duration = composition_.getDuration();
+	return !is_playing_ && target_time_ >= duration;
 }
 
 void Player::firstFrame()
 {
-	setFrame(composition_.getInfo().start_frame);
+	setFrame(0.0f);
 }
 
 void Player::nextFrame()
 {
-	setFrame(target_frame_ + 1);
+	if(!is_loaded_) {
+		return;
+	}
+	double frame_duration = 1.0 / composition_.getFps();
+	target_time_ = constrainTime(target_time_ + frame_duration);
+	composition_.setTime(target_time_);
+	is_frame_new_ = true;
 }
 
 void Player::previousFrame()
 {
-	setFrame(target_frame_ - 1);
+	if(!is_loaded_) {
+		return;
+	}
+	double frame_duration = 1.0 / composition_.getFps();
+	target_time_ = constrainTime(target_time_ - frame_duration);
+	composition_.setTime(target_time_);
+	is_frame_new_ = true;
 }
 
 void Player::setVolume(float volume)

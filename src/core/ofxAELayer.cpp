@@ -19,7 +19,6 @@ std::vector<Layer::SourceResolver> BUILTIN_RESOLVERS = {
 		auto source = LayerSource::createSourceOfType(sourceType);
 
 		if (!source) {
-			ofLogWarning("SourceTypeResolver") << "No source created for sourceType: " << sourceType;
 			return nullptr;
 		}
 
@@ -36,7 +35,6 @@ std::vector<Layer::SourceResolver> BUILTIN_RESOLVERS = {
 	[](const ofJson &json, const std::filesystem::path &base_dir) -> std::unique_ptr<LayerSource> {
 		auto source = LayerSource::createSourceOfType("shape");
 		if (!source) {
-			ofLogError("ShapeResolver") << "Failed to create shape source";
 			return nullptr;
 		}
 
@@ -116,9 +114,9 @@ Layer::Layer()
 : TransformNode()
 , source_(nullptr)
 , name_("")
-, in_(0)
-, out_(0)
-, current_frame_(-1)
+, in_time_(0.0)
+, out_time_(0.0)
+, current_time_(-1.0)
 , blend_mode_(BlendMode::NORMAL)
 {
 }
@@ -134,6 +132,8 @@ std::unique_ptr<LayerSource> Layer::resolveSource(const ofJson &json, const std:
 			return source;
 		}
 	}
+	ofLogWarning("Layer") << "No source created for layer name: " << name_;
+
 	return nullptr;
 }
 
@@ -142,8 +142,10 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 #define EXTRACT(n) json::extract(json, #n, n)
 #define EXTRACT_(n) json::extract(json, #n, n##_)
 	EXTRACT_(name);
-	EXTRACT_(in);
-	EXTRACT_(out);
+	
+	json::extract(json, "in", in_time_);
+	json::extract(json, "out", out_time_);
+
 	std::string blendingMode = "NORMAL";
 	EXTRACT(blendingMode);
 	blend_mode_ = blendModeFromString(blendingMode);
@@ -178,7 +180,7 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 		ofLogVerbose("Layer") << "No source resolved for layer: " << name_;
 	}
 
-	current_frame_ = -1;
+	current_time_ = -1.0;
 	return true;
 #undef EXTRACT_
 #undef EXTRACT
@@ -193,23 +195,23 @@ void Layer::update()
 	}
 }
 
-bool Layer::isActiveAtFrame(int frame) const
+bool Layer::isActiveAtTime(double time) const
 {
-	return in_ <= out_ ? in_ <= frame && frame < out_
-	: out_ < frame && frame < in_;
+	return in_time_ <= out_time_ ? in_time_ <= time && time < out_time_
+	: out_time_ < time && time < in_time_;
 }
 
 
-bool Layer::setFrame(int frame)
+bool Layer::setTime(double time)
 {
-	if(current_frame_ == frame) {
+	if(util::isNearTime(current_time_, time)) {
 		return false;
 	}
 
 	bool ret = false;
 	bool need_mask_update = false;
 	
-	if(transform_.setFrame(frame)) {
+	if(transform_.setTime(time)) {
 		TransformData t;
 		if(!transform_.tryExtract(t)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract TransformData, using defaults";
@@ -222,25 +224,25 @@ bool Layer::setFrame(int frame)
 		ret |= true;
 	}
 
-	if(isActiveAtFrame(frame) || isTrackMatte()) {
-		if(mask_.setFrame(frame)) {
+	if(isActiveAtTime(time) || isTrackMatte()) {
+		if(mask_.setTime(time)) {
 			mask_collection_.setupFromMaskProp(mask_);
 			ret |= true;
 			need_mask_update |= true;
 		}
 
 		if(source_) {
-			int source_frame = frame;
+			double source_time = time;
 			
 			if(stretch_ != 1.0f) {
-				source_frame = static_cast<int>(frame / stretch_);
+				source_time = time / stretch_;
 			}
 			
-			if(time_remap_.setFrame(frame)) {
-				source_frame = time_remap_.get();
+			if(time_remap_.setTime(time)) {
+				source_time = time_remap_.get();
 			}
 			
-			if(source_->setFrame(source_frame)) {
+			if(source_->setTime(source_time)) {
 				ret |= true;
 				need_mask_update |= !mask_collection_.empty();
 			}
@@ -249,13 +251,13 @@ bool Layer::setFrame(int frame)
 	if(need_mask_update || isTrackMatte() || hasTrackMatte()) {
 		updateLayerFBO();
 	}
-	current_frame_ = frame;
+	current_time_ = time;
 	return ret;
 }
 
 void Layer::draw(float x, float y, float w, float h) const
 {
-	if(!isActiveAtFrame(current_frame_)) return;
+	if(!isActiveAtTime(current_time_)) return;
 
 	TransformNode::pushMatrix();
 	RenderContext::push();

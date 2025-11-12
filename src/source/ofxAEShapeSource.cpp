@@ -5,6 +5,7 @@
 #include "ofxAEShapeUtils.h"
 #include "ofxAERenderContext.h"
 #include "../utils/ofxAEBlendMode.h"
+#include "../utils/ofxAETimeUtils.h"
 #include "ofxAEVisitorUtils.h"
 
 namespace ofx { namespace ae {
@@ -37,9 +38,19 @@ void ShapeSource::update()
 	}
 }
 
-bool ShapeSource::setFrame(int frame)
+bool ShapeSource::setTime(double time)
 {
-	return shape_props_.setFrame(frame);
+	if(util::isNearTime(current_time_, time)) {
+		return false;
+	}
+	
+	bool changed = false;
+	if(shape_props_.setTime(time)) {
+		changed = true;
+	}
+	
+	current_time_ = time;
+	return changed;
 }
 
 bool ShapeSource::tryExtract(ShapeData &dst) const

@@ -63,19 +63,19 @@ public:
         comp_ = std::make_shared<ofx::ae::Composition>();
         comp_->load("path/to/composition.json");
         
-        timeline_ = 0;
+        playback_time_ = 0.0;
         is_playing_ = true;
     }
     
     void update() {
         if(is_playing_ && comp_) {
-            const auto& info = comp_->getInfo();
-            if(++timeline_ >= info.end_frame) {
-                timeline_ = info.start_frame;
+            double duration = comp_->getDuration();
+            playback_time_ += ofGetLastFrameTime();
+            if(playback_time_ >= duration) {
+                playback_time_ = 0.0;
             }
-            if(comp_->setFrame(timeline_)) {
-                comp_->update();
-            }
+            comp_->setTime(playback_time_);
+            comp_->update();
         }
     }
     
@@ -87,7 +87,7 @@ public:
     
 private:
     std::shared_ptr<ofx::ae::Composition> comp_;
-    int timeline_;
+    double playback_time_;
     bool is_playing_;
 };
 ```
@@ -125,8 +125,8 @@ public:
     // Load composition
     bool load(const std::string& filepath);
     
-    // Set frame and update
-    bool setFrame(int frame);
+    // Set time and update
+    void setTime(double seconds);
     void update();
     
     // Draw
@@ -143,7 +143,10 @@ public:
     float getHeight() const;
     
     // Get current time
-    float getCurrentTime() const;
+    double getTime() const;
+    
+    // Get duration
+    double getDuration() const;
 };
 
 }

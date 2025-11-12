@@ -30,9 +30,22 @@ bool CompositionSource::load(const std::filesystem::path &filepath)
 	}
 }
 
-bool CompositionSource::setFrame(int frame)
+bool CompositionSource::setTime(double time)
 {
-	return composition_ && composition_->setFrame(frame);
+	if(!composition_) return false;
+	return composition_->setTime(time);
+}
+
+double CompositionSource::getTime() const
+{
+	if(!composition_) return 0.0;
+	return composition_->getTime();
+}
+
+double CompositionSource::getDuration() const
+{
+	if(!composition_) return 0.0;
+	return composition_->getDuration();
 }
 
 void CompositionSource::update()
