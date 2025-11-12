@@ -2,6 +2,7 @@
 
 #include "ofxAEVisitor.h"
 #include "../utils/ofxAEAssetManager.h"
+#include "../utils/ofxAETimeUtils.h"
 
 #include "ofxAEVideoSource.h"
 
@@ -22,13 +23,34 @@ bool VideoSource::load(const std::filesystem::path &filepath)
 	}
 }
 
-bool VideoSource::setFrame(float frame)
+bool VideoSource::setTime(double time)
 {
 	if(!player_) return false;
 	
-	player_->setFrame(static_cast<int>(frame));
-	player_->update();
-	return player_->isFrameNew();
+	if(util::isNearTime(current_time_, time)) {
+		return false;
+	}
+	
+	double duration = getDuration();
+	if(duration > 0.0) {
+		float normalized_position = static_cast<float>(time / duration);
+		player_->setPosition(normalized_position);
+	}
+	
+	current_time_ = time;
+	return true;
+}
+
+double VideoSource::getDuration() const
+{
+	return player_ ? player_->getDuration() : 0.0;
+}
+
+void VideoSource::update()
+{
+	if(player_) {
+		player_->update();
+	}
 }
 
 void VideoSource::draw(float x, float y, float w, float h) const

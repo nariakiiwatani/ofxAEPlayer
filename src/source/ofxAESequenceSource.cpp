@@ -1,6 +1,8 @@
 #include "ofxAESequenceSource.h"
 #include "ofxAEVisitor.h"
 #include "ofLog.h"
+#include "../utils/ofxAETimeUtils.h"
+#include <algorithm>
 
 namespace ofx { namespace ae {
 
@@ -24,18 +26,37 @@ bool SequenceSource::load(const std::filesystem::path &filepath)
 	return !pool_.empty();
 }
 
-bool SequenceSource::setFrame(float frame)
+bool SequenceSource::setTime(double time)
 {
-	int frame_int = static_cast<int>(frame);
-	if(frame_int < 0 || pool_.size() <= static_cast<size_t>(frame_int)) {
+	if(util::isNearTime(current_time_, time)) {
 		return false;
 	}
-	auto *tex = &pool_[frame_int];
-	if(texture_.has_value() && texture_.value() == tex) {
-		return false;
+	
+	// Calculate frame index from time
+	int new_index = static_cast<int>(time * fps_);
+	new_index = std::clamp(new_index, 0, static_cast<int>(pool_.size()) - 1);
+	
+	bool changed = (new_index != current_index_);
+	current_index_ = new_index;
+	current_time_ = time;
+	
+	// Update texture pointer if index is valid
+	if(new_index >= 0 && static_cast<size_t>(new_index) < pool_.size()) {
+		texture_ = &pool_[new_index];
 	}
-	texture_ = tex;
-	return true;
+	else {
+		texture_.reset();
+	}
+	
+	return changed;
+}
+
+double SequenceSource::getDuration() const
+{
+	if(pool_.empty() || fps_ <= 0.0) {
+		return 0.0;
+	}
+	return static_cast<double>(pool_.size()) / fps_;
 }
 
 void SequenceSource::accept(Visitor &visitor) {

@@ -2,6 +2,7 @@
 
 #include "ofxAELayerSource.h"
 #include "ofxAEShapeProp.h"
+#include <limits>
 
 namespace ofx { namespace ae {
 
@@ -16,7 +17,12 @@ public:
 	bool setup(const ofJson &json) override;
 	void update() override;
 	void draw(float x, float y, float w, float h) const override;
-	bool setFrame(float frame) override;
+	
+	// Time API
+	bool setTime(double time) override;
+	double getTime() const override { return current_time_; }
+	double getDuration() const override { return std::numeric_limits<double>::max(); }
+	
 	ofRectangle getBoundingBox() const override;
 
 	SourceType getSourceType() const override { return SourceType::SHAPE; }
@@ -29,6 +35,7 @@ private:
 	ShapeProp shape_props_;
 	ShapeData shape_data_;
 	std::shared_ptr<PathExtractionVisitor> visitor_;
+	double current_time_ = 0.0;
 };
 
 }} // namespace ofx::ae
