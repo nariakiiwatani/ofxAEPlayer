@@ -63,7 +63,7 @@ public:
 	void setBlendMode(BlendMode mode) { blend_mode_ = mode; }
 	BlendMode getBlendMode() const { return blend_mode_; }
 
-	bool isActiveAtFrame(int frame) const { return in_ <= frame && frame < out_; }
+	bool isActiveAtFrame(int frame) const;
 
 	void setTrackMatte(std::shared_ptr<Layer> src, TrackMatteType type) {
 		track_matte_layer_ = src;
@@ -89,6 +89,7 @@ private:
 
 	TransformProp transform_;
 	FloatProp time_remap_;
+	float stretch_=1;
 
 	MaskProp mask_;
 	MaskCollection mask_collection_;

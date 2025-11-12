@@ -147,6 +147,13 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 	std::string blendingMode = "NORMAL";
 	EXTRACT(blendingMode);
 	blend_mode_ = blendModeFromString(blendingMode);
+	
+	float stretch = 100.0f;
+	if(json.contains("stretch")) {
+		stretch = json["stretch"].get<float>();
+	}
+	stretch_ = stretch / 100.0f;
+	
 	if(json.contains("transform")) {
 		auto&& kf = json.value("/keyframes/transform"_json_pointer, ofJson{});
 		transform_.setup(json["transform"], kf);
@@ -186,6 +193,12 @@ void Layer::update()
 	}
 }
 
+bool Layer::isActiveAtFrame(int frame) const
+{
+	return in_ <= out_ ? in_ <= frame && frame < out_
+	: out_ < frame && frame < in_;
+}
+
 
 bool Layer::setFrame(int frame)
 {
@@ -218,9 +231,15 @@ bool Layer::setFrame(int frame)
 
 		if(source_) {
 			int source_frame = frame;
+			
+			if(stretch_ != 1.0f) {
+				source_frame = static_cast<int>(frame / stretch_);
+			}
+			
 			if(time_remap_.setFrame(frame)) {
 				source_frame = time_remap_.get();
 			}
+			
 			if(source_->setFrame(source_frame)) {
 				ret |= true;
 				need_mask_update |= !mask_collection_.empty();

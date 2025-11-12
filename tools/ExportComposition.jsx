@@ -1968,15 +1968,18 @@ function trackMatteTypeToString(t){
                 var timing = safelyProcessLayerProperty(layer, "timing", function() {
                     var inPoint = toFrame(layer.inPoint, true) - offset;
                     var outPoint = toFrame(layer.outPoint, true) - offset;
-                    debugLog("LayerProcessing", "Layer timing - in: " + inPoint + ", out: " + outPoint);
-                    return {"in": inPoint, "out": outPoint};
+                    var stretch = layer.stretch;  // Time Stretch/Reverse value
+                    debugLog("LayerProcessing", "Layer timing - in: " + inPoint + ", out: " + outPoint + ", stretch: " + stretch);
+                    return {"in": inPoint, "out": outPoint, "stretch": stretch};
                 });
                 if (timing) {
                     resultData["in"] = timing.in;
                     resultData["out"] = timing.out;
+                    resultData["stretch"] = timing.stretch;
                 } else {
                     resultData["in"] = 0;
                     resultData["out"] = 0;
+                    resultData["stretch"] = 100.0;  // Default value
                 }
 
                 // Process source if it exists
