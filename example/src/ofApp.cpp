@@ -1,5 +1,5 @@
 #include "ofApp.h"
-#include "ofxAELayer.h"
+#include "ofxAEPlayer.h"
 
 //--------------------------------------------------------------
 void ofApp::setup()
@@ -8,55 +8,33 @@ void ofApp::setup()
     ofSetFrameRate(30);
     ofBackground(64, 64, 64);
     
-    // Initialize variables
-    is_playing_ = false;
     show_debug_info_ = true;
 
-	comp_ = std::make_shared<ofx::ae::Composition>();
-    // Load composition using CompositionManager singleton
-	if(comp_->load("interaction-test.json")) {
+	auto ae_player = std::make_shared<ofxAEPlayer>();
+	player_.setPlayer(ae_player);
+	if(player_.load("interaction-test.json")) {
 		ofLogNotice("ofApp") << "Composition loaded successfully";
-		const auto& info = comp_->getInfo();
-		ofLogNotice("ofApp") << "Duration: " << info.duration;
-		ofLogNotice("ofApp") << "Width: " << info.width;
-		ofLogNotice("ofApp") << "Height: " << info.height;
-	} else {
-		ofLogError("ofApp") << "Failed to load composition";
-		comp_.reset();
+		auto &&comp = ae_player->getComposition();
+		info_ = comp.getInfo();
+		ofLogNotice("ofApp") << "Duration: " << info_.duration;
+		ofLogNotice("ofApp") << "Width: " << info_.width;
+		ofLogNotice("ofApp") << "Height: " << info_.height;
+
+		player_.setLoopState(OF_LOOP_NORMAL);
+		player_.play();
 	}
-	timeline_ = 0;
-	is_playing_ = true;
 }
 
 //--------------------------------------------------------------
 void ofApp::update()
 {
-    if(is_playing_ && comp_) {
- const auto &info = comp_->getInfo();
- if(++timeline_ >= info.end_frame) {
-  timeline_ = info.start_frame;
- }
- if(comp_->setFrame(timeline_)) {
-  comp_->update();
- }
-    }
+	player_.update();
 }
 
 //--------------------------------------------------------------
 void ofApp::draw()
 {
-    ofClear(64, 64, 64);
-
-	ofPushMatrix();
-	float scale = 0.6f;
-	ofScale(scale, scale);
-	float duration = 60;
-	ofTranslate(ofMap(ofWrap(ofGetElapsedTimef(), 0, duration), 0, duration, 0, -comp_->getWidth()+ofGetWidth()), 0);
-	if(comp_) {
-		comp_->draw(0,0);
-	}
-	ofPopMatrix();
-
+	player_.draw(0,0);
     if(show_debug_info_) {
 		drawControls();
         drawDebugInfo();
@@ -66,12 +44,10 @@ void ofApp::draw()
 //--------------------------------------------------------------
 void ofApp::drawControls()
 {
-    ofSetColor(255);
-    string controls = "Controls:\n";
+	string controls = "Controls:\n";
     controls += "SPACE: Play/Pause\n";
     controls += "R: Reset to beginning\n";
     controls += "D: Toggle debug info\n";
-    controls += "B: Toggle blend mode test\n";
     controls += "LEFT/RIGHT: Seek -/+ 1 second";
     
     ofDrawBitmapString(controls, 20, 20);
@@ -80,45 +56,13 @@ void ofApp::drawControls()
 //--------------------------------------------------------------
 void ofApp::drawDebugInfo()
 {
-    if(!comp_) return;
-
-    ofSetColor(255);
     string info = "Debug Info:\n";
-    info += "Playing: " + string(is_playing_ ? "Yes" : "No") + "\n";
-    info += "frame: " + ofToString(comp_->getCurrentTime(), 2) + "s\n";
-    const auto &compInfo = comp_->getInfo();
-    float duration = static_cast<float>(compInfo.duration) / compInfo.fps;
-    info += "Duration: " + ofToString(duration, 2) + "s\n";
+    info += "Playing: " + string(player_.isPlaying() ? "Yes" : "No") + "\n";
+	info += "frame: " + ofToString(player_.getPosition()*info_.duration) + "\n";
+    info += "Duration: " + ofToString(info_.duration, 2) + "s\n";
     info += "FPS: " + ofToString(ofGetFrameRate(), 1) + "\n";
-    info += "Layers: " + ofToString(compInfo.layers.size()) + "\n";
-    
-    // Add layer information using the new API
-    info += "\nLayer Information:\n";
-    auto layers = comp_->getLayers();
-    for(const auto &layer : layers) {
-        if(layer) {
-            info += "- " + layer->getName() + ": ";
-            
-            // Test the sourceType field using the new API
-            auto sourceTypeEnum = layer->getSourceType();
-            string sourceType = ofx::ae::toString(sourceTypeEnum);
-            
-            if(sourceType.empty()) {
-                info += "[NO SOURCE TYPE]";
-            } else {
-                info += sourceType;
-            }
-            
-            // Add additional debug info using new API
-            info += " [Size: " + ofToString(layer->getWidth()) + "x" + ofToString(layer->getHeight()) + "]";
-            if(layer->getSource()) {
-                info += " [" + layer->getSource()->getDebugInfo() + "]";
-            }
-            
-            info += "\n";
-        }
-    }
-    
+	info += "Layers: " + ofToString(info_.layers.size()) + "\n";
+
     ofDrawBitmapString(info, 20, ofGetHeight() - 300);
 }
 
@@ -127,27 +71,19 @@ void ofApp::keyPressed(int key)
 {
     switch(key) {
         case ' ':
-            is_playing_ = !is_playing_;
-            ofLogNotice("ofApp") << "Playback " << (is_playing_ ? "started" : "paused");
-            break;
-            
+			player_.setPaused(player_.isPlaying());
+			break;
         case 'r':
-        case 'R':
-			timeline_ = 0;
-            ofLogNotice("ofApp") << "Reset to beginning";
+			player_.setPosition(0);
             break;
-            
         case 'd':
-        case 'D':
             show_debug_info_ = !show_debug_info_;
             break;
-            
         case OF_KEY_LEFT:
-			timeline_ -= comp_->getInfo().fps;
+			player_.setPosition(player_.getPosition()-1.f/player_.getDuration());
             break;
-            
         case OF_KEY_RIGHT:
-			timeline_ += comp_->getInfo().fps ;
+			player_.setPosition(player_.getPosition()+1.f/player_.getDuration());
             break;
     }
 }
