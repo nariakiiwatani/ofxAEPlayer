@@ -116,8 +116,8 @@ Layer::Layer()
 : TransformNode()
 , source_(nullptr)
 , name_("")
-, in_(0)
-, out_(0)
+, in_time_(0.0)
+, out_time_(0.0)
 , current_time_(-1.0)
 , parent_fps_(30.0)
 , blend_mode_(BlendMode::NORMAL)
@@ -143,8 +143,15 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 #define EXTRACT(n) json::extract(json, #n, n)
 #define EXTRACT_(n) json::extract(json, #n, n##_)
 	EXTRACT_(name);
-	EXTRACT_(in);
-	EXTRACT_(out);
+	
+	// Extract frame-based in/out and convert to time
+	int in_frame = 0;
+	int out_frame = 0;
+	json::extract(json, "in", in_frame);
+	json::extract(json, "out", out_frame);
+	in_time_ = static_cast<double>(in_frame) / parent_fps_;
+	out_time_ = static_cast<double>(out_frame) / parent_fps_;
+	
 	std::string blendingMode = "NORMAL";
 	EXTRACT(blendingMode);
 	blend_mode_ = blendModeFromString(blendingMode);
@@ -196,10 +203,8 @@ void Layer::update()
 
 bool Layer::isActiveAtTime(double time) const
 {
-	double in_time = static_cast<double>(in_) / parent_fps_;
-	double out_time = static_cast<double>(out_) / parent_fps_;
-	return in_time <= out_time ? in_time <= time && time < out_time
-	: out_time < time && time < in_time;
+	return in_time_ <= out_time_ ? in_time_ <= time && time < out_time_
+	: out_time_ < time && time < in_time_;
 }
 
 

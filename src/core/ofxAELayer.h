@@ -42,9 +42,9 @@ public:
 
 	bool setTime(double time);
 	double getTime() const { return current_time_; }
-	double getInPoint() const { return static_cast<double>(in_) / parent_fps_; }
-	double getOutPoint() const { return static_cast<double>(out_) / parent_fps_; }
-	double getDuration() const { return static_cast<double>(out_ - in_) / parent_fps_; }
+	double getInPoint() const { return in_time_; }
+	double getOutPoint() const { return out_time_; }
+	double getDuration() const { return out_time_ - in_time_; }
 	
 	using ofBaseDraws::draw;
 	void draw() const { draw(0,0); }
@@ -89,7 +89,8 @@ private:
 	std::unique_ptr<LayerSource> source_;
 
 	std::string name_;
-	int in_, out_;
+	double in_time_ = 0.0;
+	double out_time_ = 0.0;
 	double current_time_ = 0.0;
 	double parent_fps_ = 30.0;
 

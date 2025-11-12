@@ -36,7 +36,7 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 			EXTRACT_LAYER2(uniqueName, unique_name);
 			EXTRACT_LAYER2(file, filepath);
 			EXTRACT_LAYER(parent);
-			EXTRACT_LAYER(offset);
+			EXTRACT_LAYER2(startTime, offset);
 			EXTRACT_LAYER(visible);
 #undef EXTRACT_LAYER2
 #undef EXTRACT_LAYER
@@ -112,7 +112,7 @@ bool Composition::setTime(double time)
 	auto offset = [this](std::shared_ptr<Layer> layer) {
 		auto found = layer_offsets_.find(layer);
 		if(found == end(layer_offsets_)) return 0.0;
-		return static_cast<double>(found->second) / info_.fps;
+		return static_cast<double>(found->second);
 	};
 	
 	for(auto& layer : layers_) {

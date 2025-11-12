@@ -68,8 +68,7 @@ private:
 	void allocateFbo();
 	
 	void updatePlayback();
-	int constrainFrame(int frame) const;
-	float constrainFrame(float frame) const;
+	double constrainTime(double time) const;
 	
 	Composition composition_;
 	
@@ -82,7 +81,7 @@ private:
 	float speed_;
 	
 	float last_update_time_;
-	float target_frame_;
+	double target_time_;
 	
 	ofPixels dummy_pixels_;
 	ofPixelFormat pixel_format_;

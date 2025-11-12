@@ -22,7 +22,7 @@ public:
 		int height;
 		struct LayerInfo {
 			std::string name, unique_name, filepath, parent;
-			int offset;
+			float offset;
 			bool visible;
 			struct TrackMatte {
 				std::string layer;
@@ -62,7 +62,7 @@ private:
 	std::vector<std::shared_ptr<Layer>> layers_;
 	std::map<std::string, std::weak_ptr<Layer>> name_layers_map_;
 	std::map<std::string, std::weak_ptr<Layer>> unique_name_layers_map_;
-	std::map<std::weak_ptr<Layer>, int, std::owner_less<std::weak_ptr<Layer>>> layer_offsets_;
+	std::map<std::weak_ptr<Layer>, float, std::owner_less<std::weak_ptr<Layer>>> layer_offsets_;
 
 	double current_time_;
 };

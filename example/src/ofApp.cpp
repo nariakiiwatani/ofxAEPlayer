@@ -58,7 +58,7 @@ void ofApp::drawDebugInfo()
 {
     string info = "Debug Info:\n";
     info += "Playing: " + string(player_.isPlaying() ? "Yes" : "No") + "\n";
-	info += "frame: " + ofToString(player_.getPosition()*info_.duration) + "\n";
+	info += "time: " + ofToString(player_.getPosition()*info_.duration) + "s\n";
     info += "Duration: " + ofToString(info_.duration, 2) + "s\n";
     info += "FPS: " + ofToString(ofGetFrameRate(), 1) + "\n";
 	info += "Layers: " + ofToString(info_.layers.size()) + "\n";
