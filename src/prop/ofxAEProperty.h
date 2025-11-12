@@ -67,38 +67,21 @@ public:
 	
 	void setup(const ofJson &base, const ofJson &keyframes) override {
 		setBaseValue(parse(base));
-		keyframes_time_.clear();
+		keyframes_.clear();
 		
-		// Time-based grouped format: {keyframes_time: {"1.0": [...]}, fps: 30}
-		if(keyframes.contains("keyframes_time")) {
-			if(keyframes.contains("fps")) {
-				fps_ = keyframes["fps"].get<double>();
-			}
-			
-			auto kf_time = keyframes["keyframes_time"];
-			for(auto it = kf_time.begin(); it != kf_time.end(); ++it) {
-				double time = std::stod(it.key());
-				auto &value = it.value();
-				int size = value.size();
-				for(int i = 0; i < size; ++i) {
-					addKeyframeTime(time + static_cast<double>(i) / fps_, parseKeyframeValue(value[i]));
-				}
-			}
-		}
-		// Time-based array format: [{time: 1.0, value: ...}]
-		else if(keyframes.is_array() && !keyframes.empty() && keyframes[0].contains("time")) {
+		if(keyframes.is_array() && !keyframes.empty() && keyframes[0].contains("time")) {
 			for(int i = 0; i < keyframes.size(); ++i) {
 				const auto &kf = keyframes[i];
 				double time = kf["time"].get<double>();
-				addKeyframeTime(time, parseKeyframeValue(kf));
+				addKeyframe(time, parseKeyframeValue(kf));
 			}
 		}
 	}
 	
 	void setBaseValue(const T &t) { base_ = t; }
 	
-	void addKeyframeTime(double time, const Keyframe::Data<T> &keyframe) {
-		keyframes_time_.insert({time, keyframe});
+	void addKeyframe(double time, const Keyframe::Data<T> &keyframe) {
+		keyframes_.insert({time, keyframe});
 	}
 	
 	virtual T parse(const ofJson &json) const = 0;
@@ -185,17 +168,17 @@ public:
 	
 	void set(const T &t) { cache_ = t; }
 	const T& get() const { return cache_.has_value() ? *cache_ : base_; }
-	bool hasAnimation() const override { return !keyframes_time_.empty(); }
+	bool hasAnimation() const override { return !keyframes_.empty(); }
 	
 	bool setTime(double time) override {
 		bool is_first = !cache_.has_value();
-		if(keyframes_time_.empty()) {
+		if(keyframes_.empty()) {
 			cache_ = base_;
 			last_time_ = time;
 			return is_first;
 		}
 		
-		auto pair = util::findTimeKeyframePair(keyframes_time_, time);
+		auto pair = util::findTimeKeyframePair(keyframes_, time);
 		if(pair.keyframe_a == nullptr || pair.keyframe_b == nullptr) {
 			cache_ = base_;
 			last_time_ = time;
@@ -213,7 +196,7 @@ public:
 private:
 	T base_;
 	std::optional<T> cache_;
-	std::map<double, Keyframe::Data<T>> keyframes_time_;
+	std::map<double, Keyframe::Data<T>> keyframes_;
 	double last_time_ = -1.0;
 };
 

@@ -227,7 +227,6 @@ void Player::setFrame(float frame)
 	if(!is_loaded_) {
 		return;
 	}
-	// Convert frame to time
 	double time = frame / composition_.getFps();
 	target_time_ = constrainTime(time);
 	composition_.setTime(target_time_);

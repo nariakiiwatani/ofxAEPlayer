@@ -144,14 +144,9 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 #define EXTRACT_(n) json::extract(json, #n, n##_)
 	EXTRACT_(name);
 	
-	// Extract frame-based in/out and convert to time
-	int in_frame = 0;
-	int out_frame = 0;
-	json::extract(json, "in", in_frame);
-	json::extract(json, "out", out_frame);
-	in_time_ = static_cast<double>(in_frame) / parent_fps_;
-	out_time_ = static_cast<double>(out_frame) / parent_fps_;
-	
+	json::extract(json, "in", in_time_);
+	json::extract(json, "out", out_time_);
+
 	std::string blendingMode = "NORMAL";
 	EXTRACT(blendingMode);
 	blend_mode_ = blendModeFromString(blendingMode);
