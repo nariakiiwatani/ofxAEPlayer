@@ -23,8 +23,6 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 	EXTRACT_INFO(fps);
 	EXTRACT_INFO(width);
 	EXTRACT_INFO(height);
-	EXTRACT_INFO2(startFrame, start_frame);
-	EXTRACT_INFO2(endFrame, end_frame);
 #undef EXTRACT_INFO2
 #undef EXTRACT_INFO
 

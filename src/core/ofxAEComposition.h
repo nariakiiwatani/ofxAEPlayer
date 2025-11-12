@@ -16,12 +16,10 @@ class Composition : public ofBaseDraws, public ofBaseUpdates
 public:
 	void accept(Visitor &visitor);
 	struct Info {
-		int duration;
+		double duration;
 		float fps;
 		int width;
 		int height;
-		int start_frame;
-		int end_frame;
 		struct LayerInfo {
 			std::string name, unique_name, filepath, parent;
 			int offset;
@@ -35,8 +33,7 @@ public:
 		std::vector<LayerInfo> layers;
 		std::vector<MarkerData> markers;
 
-		Info() : duration(0), fps(30.0f), width(0), height(0),
-		start_frame(0), end_frame(0) {}
+		Info() : duration(0.0), fps(30.0f), width(0), height(0) {}
 	};
 
 	bool load(const std::filesystem::path &filepath);
@@ -45,10 +42,13 @@ public:
 	bool setTime(double time);
 	double getTime() const { return current_time_; }
 	float getTimeFloat() const { return static_cast<float>(current_time_); }
-	double getDuration() const { return static_cast<double>(info_.duration) / info_.fps; }
+	double getDuration() const { return info_.duration; }
 	double getFps() const { return info_.fps; }
 	int convertTimeToFrame(float time) const { return time*info_.fps; }
 	double convertFrameToTime(int frame) const { return frame/info_.fps; }
+	int getStartFrame() const { return 0; }
+	int getEndFrame() const { return static_cast<int>(info_.duration * info_.fps); }
+	int getDurationInFrames() const { return getEndFrame() - getStartFrame(); }
 
 	void update() override;
 	using ofBaseDraws::draw;
