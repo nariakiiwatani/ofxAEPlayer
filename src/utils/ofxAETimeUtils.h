@@ -12,47 +12,17 @@ inline bool isNearTime(double a, double b) {
 	return std::abs(a - b) < TIME_EPSILON;
 }
 
-struct FrameTimeConverter {
+struct TimeConverter {
 	double fps;
+	
+	double frameToTime(int frame) const {
+		return static_cast<double>(frame) / fps;
+	}
 	
 	double frameToTime(float frame) const {
 		return static_cast<double>(frame) / fps;
 	}
-	
-	float timeToFrame(double time) const {
-		return static_cast<float>(time * fps);
-	}
-	
-	int timeToFrameInt(double time) const {
-		return static_cast<int>(std::round(time * fps));
-	}
 };
-
-template<typename T>
-std::map<double, Keyframe::Data<T>> convertKeyframesToTime(
-	const std::map<int, Keyframe::Data<T>>& frame_keyframes,
-	double fps)
-{
-	std::map<double, Keyframe::Data<T>> time_keyframes;
-	for(const auto& [frame, kf] : frame_keyframes) {
-		double time = static_cast<double>(frame) / fps;
-		time_keyframes[time] = kf;
-	}
-	return time_keyframes;
-}
-
-template<typename T>
-std::map<int, Keyframe::Data<T>> convertKeyframesToFrame(
-	const std::map<double, Keyframe::Data<T>>& time_keyframes,
-	double fps)
-{
-	std::map<int, Keyframe::Data<T>> frame_keyframes;
-	for(const auto& [time, kf] : time_keyframes) {
-		int frame = static_cast<int>(std::round(time * fps));
-		frame_keyframes[frame] = kf;
-	}
-	return frame_keyframes;
-}
 
 template<typename T>
 struct TimeKeyframePair {
