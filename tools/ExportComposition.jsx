@@ -15,6 +15,17 @@ if (!Object.keys) {
 	};
 }
 
+// ===== EXPORT MODE CONFIGURATION =====
+
+// Export mode configuration for time-based migration
+var EXPORT_MODE = {
+    FRAME_BASED: "frame",  // Legacy format (frame numbers as keys)
+    TIME_BASED: "time"      // New format (time in seconds as keys)
+};
+
+// Default export mode - can be changed via UI
+var currentExportMode = EXPORT_MODE.FRAME_BASED;  // Start with legacy for compatibility
+
 // ===== PROPERTY MAPPING CONFIGURATION SYSTEM =====
 
 // After Effectsプロパティのマッピング設定 - matchNameごとの完全な処理設定
@@ -799,6 +810,16 @@ function trackMatteTypeToString(t){
         useFullFrameAnimationCheck.value = false;
         useFullFrameAnimationCheck.alignment = "left";
 
+        // 5. 時間ベースエクスポート（新機能）
+        var exportModeGroup = myPanel.grp.add("group");
+        exportModeGroup.orientation = "column";
+        exportModeGroup.alignment = "fill";
+
+        var timeBasedExportCheck = exportModeGroup.add("checkbox", undefined, "時間ベースでキーフレームを書き出し（Phase 2新機能）");
+        timeBasedExportCheck.name = "timeBasedExportCheck";
+        timeBasedExportCheck.value = false;
+        timeBasedExportCheck.alignment = "left";
+
         // ボタングループ
         var buttonGroup = myPanel.grp.add("group");
         buttonGroup.orientation = "row";
@@ -863,6 +884,14 @@ function trackMatteTypeToString(t){
                 }, "notice");
 
                 app.beginUndoGroup("プロパティ抽出"); undoOpen=true;
+                
+                // Set export mode based on UI checkbox
+                currentExportMode = timeBasedExportCheck.value ? EXPORT_MODE.TIME_BASED : EXPORT_MODE.FRAME_BASED;
+                
+                debugLog("ExecuteSystem", "Export mode set to: " + currentExportMode, {
+                    timeBasedEnabled: timeBasedExportCheck.value
+                }, "notice");
+                
                 var options = {
                     outputFolderPath: outputFolderPath,
                     useSharedAssets: useSharedAssets,
@@ -1522,7 +1551,7 @@ function trackMatteTypeToString(t){
 
 
 
-    // キーフレームベースの抽出関数
+    // キーフレームベースの抽出関数（フレームベース）
     function extractKeyframeBasedProperty(prop, offset, fps, decimalPlaces, customProcessor) {
         try {
             if (!prop) {
@@ -1584,6 +1613,72 @@ function trackMatteTypeToString(t){
             return keyframes;
         } catch (e) {
             debugLog("extractKeyframeBasedProperty", "Error in keyframe extraction: " + e.toString(), null, "error");
+            return null;
+        }
+    }
+    
+    // 時間ベースのキーフレーム抽出関数（新規）
+    function extractTimeBasedKeyframeProperty(prop, offsetTime, fps, decimalPlaces, customProcessor) {
+        try {
+            if (!prop) {
+                debugLog("extractTimeBasedKeyframeProperty", "prop is null", null, "verbose");
+                return null;
+            }
+            
+            debugLog("extractTimeBasedKeyframeProperty", "Processing property with time-based export: " + (prop.matchName || prop.name || "unnamed"), null, "verbose");
+
+            var nk = (typeof prop.numKeys === 'number') ? prop.numKeys : 0;
+
+            if (nk === 0) {
+                debugLog("extractTimeBasedKeyframeProperty", "No animation detected, returning initial value only", null, "verbose");
+                return null;
+            }
+
+            // Extract keyframe data with time keys
+            var keyframes = [];
+            
+            for (var i = 1; i <= nk; i++) {
+                try {
+                    var keyTime = prop.keyTime(i);
+                    var adjustedTime = keyTime - offsetTime;
+                    
+                    // Format time with 6 decimal places for precision (microseconds)
+                    var timeKey = Number(adjustedTime.toFixed(6));
+                    
+                    var keyValue = extractValue(prop, keyTime, decimalPlaces, customProcessor, fps);
+                    
+                    // キーフレーム情報を構築
+                    var keyframeInfo = {
+                        time: timeKey,
+                        value: keyValue
+                    };
+                    
+                    // 補間情報を追加
+                    var interpolation = extractKeyframeInterpolation(prop, i);
+                    if (interpolation) {
+                        keyframeInfo.interpolation = interpolation;
+                    }
+                    
+                    // 空間タンジェント情報を追加（該当する場合）
+                    var spatialTangents = extractSpatialTangents(prop, i, decimalPlaces);
+                    if (spatialTangents) {
+                        keyframeInfo.spatialTangents = spatialTangents;
+                    }
+                    
+                    keyframes.push(keyframeInfo);
+                    
+                } catch (e) {
+                    debugLog("extractTimeBasedKeyframeProperty", "Error extracting keyframe " + i + ": " + e.toString(), null, "warning");
+                }
+            }
+            
+            debugLog("extractTimeBasedKeyframeProperty", "Time-based keyframe extraction completed successfully", {
+                keyframeCount: keyframes.length,
+                fps: fps
+            });
+            return keyframes;
+        } catch (e) {
+            debugLog("extractTimeBasedKeyframeProperty", "Error in time-based keyframe extraction: " + e.toString(), null, "error");
             return null;
         }
     }
@@ -1698,7 +1793,13 @@ function trackMatteTypeToString(t){
                 if (shouldBake) {
                     result = extractAnimatedProperty(prop, offset, duration, fps, DEC, customProcessor);
                 } else {
-                    result = extractKeyframeBasedProperty(prop, offset, fps, DEC, customProcessor);
+                    // Choose extraction method based on export mode
+                    if (currentExportMode === EXPORT_MODE.TIME_BASED) {
+                        var offsetTime = layer.startTime;
+                        result = extractTimeBasedKeyframeProperty(prop, offsetTime, fps, DEC, customProcessor);
+                    } else {
+                        result = extractKeyframeBasedProperty(prop, offset, fps, DEC, customProcessor);
+                    }
                 }
             } else {
                 return null;
@@ -1895,6 +1996,16 @@ function trackMatteTypeToString(t){
         compInfo["startFrame"]    = startFrame;
         compInfo["endFrame"]      = toFrame((comp.workAreaStart + comp.workAreaDuration), true);
         compInfo["layers"]        = [];
+        
+        // Add export mode metadata for time-based exports
+        if (currentExportMode === EXPORT_MODE.TIME_BASED) {
+            compInfo["exportMode"] = "time";
+            debugLog("extractPropertiesForAllLayers", "Using time-based export mode", {
+                fps: fps
+            }, "notice");
+        } else {
+            compInfo["exportMode"] = "frame";
+        }
         
         // コンポジションマーカーを追加
         if (comp.markerProperty.numKeys > 0) {
