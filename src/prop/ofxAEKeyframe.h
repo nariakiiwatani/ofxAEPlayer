@@ -173,7 +173,7 @@ struct KeyframePair {
 };
 
 template<typename T>
-KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyframes, int frame) {
+KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyframes, float frame) {
 	KeyframePair<T> result;
 	
 	if (keyframes.empty()) {
@@ -190,7 +190,7 @@ KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyfram
 		return result;
 	}
 	
-	auto upper = keyframes.upper_bound(frame);
+	auto upper = keyframes.upper_bound(static_cast<int>(frame));
 	
 	if (upper == keyframes.begin()) {
 		auto first = keyframes.begin();
@@ -221,7 +221,7 @@ KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyfram
 	result.frame_b = keyframe_b_it->first;
 	
 	if (result.frame_b != result.frame_a) {
-		result.ratio = static_cast<float>(frame - result.frame_a) / static_cast<float>(result.frame_b - result.frame_a);
+		result.ratio = (frame - static_cast<float>(result.frame_a)) / static_cast<float>(result.frame_b - result.frame_a);
 	}
 	else {
 		result.ratio = 0.0f;

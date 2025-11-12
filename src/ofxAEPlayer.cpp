@@ -12,7 +12,7 @@ Player::Player()
 	, loop_state_(OF_LOOP_NONE)
 	, speed_(1.0f)
 	, last_update_time_(0.0f)
-	, target_frame_(0)
+	, target_frame_(0.0f)
 	, pixel_format_(OF_PIXELS_RGBA)
 	, use_fbo_(true)
 	, fbo_needs_update_(true)
@@ -24,7 +24,7 @@ bool Player::load(const of::filesystem::path &fileName)
 	bool result = composition_.load(fileName);
 	if(result) {
 		is_loaded_ = true;
-		target_frame_ = composition_.getInfo().start_frame;
+		target_frame_ = static_cast<float>(composition_.getInfo().start_frame);
 		composition_.setFrame(target_frame_);
 		last_update_time_ = ofGetElapsedTimef();
 		
@@ -51,7 +51,7 @@ void Player::stop()
 {
 	is_playing_ = false;
 	is_paused_ = false;
-	target_frame_ = composition_.getInfo().start_frame;
+	target_frame_ = static_cast<float>(composition_.getInfo().start_frame);
 	composition_.setFrame(target_frame_);
 }
 
@@ -109,7 +109,7 @@ void Player::updatePlayback()
 	float frames_per_second = info.fps;
 	float frame_delta = elapsed * frames_per_second * speed_;
 
-	int new_frame = target_frame_ + static_cast<int>(frame_delta);
+	float new_frame = target_frame_ + frame_delta;
 
 	switch(loop_state_) {
 		case OF_LOOP_NONE: {
@@ -157,6 +157,12 @@ int Player::constrainFrame(int frame) const
 {
 	const auto &info = composition_.getInfo();
 	return ofClamp(frame, info.start_frame, info.end_frame);
+}
+
+float Player::constrainFrame(float frame) const
+{
+	const auto &info = composition_.getInfo();
+	return ofClamp(frame, static_cast<float>(info.start_frame), static_cast<float>(info.end_frame));
 }
 
 bool Player::isFrameNew() const
@@ -214,13 +220,13 @@ void Player::setPosition(float pct)
 	}
 	const auto &info = composition_.getInfo();
 	int range = info.end_frame - info.start_frame;
-	target_frame_ = info.start_frame + static_cast<int>(pct * range);
+	target_frame_ = static_cast<float>(info.start_frame) + pct * static_cast<float>(range);
 	target_frame_ = constrainFrame(target_frame_);
 	composition_.setFrame(target_frame_);
 	is_frame_new_ = true;
 }
 
-void Player::setFrame(int frame)
+void Player::setFrame(float frame)
 {
 	if(!is_loaded_) {
 		return;
@@ -232,7 +238,7 @@ void Player::setFrame(int frame)
 
 int Player::getCurrentFrame() const
 {
-	return target_frame_;
+	return static_cast<int>(target_frame_);
 }
 
 int Player::getTotalNumFrames() const
@@ -279,12 +285,12 @@ bool Player::getIsMovieDone() const
 		return true;
 	}
 	const auto &info = composition_.getInfo();
-	return !is_playing_ && target_frame_ >= info.end_frame;
+	return !is_playing_ && target_frame_ >= static_cast<float>(info.end_frame);
 }
 
 void Player::firstFrame()
 {
-	setFrame(composition_.getInfo().start_frame);
+	setFrame(static_cast<float>(composition_.getInfo().start_frame));
 }
 
 void Player::nextFrame()

@@ -23,7 +23,8 @@ public:
 	virtual bool load(const std::filesystem::path &filepath) { return setup(ofLoadJson(filepath)); }
 
 	virtual void update() override {}
-	virtual bool setFrame(int frame) { return false; }
+	virtual bool setFrame(int frame) { return setFrame(static_cast<float>(frame)); }
+	virtual bool setFrame(float frame) { return false; }
 
 	using ofBaseDraws::draw;
 	virtual void draw(float x, float y, float w, float h) const override {}

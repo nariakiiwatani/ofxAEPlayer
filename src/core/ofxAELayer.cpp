@@ -118,7 +118,7 @@ Layer::Layer()
 , name_("")
 , in_(0)
 , out_(0)
-, current_frame_(-1)
+, current_frame_(-1.0f)
 , blend_mode_(BlendMode::NORMAL)
 {
 }
@@ -178,7 +178,7 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 		ofLogVerbose("Layer") << "No source resolved for layer: " << name_;
 	}
 
-	current_frame_ = -1;
+	current_frame_ = -1.0f;
 	return true;
 #undef EXTRACT_
 #undef EXTRACT
@@ -200,9 +200,10 @@ bool Layer::isActiveAtFrame(int frame) const
 }
 
 
-bool Layer::setFrame(int frame)
+bool Layer::setFrame(float frame)
 {
-	if(current_frame_ == frame) {
+	constexpr float FRAME_EPSILON = 0.0001f;
+	if(std::abs(current_frame_ - frame) < FRAME_EPSILON) {
 		return false;
 	}
 
@@ -222,7 +223,7 @@ bool Layer::setFrame(int frame)
 		ret |= true;
 	}
 
-	if(isActiveAtFrame(frame) || isTrackMatte()) {
+	if(isActiveAtFrame(static_cast<int>(frame)) || isTrackMatte()) {
 		if(mask_.setFrame(frame)) {
 			mask_collection_.setupFromMaskProp(mask_);
 			ret |= true;
@@ -230,10 +231,10 @@ bool Layer::setFrame(int frame)
 		}
 
 		if(source_) {
-			int source_frame = frame;
+			float source_frame = frame;
 			
 			if(stretch_ != 1.0f) {
-				source_frame = static_cast<int>(frame / stretch_);
+				source_frame = frame / stretch_;
 			}
 			
 			if(time_remap_.setFrame(frame)) {

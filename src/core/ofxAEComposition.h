@@ -40,7 +40,8 @@ public:
 
 	bool load(const std::filesystem::path &filepath);
 	bool setup(const ofJson &json, const std::filesystem::path &base_dir);
-	bool setFrame(int frame);
+	bool setFrame(int frame) { return setFrame(static_cast<float>(frame)); }
+	bool setFrame(float frame);
 	void update() override;
 	using ofBaseDraws::draw;
 	void draw(float x, float y, float w, float h) const override;
@@ -48,7 +49,8 @@ public:
 	float getWidth() const override;
 
 	float getCurrentTime() const { return current_frame_/info_.fps; }
-	int getCurrentFrame() const { return current_frame_; }
+	float getCurrentFrame() const { return current_frame_; }
+	int getCurrentFrameInt() const { return static_cast<int>(current_frame_); }
 
 	const Info& getInfo() const;
 	std::shared_ptr<Layer> getLayer(const std::string &name) const;
@@ -61,7 +63,7 @@ private:
 	std::map<std::string, std::weak_ptr<Layer>> unique_name_layers_map_;
 	std::map<std::weak_ptr<Layer>, int, std::owner_less<std::weak_ptr<Layer>>> layer_offsets_;
 
-	int current_frame_;
+	float current_frame_;
 };
 
 }}

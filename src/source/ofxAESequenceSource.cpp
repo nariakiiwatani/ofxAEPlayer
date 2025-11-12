@@ -24,12 +24,13 @@ bool SequenceSource::load(const std::filesystem::path &filepath)
 	return !pool_.empty();
 }
 
-bool SequenceSource::setFrame(int frame)
+bool SequenceSource::setFrame(float frame)
 {
-	if(frame < 0 || pool_.size() <= frame) {
+	int frame_int = static_cast<int>(frame);
+	if(frame_int < 0 || pool_.size() <= static_cast<size_t>(frame_int)) {
 		return false;
 	}
-	auto *tex = &pool_[frame];
+	auto *tex = &pool_[frame_int];
 	if(texture_.has_value() && texture_.value() == tex) {
 		return false;
 	}

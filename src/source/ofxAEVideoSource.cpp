@@ -22,11 +22,11 @@ bool VideoSource::load(const std::filesystem::path &filepath)
 	}
 }
 
-bool VideoSource::setFrame(int frame)
+bool VideoSource::setFrame(float frame)
 {
 	if(!player_) return false;
 	
-	player_->setFrame(frame);
+	player_->setFrame(static_cast<int>(frame));
 	player_->update();
 	return player_->isFrameNew();
 }

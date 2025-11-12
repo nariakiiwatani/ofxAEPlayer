@@ -30,7 +30,7 @@ bool CompositionSource::load(const std::filesystem::path &filepath)
 	}
 }
 
-bool CompositionSource::setFrame(int frame)
+bool CompositionSource::setFrame(float frame)
 {
 	return composition_ && composition_->setFrame(frame);
 }

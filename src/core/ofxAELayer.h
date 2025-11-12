@@ -39,7 +39,8 @@ public:
 	bool load(const std::string &base_dir);
 	bool setup(const ofJson &json, const std::filesystem::path &source_dir="");
 	void update() override;
-	bool setFrame(int frame);
+	bool setFrame(int frame) { return setFrame(static_cast<float>(frame)); }
+	bool setFrame(float frame);
 	
 	using ofBaseDraws::draw;
 	void draw() const { draw(0,0); }
@@ -85,7 +86,7 @@ private:
 
 	std::string name_;
 	int in_, out_;
-	int current_frame_;
+	float current_frame_;
 
 	TransformProp transform_;
 	FloatProp time_remap_;

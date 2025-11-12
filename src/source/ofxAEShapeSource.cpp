@@ -37,7 +37,7 @@ void ShapeSource::update()
 	}
 }
 
-bool ShapeSource::setFrame(int frame)
+bool ShapeSource::setFrame(float frame)
 {
 	return shape_props_.setFrame(frame);
 }

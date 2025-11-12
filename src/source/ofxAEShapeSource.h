@@ -16,7 +16,7 @@ public:
 	bool setup(const ofJson &json) override;
 	void update() override;
 	void draw(float x, float y, float w, float h) const override;
-	bool setFrame(int frame) override;
+	bool setFrame(float frame) override;
 	ofRectangle getBoundingBox() const override;
 
 	SourceType getSourceType() const override { return SourceType::SHAPE; }

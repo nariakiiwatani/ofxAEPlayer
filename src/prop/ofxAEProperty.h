@@ -19,7 +19,8 @@ public:
 	virtual ~PropertyBase() = default;
 	virtual void accept(Visitor &visitor);
 	virtual bool hasAnimation() const { return false; }
-	virtual bool setFrame(int frame) { return false; }
+	virtual bool setFrame(int frame) { return setFrame(static_cast<float>(frame)); }
+	virtual bool setFrame(float frame) { return false; }
 	virtual void setup(const ofJson &base, const ofJson &keyframes={}) {}
 
 	template<typename T>
@@ -156,7 +157,7 @@ public:
 	const T& get() const { return cache_.has_value() ? *cache_ : base_; }
 	bool hasAnimation() const override { return !keyframes_.empty(); }
 	
-	bool setFrame(int frame) override {
+	bool setFrame(float frame) override {
 		bool is_first = !cache_.has_value();
 		if (keyframes_.empty()) {
 			cache_ = base_;
@@ -214,7 +215,7 @@ public:
 			}
 			return false;
 		}
-		bool setFrame(int frame) override {
+		bool setFrame(float frame) override {
 			bool ret = false;
 			for(auto &&[_,p] : props_) {
 				ret |= p->setFrame(frame);
@@ -264,7 +265,7 @@ public:
 			return false;
 		}
 	
-		bool setFrame(int frame) override {
+		bool setFrame(float frame) override {
 			bool changed = false;
 			for (auto &p : properties_) {
 				if (p) {

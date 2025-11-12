@@ -15,7 +15,7 @@ public:
 	
 	void accept(Visitor &visitor) override;
 	bool load(const std::filesystem::path &filepath) override;
-	bool setFrame(int frame) override;
+	bool setFrame(float frame) override;
 	void update() override;
 	void draw(float x, float y, float w, float h) const override;
 
