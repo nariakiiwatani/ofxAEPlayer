@@ -42,13 +42,14 @@ public:
 	bool load(const std::filesystem::path &filepath);
 	bool setup(const ofJson &json, const std::filesystem::path &base_dir);
 	
-	// Time API only
 	bool setTime(double time);
 	double getTime() const { return current_time_; }
 	float getTimeFloat() const { return static_cast<float>(current_time_); }
 	double getDuration() const { return static_cast<double>(info_.duration) / info_.fps; }
 	double getFps() const { return info_.fps; }
-	
+	int convertTimeToFrame(float time) const { return time*info_.fps; }
+	double convertFrameToTime(int frame) const { return frame/info_.fps; }
+
 	void update() override;
 	using ofBaseDraws::draw;
 	void draw(float x, float y, float w, float h) const override;

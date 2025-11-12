@@ -39,8 +39,7 @@ public:
 	bool load(const std::string &base_dir);
 	bool setup(const ofJson &json, const std::filesystem::path &source_dir="");
 	void update() override;
-	
-	// Time API only
+
 	bool setTime(double time);
 	double getTime() const { return current_time_; }
 	double getInPoint() const { return static_cast<double>(in_) / parent_fps_; }

@@ -24,7 +24,6 @@ public:
 
 	virtual void update() override {}
 	
-	// Time API
 	virtual bool setTime(double time) { return false; }
 	virtual double getTime() const { return 0.0; }
 	virtual double getDuration() const { return 0.0; }

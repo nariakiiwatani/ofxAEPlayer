@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ofxAETimeProperty.h"
+#include "ofxAEProperty.h"
 #include "ofxAETransformProp.h"
 #include "../utils/ofxAEBlendMode.h"
 #include "../data/Enums.h"
@@ -11,10 +11,10 @@ namespace ofx { namespace ae {
 
 class Visitor;
 
-class BlendModeProp : public TimeProperty<BlendMode>
+class BlendModeProp : public Property<BlendMode>
 {
 public:
-	BlendModeProp() : TimeProperty<BlendMode>() {}
+	BlendModeProp() : Property<BlendMode>() {}
 
 	BlendMode parse(const ofJson &json) const override {
 		if(json.is_string()) {
@@ -27,10 +27,10 @@ public:
 		}
 	}
 };
-class FillRuleProp : public TimeProperty<FillRule>
+class FillRuleProp : public Property<FillRule>
 {
 public:
-	FillRuleProp() : TimeProperty<FillRule>() {}
+	FillRuleProp() : Property<FillRule>() {}
 
 	FillRule parse(const ofJson &json) const override {
 		if(json.is_string()) {
@@ -42,10 +42,10 @@ public:
 		}
 	}
 };
-class WindingDirectionProp : public TimeProperty<WindingDirection>
+class WindingDirectionProp : public Property<WindingDirection>
 {
 public:
-	WindingDirectionProp() : TimeProperty<WindingDirection>() {}
+	WindingDirectionProp() : Property<WindingDirection>() {}
 
 	WindingDirection parse(const ofJson &json) const override {
 		if(json.is_string()) {
@@ -58,10 +58,10 @@ public:
 	}
 };
 
-class PathProp : public TimeProperty<PathData>
+class PathProp : public Property<PathData>
 {
 public:
-	PathProp() : TimeProperty<PathData>() {}
+	PathProp() : Property<PathData>() {}
 	
 	PathData parse(const ofJson &json) const override;
 };
@@ -70,24 +70,24 @@ struct ShapeData : public GroupData {
 	void accept(Visitor &visitor) const override;
 };
 
-class EllipseProp : public TimePropertyGroup
+class EllipseProp : public PropertyGroup
 {
 public:
 	EllipseProp() {
-		registerProperty<VecTimeProp<2>>("/size");
-		registerProperty<VecTimeProp<2>>("/position");
+		registerProperty<VecProp<2>>("/size");
+		registerProperty<VecProp<2>>("/position");
 		registerProperty<WindingDirectionProp>("/direction");
 
 		registerExtractor<EllipseData>([this](EllipseData &e) -> bool {
 			bool success = true;
 			
-			if(!getProperty<VecTimeProp<2>>("/size")->tryExtract(e.size)) {
+			if(!getProperty<VecProp<2>>("/size")->tryExtract(e.size)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract ellipse size, using default";
 				e.size = glm::vec2(0.0f, 0.0f);
 				success = false;
 			}
 			
-			if(!getProperty<VecTimeProp<2>>("/position")->tryExtract(e.position)) {
+			if(!getProperty<VecProp<2>>("/position")->tryExtract(e.position)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract ellipse position, using default";
 				e.position = glm::vec2(0.0f, 0.0f);
 				success = false;
@@ -104,31 +104,31 @@ public:
 	}
 };
 
-class RectangleProp : public TimePropertyGroup
+class RectangleProp : public PropertyGroup
 {
 public:
 	RectangleProp() {
-		registerProperty<VecTimeProp<2>>("/size");
-		registerProperty<VecTimeProp<2>>("/position");
-		registerProperty<FloatTimeProp>("/roundness");
+		registerProperty<VecProp<2>>("/size");
+		registerProperty<VecProp<2>>("/position");
+		registerProperty<FloatProp>("/roundness");
 		registerProperty<WindingDirectionProp>("/direction");
 
 		registerExtractor<RectangleData>([this](RectangleData& r) -> bool {
 			bool success = true;
 			
-			if(!getProperty<VecTimeProp<2>>("/size")->tryExtract(r.size)) {
+			if(!getProperty<VecProp<2>>("/size")->tryExtract(r.size)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract rectangle size, using default";
 				r.size = glm::vec2(0.0f, 0.0f);
 				success = false;
 			}
 			
-			if(!getProperty<VecTimeProp<2>>("/position")->tryExtract(r.position)) {
+			if(!getProperty<VecProp<2>>("/position")->tryExtract(r.position)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract rectangle position, using default";
 				r.position = glm::vec2(0.0f, 0.0f);
 				success = false;
 			}
 			
-			if(!getProperty<FloatTimeProp>("/roundness")->tryExtract(r.roundness)) {
+			if(!getProperty<FloatProp>("/roundness")->tryExtract(r.roundness)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract rectangle roundness, using default";
 				r.roundness = 0.0f;
 				success = false;
@@ -145,19 +145,19 @@ public:
 	}
 };
 
-class PolygonProp : public TimePropertyGroup
+class PolygonProp : public PropertyGroup
 {
 public:
 	PolygonProp() {
 		registerProperty<WindingDirectionProp>("/direction");
-		registerProperty<IntTimeProp>("/type");
-		registerProperty<IntTimeProp>("/points");
-		registerProperty<VecTimeProp<2>>("/position");
-		registerProperty<FloatTimeProp>("/rotation");
-		registerProperty<FloatTimeProp>("/innerRadius");
-		registerProperty<FloatTimeProp>("/outerRadius");
-		registerProperty<FloatTimeProp>("/innerRoundness");
-		registerProperty<FloatTimeProp>("/outerRoundness");
+		registerProperty<IntProp>("/type");
+		registerProperty<IntProp>("/points");
+		registerProperty<VecProp<2>>("/position");
+		registerProperty<FloatProp>("/rotation");
+		registerProperty<FloatProp>("/innerRadius");
+		registerProperty<FloatProp>("/outerRadius");
+		registerProperty<FloatProp>("/innerRoundness");
+		registerProperty<FloatProp>("/outerRoundness");
 		
 		registerExtractor<PolygonData>([this](PolygonData &p) -> bool {
 			bool success = true;
@@ -168,49 +168,49 @@ public:
 				success = false;
 			}
 			
-			if(!getProperty<IntTimeProp>("/type")->tryExtract(p.type)) {
+			if(!getProperty<IntProp>("/type")->tryExtract(p.type)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract polygon type, using default";
 				p.type = 1;
 				success = false;
 			}
 			
-			if(!getProperty<IntTimeProp>("/points")->tryExtract(p.points)) {
+			if(!getProperty<IntProp>("/points")->tryExtract(p.points)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract polygon points, using default";
 				p.points = 5;
 				success = false;
 			}
 			
-			if(!getProperty<VecTimeProp<2>>("/position")->tryExtract(p.position)) {
+			if(!getProperty<VecProp<2>>("/position")->tryExtract(p.position)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract polygon position, using default";
 				p.position = glm::vec2(0.0f, 0.0f);
 				success = false;
 			}
 			
-			if(!getProperty<FloatTimeProp>("/rotation")->tryExtract(p.rotation)) {
+			if(!getProperty<FloatProp>("/rotation")->tryExtract(p.rotation)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract polygon rotation, using default";
 				p.rotation = 0.0f;
 				success = false;
 			}
 			
-			if(!getProperty<FloatTimeProp>("/innerRadius")->tryExtract(p.innerRadius)) {
+			if(!getProperty<FloatProp>("/innerRadius")->tryExtract(p.innerRadius)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract polygon innerRadius, using default";
 				p.innerRadius = 50.0f;
 				success = false;
 			}
 			
-			if(!getProperty<FloatTimeProp>("/outerRadius")->tryExtract(p.outerRadius)) {
+			if(!getProperty<FloatProp>("/outerRadius")->tryExtract(p.outerRadius)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract polygon outerRadius, using default";
 				p.outerRadius = 100.0f;
 				success = false;
 			}
 			
-			if(!getProperty<FloatTimeProp>("/innerRoundness")->tryExtract(p.innerRoundness)) {
+			if(!getProperty<FloatProp>("/innerRoundness")->tryExtract(p.innerRoundness)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract polygon innerRoundness, using default";
 				p.innerRoundness = 0.0f;
 				success = false;
 			}
 			
-			if(!getProperty<FloatTimeProp>("/outerRoundness")->tryExtract(p.outerRoundness)) {
+			if(!getProperty<FloatProp>("/outerRoundness")->tryExtract(p.outerRoundness)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract polygon outerRoundness, using default";
 				p.outerRoundness = 0.0f;
 				success = false;
@@ -221,26 +221,26 @@ public:
 	}
 };
 
-class FillProp : public TimePropertyGroup
+class FillProp : public PropertyGroup
 {
 public:
 	FillProp() {
-		registerProperty<ColorTimeProp>("/color");
-		registerProperty<PercentTimeProp>("/opacity");
+		registerProperty<ColorProp>("/color");
+		registerProperty<PercentProp>("/opacity");
 		registerProperty<FillRuleProp>("/rule");
 		registerProperty<BlendModeProp>("/blendMode");
-		registerProperty<IntTimeProp>("/compositeOrder");
+		registerProperty<IntProp>("/compositeOrder");
 		
 		registerExtractor<FillData>([this](FillData &f) -> bool {
 			bool success = true;
 			
-			if(!getProperty<ColorTimeProp>("/color")->tryExtract(f.color)) {
+			if(!getProperty<ColorProp>("/color")->tryExtract(f.color)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract fill color, using default";
 				f.color = ofFloatColor(1.0f, 1.0f, 1.0f, 1.0f);
 				success = false;
 			}
 			
-			if(!getProperty<PercentTimeProp>("/opacity")->tryExtract(f.opacity)) {
+			if(!getProperty<PercentProp>("/opacity")->tryExtract(f.opacity)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract fill opacity, using default";
 				f.opacity = 1.0f;
 				success = false;
@@ -258,7 +258,7 @@ public:
 				success = false;
 			}
 			
-			if(!getProperty<IntTimeProp>("/compositeOrder")->tryExtract(f.compositeOrder)) {
+			if(!getProperty<IntProp>("/compositeOrder")->tryExtract(f.compositeOrder)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract fill compositeOrder, using default";
 				f.compositeOrder = 1;
 				success = false;
@@ -269,53 +269,53 @@ public:
 	}
 };
 
-class StrokeProp : public TimePropertyGroup
+class StrokeProp : public PropertyGroup
 {
 public:
 	StrokeProp() {
-		registerProperty<ColorTimeProp>("/color");
-		registerProperty<PercentTimeProp>("/opacity");
-		registerProperty<FloatTimeProp>("/width");
-		registerProperty<IntTimeProp>("/lineCap");
-		registerProperty<IntTimeProp>("/lineJoin");
-		registerProperty<FloatTimeProp>("/miterLimit");
+		registerProperty<ColorProp>("/color");
+		registerProperty<PercentProp>("/opacity");
+		registerProperty<FloatProp>("/width");
+		registerProperty<IntProp>("/lineCap");
+		registerProperty<IntProp>("/lineJoin");
+		registerProperty<FloatProp>("/miterLimit");
 		registerProperty<BlendModeProp>("/blendMode");
-		registerProperty<IntTimeProp>("/compositeOrder");
+		registerProperty<IntProp>("/compositeOrder");
 		
 		registerExtractor<StrokeData>([this](StrokeData &s) -> bool {
 			bool success = true;
 			
-			if(!getProperty<ColorTimeProp>("/color")->tryExtract(s.color)) {
+			if(!getProperty<ColorProp>("/color")->tryExtract(s.color)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract stroke color, using default";
 				s.color = ofFloatColor(1.0f, 1.0f, 1.0f, 1.0f);
 				success = false;
 			}
 			
-			if(!getProperty<PercentTimeProp>("/opacity")->tryExtract(s.opacity)) {
+			if(!getProperty<PercentProp>("/opacity")->tryExtract(s.opacity)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract stroke opacity, using default";
 				s.opacity = 1.0f;
 				success = false;
 			}
 			
-			if(!getProperty<FloatTimeProp>("/width")->tryExtract(s.width)) {
+			if(!getProperty<FloatProp>("/width")->tryExtract(s.width)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract stroke width, using default";
 				s.width = 1.0f;
 				success = false;
 			}
 			
-			if(!getProperty<IntTimeProp>("/lineCap")->tryExtract(s.lineCap)) {
+			if(!getProperty<IntProp>("/lineCap")->tryExtract(s.lineCap)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract stroke lineCap, using default";
 				s.lineCap = 1;
 				success = false;
 			}
 			
-			if(!getProperty<IntTimeProp>("/lineJoin")->tryExtract(s.lineJoin)) {
+			if(!getProperty<IntProp>("/lineJoin")->tryExtract(s.lineJoin)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract stroke lineJoin, using default";
 				s.lineJoin = 1;
 				success = false;
 			}
 			
-			if(!getProperty<FloatTimeProp>("/miterLimit")->tryExtract(s.miterLimit)) {
+			if(!getProperty<FloatProp>("/miterLimit")->tryExtract(s.miterLimit)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract stroke miterLimit, using default";
 				s.miterLimit = 4.0f;
 				success = false;
@@ -327,7 +327,7 @@ public:
 				success = false;
 			}
 			
-			if(!getProperty<IntTimeProp>("/compositeOrder")->tryExtract(s.compositeOrder)) {
+			if(!getProperty<IntProp>("/compositeOrder")->tryExtract(s.compositeOrder)) {
 				ofLogWarning("PropertyExtraction") << "Failed to extract stroke compositeOrder, using default";
 				s.compositeOrder = 1;
 				success = false;
@@ -338,17 +338,17 @@ public:
 	}
 };
 
-class ShapeProp : public TimePropertyArray
+class ShapeProp : public PropertyArray
 {
 public:
 	ShapeProp();
 	virtual void setup(const ofJson &base, const ofJson &keyframes) override;
 
 private:
-	TimePropertyBase* addPropertyForType(std::string type);
+	PropertyBase* addPropertyForType(std::string type);
 };
 
-class GroupProp : public TimePropertyGroup
+class GroupProp : public PropertyGroup
 {
 public:
 	GroupProp();
