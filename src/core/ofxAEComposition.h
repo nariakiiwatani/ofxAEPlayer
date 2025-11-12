@@ -4,6 +4,7 @@
 #include "ofJson.h"
 #include "../data/MarkerData.h"
 #include "../utils/ofxAETrackMatte.h"
+#include "../utils/ofxAETimeUtils.h"
 
 namespace ofx { namespace ae {
 
@@ -40,17 +41,23 @@ public:
 
 	bool load(const std::filesystem::path &filepath);
 	bool setup(const ofJson &json, const std::filesystem::path &base_dir);
+	
+	// Frame API (compatibility layer - redirects to time)
 	bool setFrame(int frame) { return setFrame(static_cast<float>(frame)); }
-	bool setFrame(float frame);
+	bool setFrame(float frame) { return setTime(frame / info_.fps); }
+	float getCurrentFrame() const { return static_cast<float>(current_time_ * info_.fps); }
+	int getCurrentFrameInt() const { return static_cast<int>(std::round(current_time_ * info_.fps)); }
+	
+	// Time API (new primary)
+	bool setTime(double time);
+	double getTime() const { return current_time_; }
+	float getCurrentTime() const { return static_cast<float>(current_time_); }
+	
 	void update() override;
 	using ofBaseDraws::draw;
 	void draw(float x, float y, float w, float h) const override;
 	float getHeight() const override;
 	float getWidth() const override;
-
-	float getCurrentTime() const { return current_frame_/info_.fps; }
-	float getCurrentFrame() const { return current_frame_; }
-	int getCurrentFrameInt() const { return static_cast<int>(current_frame_); }
 
 	const Info& getInfo() const;
 	std::shared_ptr<Layer> getLayer(const std::string &name) const;
@@ -63,7 +70,7 @@ private:
 	std::map<std::string, std::weak_ptr<Layer>> unique_name_layers_map_;
 	std::map<std::weak_ptr<Layer>, int, std::owner_less<std::weak_ptr<Layer>>> layer_offsets_;
 
-	float current_frame_;
+	double current_time_;
 };
 
 }}

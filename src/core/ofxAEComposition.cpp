@@ -99,26 +99,27 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 		}
 	}
 
-	current_frame_ = -1.0f;
+	current_time_ = -1.0;
 	return !layers_.empty();
 }
 
-bool Composition::setFrame(float frame)
+bool Composition::setTime(double time)
 {
-	constexpr float FRAME_EPSILON = 0.0001f;
-	if(std::abs(current_frame_ - frame) < FRAME_EPSILON) {
+	if(util::isNearTime(current_time_, time)) {
 		return false;
 	}
+	
 	bool ret = false;
 	auto offset = [this](std::shared_ptr<Layer> layer) {
 		auto found = layer_offsets_.find(layer);
-		if(found == end(layer_offsets_)) return 0.0f;
-		return static_cast<float>(found->second);
+		if(found == end(layer_offsets_)) return 0.0;
+		return static_cast<double>(found->second) / info_.fps;
 	};
+	
 	for(auto& layer : layers_) {
-		ret |= layer->setFrame(frame - offset(layer));
+		ret |= layer->setFrame(static_cast<float>((time - offset(layer)) * info_.fps));
 	}
-	current_frame_ = frame;
+	current_time_ = time;
 	return ret;
 }
 void Composition::update()

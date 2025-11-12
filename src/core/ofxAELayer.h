@@ -39,8 +39,14 @@ public:
 	bool load(const std::string &base_dir);
 	bool setup(const ofJson &json, const std::filesystem::path &source_dir="");
 	void update() override;
+	
+	// Frame API (compatibility layer)
 	bool setFrame(int frame) { return setFrame(static_cast<float>(frame)); }
 	bool setFrame(float frame);
+	
+	// Time API (new primary - to be implemented in Phase 3)
+	// bool setTime(double time);
+	// double getTime() const;
 	
 	using ofBaseDraws::draw;
 	void draw() const { draw(0,0); }
@@ -86,7 +92,7 @@ private:
 
 	std::string name_;
 	int in_, out_;
-	float current_frame_;
+	float current_frame_;  // Note: Will be changed to double current_time_ in Phase 3
 
 	TransformProp transform_;
 	FloatProp time_remap_;
