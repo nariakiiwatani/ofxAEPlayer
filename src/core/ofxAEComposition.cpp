@@ -100,6 +100,7 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 	}
 
 	current_time_ = -1.0;
+	setTime(0);
 	return !layers_.empty();
 }
 

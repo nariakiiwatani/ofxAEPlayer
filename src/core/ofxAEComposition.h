@@ -42,15 +42,10 @@ public:
 	bool load(const std::filesystem::path &filepath);
 	bool setup(const ofJson &json, const std::filesystem::path &base_dir);
 	
-	// Frame API (compatibility layer - redirects to time)
-	bool setFrame(int frame) { return setFrame(static_cast<float>(frame)); }
 	bool setFrame(float frame) { return setTime(frame / info_.fps); }
 	float getCurrentFrame() const { return static_cast<float>(current_time_ * info_.fps); }
-	int getCurrentFrameInt() const { return static_cast<int>(std::round(current_time_ * info_.fps)); }
-	
-	// Time API (new primary)
+
 	bool setTime(double time);
-	double getTime() const { return current_time_; }
 	float getCurrentTime() const { return static_cast<float>(current_time_); }
 	
 	void update() override;
