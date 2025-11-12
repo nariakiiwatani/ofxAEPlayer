@@ -2,6 +2,7 @@
 #include "ofxAEVisitor.h"
 #include "ofLog.h"
 #include "ofJson.h"
+#include "../utils/ofxAEAssetManager.h"
 #include "../utils/ofxAETimeUtils.h"
 #include <algorithm>
 
@@ -54,12 +55,10 @@ bool SequenceSource::loadImagesFromDirectory(const std::filesystem::path &dirpat
 	dir.sort();
 	pool_.reserve(dir.size());
 	for(auto &&file : dir.getFiles()) {
-		ofTexture tex;
-		if(ofLoadImage(tex, file.path())) {
-			pool_.push_back(tex);
-		}
+		auto tex = AssetManager::getInstance().getTexture(file.path());
+		pool_.push_back(tex);
 	}
-	
+
 	if(pool_.empty()) {
 		ofLogWarning("SequenceSource") << "No images loaded from directory: " << dirpath;
 	}
@@ -81,13 +80,20 @@ bool SequenceSource::setTime(double time)
 	current_time_ = time;
 	
 	if(new_index >= 0 && static_cast<size_t>(new_index) < pool_.size()) {
-		texture_ = &pool_[new_index];
+		texture_ = pool_[new_index];
 	}
 	else {
 		texture_.reset();
 	}
 	
 	return changed;
+}
+
+void SequenceSource::draw(float x, float y, float w, float h) const
+{
+	if(auto tex = texture_.lock()) {
+		tex->draw(x,y,w,h);
+	}
 }
 
 double SequenceSource::getDuration() const

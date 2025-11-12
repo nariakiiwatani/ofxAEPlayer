@@ -20,7 +20,7 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 #define EXTRACT_INFO2(k,n) json::extract(json, #k, info_.n)
 #define EXTRACT_INFO(n) EXTRACT_INFO2(n, n)
 	EXTRACT_INFO(duration);
-	EXTRACT_INFO2(duration, end_time);
+	EXTRACT_INFO2(endTime, end_time);
 	EXTRACT_INFO(fps);
 	EXTRACT_INFO(width);
 	EXTRACT_INFO(height);

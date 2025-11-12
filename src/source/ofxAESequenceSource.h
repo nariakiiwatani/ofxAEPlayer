@@ -16,9 +16,9 @@ public:
 	double getTime() const override { return current_time_; }
 	double getDuration() const override;
 
-	void draw(float x, float y, float w, float h) const override { if(texture_) (*texture_)->draw(x,y,w,h); }
-	float getWidth() const override { return pool_.empty() ? 0.f : pool_[0].getWidth(); }
-	float getHeight() const override { return pool_.empty() ? 0.f : pool_[0].getHeight(); }
+	void draw(float x, float y, float w, float h) const override;
+	float getWidth() const override { return pool_.empty() ? 0.f : pool_[0]->getWidth(); }
+	float getHeight() const override { return pool_.empty() ? 0.f : pool_[0]->getHeight(); }
 	SourceType getSourceType() const override { return SourceType::SEQUENCE; }
 	std::string getDebugInfo() const override { return "SequenceSource"; }
 	
@@ -28,8 +28,8 @@ public:
 private:
 	bool loadImagesFromDirectory(const std::filesystem::path &dirpath);
 	
-	std::vector<ofTexture> pool_;
-	std::optional<ofTexture*> texture_;
+	std::vector<std::shared_ptr<ofTexture>> pool_;
+	std::weak_ptr<ofTexture> texture_;
 	double current_time_ = 0.0;
 	double fps_ = 30.0;
 	int current_index_ = -1;
