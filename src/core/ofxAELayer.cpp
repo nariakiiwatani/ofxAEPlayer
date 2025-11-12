@@ -19,7 +19,6 @@ std::vector<Layer::SourceResolver> BUILTIN_RESOLVERS = {
 		auto source = LayerSource::createSourceOfType(sourceType);
 
 		if (!source) {
-			ofLogWarning("SourceTypeResolver") << "No source created for sourceType: " << sourceType;
 			return nullptr;
 		}
 
@@ -36,7 +35,6 @@ std::vector<Layer::SourceResolver> BUILTIN_RESOLVERS = {
 	[](const ofJson &json, const std::filesystem::path &base_dir) -> std::unique_ptr<LayerSource> {
 		auto source = LayerSource::createSourceOfType("shape");
 		if (!source) {
-			ofLogError("ShapeResolver") << "Failed to create shape source";
 			return nullptr;
 		}
 
@@ -134,6 +132,8 @@ std::unique_ptr<LayerSource> Layer::resolveSource(const ofJson &json, const std:
 			return source;
 		}
 	}
+	ofLogWarning("Layer") << "No source created for layer name: " << name_;
+
 	return nullptr;
 }
 

@@ -508,6 +508,25 @@ function trackMatteTypeToString(t){
         };
     }
 
+    function getFootageFrameRate(footageItem) {
+        try {
+            if (!(footageItem instanceof FootageItem)) {
+                return null;
+            }
+            
+            var mainSource = footageItem.mainSource;
+            
+            if (mainSource instanceof FileSource) {
+                return mainSource.conformFrameRate;
+            }
+            
+            return null;
+        } catch (e) {
+            debugLog("getFootageFrameRate", "Error getting footage frame rate: " + e.toString(), null, "warning");
+            return null;
+        }
+    }
+
     function getSourceType(layer) {
         try {
             // Check if layer exists and has a source property
@@ -2009,9 +2028,11 @@ function trackMatteTypeToString(t){
                                 break;
                             case "sequence":
                                 try {
-                                    source = layer.source.name;
+                                    // For sequences, we'll create a JSON metadata file
+                                    // The source will point to the JSON file, not the directory
+                                    source = layer.source.name + ".json";
                                     sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + source;
-                                    debugLog("LayerProcessing", "Sequence source path: " + sourcePath);
+                                    debugLog("LayerProcessing", "Sequence source path (metadata): " + sourcePath);
                                 } catch (seqSourceError) {
                                     debugLog("LayerProcessing", "ERROR: Failed to process sequence source: " + seqSourceError.toString());
                                 }
@@ -2265,6 +2286,26 @@ function trackMatteTypeToString(t){
                         if (!copyFileWithDateCheck(sequenceFile, dest, sequenceFile.name, {layerName: layer.name, sequenceIndex: s})) {
                             alert("ファイルのコピー中にエラー: " + sequenceFile.name);
                         }
+                    }
+                    
+                    // Create metadata JSON file with fps and directory information
+                    try {
+                        var sequenceFps = getFootageFrameRate(layer.source);
+                        var sequenceMetadata = {
+                            fps: sequenceFps || comp.frameRate,
+                            directory: "./" + layer.source.name
+                        };
+                        
+                        var metadataFile = new File(assetFolder.fsName + "/" + layer.source.name + ".json");
+                        metadataFile.encoding = "UTF-8";
+                        metadataFile.open("w");
+                        metadataFile.write(JSON.stringify(sequenceMetadata, null, 4));
+                        metadataFile.close();
+                        
+                        debugLog("SequenceExport", "Created sequence metadata JSON: " + layer.source.name + ".json", {fps: sequenceFps}, "notice");
+                    } catch(e) {
+                        debugLog("SequenceExport", "Error creating sequence metadata: " + e.toString(), null, "error");
+                        alert("シーケンスメタデータの作成中にエラー: " + e.message);
                     }
                     break;
                 default:

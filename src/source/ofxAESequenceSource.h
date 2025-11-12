@@ -22,7 +22,12 @@ public:
 	SourceType getSourceType() const override { return SourceType::SEQUENCE; }
 	std::string getDebugInfo() const override { return "SequenceSource"; }
 	
+	double getFps() const { return fps_; }
+	void setFps(double fps) { fps_ = fps; }
+	
 private:
+	bool loadImagesFromDirectory(const std::filesystem::path &dirpath);
+	
 	std::vector<ofTexture> pool_;
 	std::optional<ofTexture*> texture_;
 	double current_time_ = 0.0;

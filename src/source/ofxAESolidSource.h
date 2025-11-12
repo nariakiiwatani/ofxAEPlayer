@@ -23,7 +23,6 @@ public:
 	}
 	void update() override {}
 	
-	// Time API (solids don't change with time)
 	bool setTime(double time) override { current_time_ = time; return false; }
 	double getTime() const override { return current_time_; }
 	double getDuration() const override { return std::numeric_limits<double>::max(); }
