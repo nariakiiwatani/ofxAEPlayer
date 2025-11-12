@@ -4,7 +4,6 @@
 namespace ofx { namespace ae {
 
 void PropertyBase::accept(Visitor &visitor) {
-	// Base implementation - override in derived classes if needed
 }
 
 void PropertyGroup::accept(Visitor &visitor) {

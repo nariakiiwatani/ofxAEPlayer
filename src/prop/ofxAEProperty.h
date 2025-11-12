@@ -19,13 +19,8 @@ public:
 	virtual void accept(Visitor &visitor);
 	virtual bool hasAnimation() const { return false; }
 	
-	// Time API only
 	virtual bool setTime(double time) { return false; }
 	virtual double getTime() const { return 0.0; }
-	
-	// FPS management
-	virtual void setFps(double fps) { fps_ = fps; }
-	virtual double getFps() const { return fps_; }
 	
 	virtual void setup(const ofJson &base, const ofJson &keyframes={}) {}
 	
@@ -45,9 +40,7 @@ protected:
 				return fn(*reinterpret_cast<T*>(dst));
 			};
 	}
-	
-	double fps_ = 30.0;
-	
+
 private:
 	std::unordered_map<std::type_index, ExtractFn> extractors_;
 };
@@ -186,7 +179,7 @@ public:
 		}
 		
 		float dt = static_cast<float>(pair.time_b - pair.time_a);
-		cache_ = util::interpolateKeyframe(*pair.keyframe_a, *pair.keyframe_b, dt, pair.ratio);
+		cache_ = interpolateKeyframe(*pair.keyframe_a, *pair.keyframe_b, dt, pair.ratio);
 		last_time_ = time;
 		return true;
 	}
@@ -248,14 +241,7 @@ public:
 		}
 		return ret;
 	}
-	
-	void setFps(double fps) override {
-		PropertyBase::setFps(fps);
-		for(auto &&[_,p] : props_) {
-			p->setFps(fps);
-		}
-	}
-	
+
 private:
 	std::map<std::string, std::unique_ptr<PropertyBase>> props_;
 };
@@ -309,20 +295,10 @@ public:
 		return changed;
 	}
 	
-	void setFps(double fps) override {
-		PropertyBase::setFps(fps);
-		for(auto &p : properties_) {
-			if(p) {
-				p->setFps(fps);
-			}
-		}
-	}
-	
 protected:
 	std::vector<std::unique_ptr<PropertyBase>> properties_;
 };
 
-// Concrete property implementations using Property
 
 class FloatProp : public Property<float>
 {

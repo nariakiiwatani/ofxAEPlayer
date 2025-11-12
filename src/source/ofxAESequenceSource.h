@@ -12,14 +12,10 @@ public:
 	void accept(Visitor &visitor) override;
 	bool load(const std::filesystem::path &filepath) override;
 	
-	// Time API
 	bool setTime(double time) override;
 	double getTime() const override { return current_time_; }
 	double getDuration() const override;
-	
-	void setFps(double fps) { fps_ = fps; }
-	double getFps() const { return fps_; }
-	
+
 	void draw(float x, float y, float w, float h) const override { if(texture_) (*texture_)->draw(x,y,w,h); }
 	float getWidth() const override { return pool_.empty() ? 0.f : pool_[0].getWidth(); }
 	float getHeight() const override { return pool_.empty() ? 0.f : pool_[0].getHeight(); }

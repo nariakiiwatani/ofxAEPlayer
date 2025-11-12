@@ -17,6 +17,7 @@ public:
 	void accept(Visitor &visitor);
 	struct Info {
 		double duration;
+		double end_time;
 		float fps;
 		int width;
 		int height;
@@ -41,10 +42,9 @@ public:
 	
 	bool setTime(double time);
 	double getTime() const { return current_time_; }
-	float getTimeFloat() const { return static_cast<float>(current_time_); }
 	double getDuration() const { return info_.duration; }
 	double getFps() const { return info_.fps; }
-	int convertTimeToFrame(float time) const { return time*info_.fps; }
+	int convertTimeToFrame(double time) const { return time*info_.fps; }
 	double convertFrameToTime(int frame) const { return frame/info_.fps; }
 
 	void update() override;
@@ -62,7 +62,7 @@ private:
 	std::vector<std::shared_ptr<Layer>> layers_;
 	std::map<std::string, std::weak_ptr<Layer>> name_layers_map_;
 	std::map<std::string, std::weak_ptr<Layer>> unique_name_layers_map_;
-	std::map<std::weak_ptr<Layer>, float, std::owner_less<std::weak_ptr<Layer>>> layer_offsets_;
+	std::map<std::weak_ptr<Layer>, double, std::owner_less<std::weak_ptr<Layer>>> layer_offsets_;
 
 	double current_time_;
 };

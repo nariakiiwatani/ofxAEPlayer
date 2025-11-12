@@ -119,7 +119,6 @@ Layer::Layer()
 , in_time_(0.0)
 , out_time_(0.0)
 , current_time_(-1.0)
-, parent_fps_(30.0)
 , blend_mode_(BlendMode::NORMAL)
 {
 }
@@ -240,7 +239,7 @@ bool Layer::setTime(double time)
 			}
 			
 			if(time_remap_.setTime(time)) {
-				source_time = time_remap_.get() / parent_fps_;
+				source_time = time_remap_.get();
 			}
 			
 			if(source_->setTime(source_time)) {

@@ -16,7 +16,6 @@ public:
 	void accept(Visitor &visitor) override;
 	bool load(const std::filesystem::path &filepath) override;
 	
-	// Time API
 	bool setTime(double time) override;
 	double getTime() const override;
 	double getDuration() const override;

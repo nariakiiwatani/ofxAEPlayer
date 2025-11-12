@@ -161,82 +161,11 @@ inline MaskMode calculate(const Keyframe::Data<MaskMode>& keyframe_a,
 
 } // namespace interpolation
 
-namespace util {
-
-template<typename T>
-struct KeyframePair {
-	const Keyframe::Data<T>* keyframe_a = nullptr;
-	const Keyframe::Data<T>* keyframe_b = nullptr;
-	float ratio = 0.0f;
-	int frame_a = 0;
-	int frame_b = 0;
-};
-
-template<typename T>
-KeyframePair<T> findKeyframePair(const std::map<int, Keyframe::Data<T>>& keyframes, float frame) {
-	KeyframePair<T> result;
-	
-	if (keyframes.empty()) {
-		return result;
-	}
-	
-	if (keyframes.size() == 1) {
-		auto it = keyframes.begin();
-		result.keyframe_a = &it->second;
-		result.keyframe_b = &it->second;
-		result.frame_a = it->first;
-		result.frame_b = it->first;
-		result.ratio = 0.0f;
-		return result;
-	}
-	
-	auto upper = keyframes.upper_bound(static_cast<int>(frame));
-	
-	if (upper == keyframes.begin()) {
-		auto first = keyframes.begin();
-		result.keyframe_a = &first->second;
-		result.keyframe_b = &first->second;
-		result.frame_a = first->first;
-		result.frame_b = first->first;
-		result.ratio = 0.0f;
-		return result;
-	}
-	
-	if (upper == keyframes.end()) {
-		auto last = std::prev(keyframes.end());
-		result.keyframe_a = &last->second;
-		result.keyframe_b = &last->second;
-		result.frame_a = last->first;
-		result.frame_b = last->first;
-		result.ratio = 0.0f;
-		return result;
-	}
-	
-	auto keyframe_b_it = upper;
-	auto keyframe_a_it = std::prev(upper);
-	
-	result.keyframe_a = &keyframe_a_it->second;
-	result.keyframe_b = &keyframe_b_it->second;
-	result.frame_a = keyframe_a_it->first;
-	result.frame_b = keyframe_b_it->first;
-	
-	if (result.frame_b != result.frame_a) {
-		result.ratio = (frame - static_cast<float>(result.frame_a)) / static_cast<float>(result.frame_b - result.frame_a);
-	}
-	else {
-		result.ratio = 0.0f;
-	}
-	
-	return result;
-}
-
 template<typename T>
 T interpolateKeyframe(const Keyframe::Data<T>& keyframe_a,
 					 const Keyframe::Data<T>& keyframe_b,
 					 float dt, float ratio) {
 	return interpolation::calculate(keyframe_a, keyframe_b, dt, ratio);
 }
-
-} // namespace util
 
 }} // namespace ofx::ae

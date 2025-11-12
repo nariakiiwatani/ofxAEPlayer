@@ -92,7 +92,6 @@ private:
 	double in_time_ = 0.0;
 	double out_time_ = 0.0;
 	double current_time_ = 0.0;
-	double parent_fps_ = 30.0;
 
 	TransformProp transform_;
 	FloatProp time_remap_;
