@@ -212,7 +212,7 @@ bool Layer::setTime(double time)
 	bool ret = false;
 	bool need_mask_update = false;
 	
-	if(transform_.setFrame(static_cast<float>(time * parent_fps_))) {
+	if(transform_.setTime(time)) {
 		TransformData t;
 		if(!transform_.tryExtract(t)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract TransformData, using defaults";
@@ -226,7 +226,7 @@ bool Layer::setTime(double time)
 	}
 
 	if(isActiveAtTime(time) || isTrackMatte()) {
-		if(mask_.setFrame(static_cast<float>(time * parent_fps_))) {
+		if(mask_.setTime(time)) {
 			mask_collection_.setupFromMaskProp(mask_);
 			ret |= true;
 			need_mask_update |= true;
@@ -239,11 +239,11 @@ bool Layer::setTime(double time)
 				source_time = time / stretch_;
 			}
 			
-			if(time_remap_.setFrame(static_cast<float>(time * parent_fps_))) {
+			if(time_remap_.setTime(time)) {
 				source_time = time_remap_.get() / parent_fps_;
 			}
 			
-			if(source_->setFrame(static_cast<float>(source_time * parent_fps_))) {
+			if(source_->setTime(source_time)) {
 				ret |= true;
 				need_mask_update |= !mask_collection_.empty();
 			}

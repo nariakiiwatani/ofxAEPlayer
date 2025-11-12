@@ -24,8 +24,8 @@ bool Player::load(const of::filesystem::path &fileName)
 	bool result = composition_.load(fileName);
 	if(result) {
 		is_loaded_ = true;
-		target_frame_ = static_cast<float>(composition_.getStartFrame());
-		composition_.setFrame(target_frame_);
+		target_frame_ = 0.0f;
+		composition_.setTime(target_frame_ / composition_.getFps());
 		last_update_time_ = ofGetElapsedTimef();
 		
 		if(use_fbo_) {
@@ -51,8 +51,8 @@ void Player::stop()
 {
 	is_playing_ = false;
 	is_paused_ = false;
-	target_frame_ = static_cast<float>(composition_.getStartFrame());
-	composition_.setFrame(target_frame_);
+	target_frame_ = 0.0f;
+	composition_.setTime(0.0);
 }
 
 float Player::getWidth() const
@@ -113,9 +113,10 @@ void Player::updatePlayback()
 
 	switch(loop_state_) {
 		case OF_LOOP_NONE: {
+			// Calculate frame range directly from time-based duration
+			int start_frame = 0;
+			int end_frame = static_cast<int>(composition_.getDuration() * composition_.getFps());
 			new_frame = constrainFrame(new_frame);
-			int end_frame = composition_.getEndFrame();
-			int start_frame = composition_.getStartFrame();
 			if(new_frame >= end_frame) {
 				new_frame = end_frame;
 				is_playing_ = false;
@@ -127,20 +128,22 @@ void Player::updatePlayback()
 			break;
 		}
 		case OF_LOOP_NORMAL: {
-			int start_frame = composition_.getStartFrame();
-			int range = composition_.getDurationInFrames();
+			float start_frame = 0.0f;
+			float range = static_cast<float>(composition_.getDuration() * composition_.getFps());
 			if(range > 0) {
-				new_frame = ((new_frame - start_frame) % range + range) % range + start_frame;
+				float offset = new_frame - start_frame;
+				new_frame = fmod(fmod(offset, range) + range, range) + start_frame;
 			}
 			break;
 		}
 		case OF_LOOP_PALINDROME: {
-			int start_frame = composition_.getStartFrame();
-			int end_frame = composition_.getEndFrame();
-			int range = composition_.getDurationInFrames();
+			float start_frame = 0.0f;
+			float end_frame = static_cast<float>(composition_.getDuration() * composition_.getFps());
+			float range = end_frame - start_frame;
 			if(range > 0) {
-				int total_frames = range * 2;
-				int wrapped = ((new_frame - start_frame) % total_frames + total_frames) % total_frames;
+				float total_frames = range * 2.0f;
+				float offset = new_frame - start_frame;
+				float wrapped = fmod(fmod(offset, total_frames) + total_frames, total_frames);
 				if(wrapped >= range) {
 					new_frame = end_frame - (wrapped - range);
 				}
@@ -154,18 +157,23 @@ void Player::updatePlayback()
 
 	if(new_frame != target_frame_) {
 		target_frame_ = new_frame;
-		is_frame_new_ = composition_.setFrame(target_frame_);
+		double time = target_frame_ / composition_.getFps();
+		is_frame_new_ = composition_.setTime(time);
 	}
 }
 
 int Player::constrainFrame(int frame) const
 {
-	return ofClamp(frame, composition_.getStartFrame(), composition_.getEndFrame());
+	int start_frame = 0;
+	int end_frame = static_cast<int>(composition_.getDuration() * composition_.getFps());
+	return ofClamp(frame, start_frame, end_frame);
 }
 
 float Player::constrainFrame(float frame) const
 {
-	return ofClamp(frame, static_cast<float>(composition_.getStartFrame()), static_cast<float>(composition_.getEndFrame()));
+	float start_frame = 0.0f;
+	float end_frame = static_cast<float>(composition_.getDuration() * composition_.getFps());
+	return ofClamp(frame, start_frame, end_frame);
 }
 
 bool Player::isFrameNew() const
@@ -208,8 +216,8 @@ float Player::getPosition() const
 	if(!is_loaded_) {
 		return 0.0f;
 	}
-	int start_frame = composition_.getStartFrame();
-	int range = composition_.getDurationInFrames();
+	int start_frame = 0;
+	int range = static_cast<int>(composition_.getDuration() * composition_.getFps());
 	if(range <= 0) {
 		return 0.0f;
 	}
@@ -221,11 +229,12 @@ void Player::setPosition(float pct)
 	if(!is_loaded_) {
 		return;
 	}
-	int start_frame = composition_.getStartFrame();
-	int range = composition_.getDurationInFrames();
+	int start_frame = 0;
+	int range = static_cast<int>(composition_.getDuration() * composition_.getFps());
 	target_frame_ = static_cast<float>(start_frame) + pct * static_cast<float>(range);
 	target_frame_ = constrainFrame(target_frame_);
-	composition_.setFrame(target_frame_);
+	double time = target_frame_ / composition_.getFps();
+	composition_.setTime(time);
 	is_frame_new_ = true;
 }
 
@@ -235,7 +244,8 @@ void Player::setFrame(float frame)
 		return;
 	}
 	target_frame_ = constrainFrame(frame);
-	composition_.setFrame(target_frame_);
+	double time = target_frame_ / composition_.getFps();
+	composition_.setTime(time);
 	is_frame_new_ = true;
 }
 
@@ -249,7 +259,7 @@ int Player::getTotalNumFrames() const
 	if(!is_loaded_) {
 		return 0;
 	}
-	return composition_.getDurationInFrames();
+	return static_cast<int>(composition_.getDuration() * composition_.getFps());
 }
 
 void Player::setLoopState(ofLoopType state)
@@ -277,7 +287,7 @@ float Player::getDuration() const
 	if(!is_loaded_) {
 		return 0.0f;
 	}
-	return static_cast<float>(composition_.getDurationInFrames()) / composition_.getFps();
+	return static_cast<float>(composition_.getDuration());
 }
 
 bool Player::getIsMovieDone() const
@@ -285,12 +295,13 @@ bool Player::getIsMovieDone() const
 	if(!is_loaded_) {
 		return true;
 	}
-	return !is_playing_ && target_frame_ >= static_cast<float>(composition_.getEndFrame());
+	int end_frame = static_cast<int>(composition_.getDuration() * composition_.getFps());
+	return !is_playing_ && target_frame_ >= static_cast<float>(end_frame);
 }
 
 void Player::firstFrame()
 {
-	setFrame(static_cast<float>(composition_.getStartFrame()));
+	setFrame(0.0f);
 }
 
 void Player::nextFrame()

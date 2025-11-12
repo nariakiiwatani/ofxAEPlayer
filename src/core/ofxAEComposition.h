@@ -46,9 +46,6 @@ public:
 	double getFps() const { return info_.fps; }
 	int convertTimeToFrame(float time) const { return time*info_.fps; }
 	double convertFrameToTime(int frame) const { return frame/info_.fps; }
-	int getStartFrame() const { return 0; }
-	int getEndFrame() const { return static_cast<int>(info_.duration * info_.fps); }
-	int getDurationInFrames() const { return getEndFrame() - getStartFrame(); }
 
 	void update() override;
 	using ofBaseDraws::draw;
