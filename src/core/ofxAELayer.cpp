@@ -118,7 +118,8 @@ Layer::Layer()
 , name_("")
 , in_(0)
 , out_(0)
-, current_frame_(-1.0f)
+, current_time_(-1.0)
+, parent_fps_(30.0)
 , blend_mode_(BlendMode::NORMAL)
 {
 }
@@ -178,7 +179,7 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 		ofLogVerbose("Layer") << "No source resolved for layer: " << name_;
 	}
 
-	current_frame_ = -1.0f;
+	current_time_ = -1.0;
 	return true;
 #undef EXTRACT_
 #undef EXTRACT
@@ -193,24 +194,25 @@ void Layer::update()
 	}
 }
 
-bool Layer::isActiveAtFrame(int frame) const
+bool Layer::isActiveAtTime(double time) const
 {
-	return in_ <= out_ ? in_ <= frame && frame < out_
-	: out_ < frame && frame < in_;
+	double in_time = static_cast<double>(in_) / parent_fps_;
+	double out_time = static_cast<double>(out_) / parent_fps_;
+	return in_time <= out_time ? in_time <= time && time < out_time
+	: out_time < time && time < in_time;
 }
 
 
-bool Layer::setFrame(float frame)
+bool Layer::setTime(double time)
 {
-	constexpr float FRAME_EPSILON = 0.0001f;
-	if(std::abs(current_frame_ - frame) < FRAME_EPSILON) {
+	if(util::isNearTime(current_time_, time)) {
 		return false;
 	}
 
 	bool ret = false;
 	bool need_mask_update = false;
 	
-	if(transform_.setFrame(frame)) {
+	if(transform_.setFrame(static_cast<float>(time * parent_fps_))) {
 		TransformData t;
 		if(!transform_.tryExtract(t)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract TransformData, using defaults";
@@ -223,25 +225,25 @@ bool Layer::setFrame(float frame)
 		ret |= true;
 	}
 
-	if(isActiveAtFrame(static_cast<int>(frame)) || isTrackMatte()) {
-		if(mask_.setFrame(frame)) {
+	if(isActiveAtTime(time) || isTrackMatte()) {
+		if(mask_.setFrame(static_cast<float>(time * parent_fps_))) {
 			mask_collection_.setupFromMaskProp(mask_);
 			ret |= true;
 			need_mask_update |= true;
 		}
 
 		if(source_) {
-			float source_frame = frame;
+			double source_time = time;
 			
 			if(stretch_ != 1.0f) {
-				source_frame = frame / stretch_;
+				source_time = time / stretch_;
 			}
 			
-			if(time_remap_.setFrame(frame)) {
-				source_frame = time_remap_.get();
+			if(time_remap_.setFrame(static_cast<float>(time * parent_fps_))) {
+				source_time = time_remap_.get() / parent_fps_;
 			}
 			
-			if(source_->setFrame(source_frame)) {
+			if(source_->setFrame(static_cast<float>(source_time * parent_fps_))) {
 				ret |= true;
 				need_mask_update |= !mask_collection_.empty();
 			}
@@ -250,13 +252,13 @@ bool Layer::setFrame(float frame)
 	if(need_mask_update || isTrackMatte() || hasTrackMatte()) {
 		updateLayerFBO();
 	}
-	current_frame_ = frame;
+	current_time_ = time;
 	return ret;
 }
 
 void Layer::draw(float x, float y, float w, float h) const
 {
-	if(!isActiveAtFrame(current_frame_)) return;
+	if(!isActiveAtTime(current_time_)) return;
 
 	TransformNode::pushMatrix();
 	RenderContext::push();

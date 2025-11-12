@@ -18,13 +18,7 @@ public:
 	virtual void accept(Visitor &visitor);
 	virtual bool hasAnimation() const { return false; }
 	
-	// Frame API (compatibility layer)
-	virtual bool setFrame(int frame) { return setFrame(static_cast<float>(frame)); }
-	virtual bool setFrame(float frame) {
-		return setTime(frameToTime(frame));
-	}
-	
-	// Time API (new primary)
+	// Time API only
 	virtual bool setTime(double time) { return false; }
 	virtual double getTime() const { return 0.0; }
 	
@@ -49,14 +43,6 @@ protected:
 			[fn = std::forward<Fn>(fn)](void* dst) -> bool {
 				return fn(*reinterpret_cast<T*>(dst));
 			};
-	}
-	
-	double frameToTime(float frame) const {
-		return static_cast<double>(frame) / fps_;
-	}
-	
-	float timeToFrame(double time) const {
-		return static_cast<float>(time * fps_);
 	}
 	
 	double fps_ = 30.0;
@@ -252,10 +238,6 @@ public:
 		return true;
 	}
 	
-	bool setFrame(float frame) override {
-		return setTime(frameToTime(frame));
-	}
-	
 	double getTime() const override { return last_time_; }
 	
 private:
@@ -312,10 +294,6 @@ public:
 			ret |= p->setTime(time);
 		}
 		return ret;
-	}
-	
-	bool setFrame(float frame) override {
-		return setTime(frameToTime(frame));
 	}
 	
 	void setFps(double fps) override {
@@ -376,10 +354,6 @@ public:
 			}
 		}
 		return changed;
-	}
-	
-	bool setFrame(float frame) override {
-		return setTime(frameToTime(frame));
 	}
 	
 	void setFps(double fps) override {

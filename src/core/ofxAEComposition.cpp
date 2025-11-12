@@ -118,7 +118,7 @@ bool Composition::setTime(double time)
 	};
 	
 	for(auto& layer : layers_) {
-		ret |= layer->setFrame(static_cast<float>((time - offset(layer)) * info_.fps));
+		ret |= layer->setTime(time - offset(layer));
 	}
 	current_time_ = time;
 	return ret;

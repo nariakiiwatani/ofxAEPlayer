@@ -40,13 +40,12 @@ public:
 	bool setup(const ofJson &json, const std::filesystem::path &source_dir="");
 	void update() override;
 	
-	// Frame API (compatibility layer)
-	bool setFrame(int frame) { return setFrame(static_cast<float>(frame)); }
-	bool setFrame(float frame);
-	
-	// Time API (new primary - to be implemented in Phase 3)
-	// bool setTime(double time);
-	// double getTime() const;
+	// Time API only
+	bool setTime(double time);
+	double getTime() const { return current_time_; }
+	double getInPoint() const { return static_cast<double>(in_) / parent_fps_; }
+	double getOutPoint() const { return static_cast<double>(out_) / parent_fps_; }
+	double getDuration() const { return static_cast<double>(out_ - in_) / parent_fps_; }
 	
 	using ofBaseDraws::draw;
 	void draw() const { draw(0,0); }
@@ -70,7 +69,7 @@ public:
 	void setBlendMode(BlendMode mode) { blend_mode_ = mode; }
 	BlendMode getBlendMode() const { return blend_mode_; }
 
-	bool isActiveAtFrame(int frame) const;
+	bool isActiveAtTime(double time) const;
 
 	void setTrackMatte(std::shared_ptr<Layer> src, TrackMatteType type) {
 		track_matte_layer_ = src;
@@ -92,7 +91,8 @@ private:
 
 	std::string name_;
 	int in_, out_;
-	float current_frame_;  // Note: Will be changed to double current_time_ in Phase 3
+	double current_time_ = 0.0;
+	double parent_fps_ = 30.0;
 
 	TransformProp transform_;
 	FloatProp time_remap_;
