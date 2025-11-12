@@ -15,17 +15,6 @@ if (!Object.keys) {
 	};
 }
 
-// ===== EXPORT MODE CONFIGURATION =====
-
-// Export mode configuration for time-based migration
-var EXPORT_MODE = {
-    FRAME_BASED: "frame",  // Legacy format (frame numbers as keys)
-    TIME_BASED: "time"      // New format (time in seconds as keys)
-};
-
-// Default export mode - can be changed via UI
-var currentExportMode = EXPORT_MODE.FRAME_BASED;  // Start with legacy for compatibility
-
 // ===== PROPERTY MAPPING CONFIGURATION SYSTEM =====
 
 // After Effectsプロパティのマッピング設定 - matchNameごとの完全な処理設定
@@ -298,8 +287,7 @@ var PROPERTY_MAPPING_CONFIG = {
     "ADBE Marker": { ignored: true },
     "ADBE Effect Parade": { ignored: true },
     "ADBE Time Remapping": {
-        wrapInObject: "timeRemap",
-        customProcessor: "timeRemapToFrames"
+        wrapInObject: "timeRemap"
     },
     "ADBE MTrackers": { ignored: true },
     "ADBE Vector Materials Group": { ignored: true },
@@ -416,12 +404,6 @@ function maskModeToString(mode) {
     map[MaskMode.DARKEN] = "DARKEN";
     map[MaskMode.DIFFERENCE] = "DIFFERENCE";
     return map.hasOwnProperty(mode) ? map[mode] : "ADD";
-}
-function timeRemapToFrames(value, fps) {
-    if (typeof value === 'number') {
-        return Math.round(value * fps);
-    }
-    return value;
 }
 
 // ===== COMMON UTILITY FUNCTIONS =====
@@ -810,16 +792,6 @@ function trackMatteTypeToString(t){
         useFullFrameAnimationCheck.value = false;
         useFullFrameAnimationCheck.alignment = "left";
 
-        // 5. 時間ベースエクスポート（新機能）
-        var exportModeGroup = myPanel.grp.add("group");
-        exportModeGroup.orientation = "column";
-        exportModeGroup.alignment = "fill";
-
-        var timeBasedExportCheck = exportModeGroup.add("checkbox", undefined, "時間ベースでキーフレームを書き出し（Phase 2新機能）");
-        timeBasedExportCheck.name = "timeBasedExportCheck";
-        timeBasedExportCheck.value = false;
-        timeBasedExportCheck.alignment = "left";
-
         // ボタングループ
         var buttonGroup = myPanel.grp.add("group");
         buttonGroup.orientation = "row";
@@ -876,7 +848,7 @@ function trackMatteTypeToString(t){
                 if (app.project.activeItem==null || !(app.project.activeItem instanceof CompItem)){ alert("コンポジションを選択してください。"); return; }
 
 
-                debugLog("ExecuteSystem", "Starting property extraction process", {
+                debugLog("ExecuteSystem", "Starting property extraction process (time-based export)", {
                     outputFolder: outputFolderPath,
                     useSharedAssets: useSharedAssets,
                     sharedAssetsPath: sharedAssetsPath,
@@ -884,13 +856,6 @@ function trackMatteTypeToString(t){
                 }, "notice");
 
                 app.beginUndoGroup("プロパティ抽出"); undoOpen=true;
-                
-                // Set export mode based on UI checkbox
-                currentExportMode = timeBasedExportCheck.value ? EXPORT_MODE.TIME_BASED : EXPORT_MODE.FRAME_BASED;
-                
-                debugLog("ExecuteSystem", "Export mode set to: " + currentExportMode, {
-                    timeBasedEnabled: timeBasedExportCheck.value
-                }, "notice");
                 
                 var options = {
                     outputFolderPath: outputFolderPath,
@@ -1173,8 +1138,6 @@ function trackMatteTypeToString(t){
                         return windingDirectionToString(value);
                     case "fillRule":
                         return fillRuleToString(value);
-                    case "timeRemapToFrames":
-                        return timeRemapToFrames(value, fps);
                     default:
                         break;
                 }
@@ -1467,20 +1430,19 @@ function trackMatteTypeToString(t){
     }
 
     // ===== marker extractors =====
-    function extractMarkers(markers, fps, offsetFrame){
-        function toFrame(t){ return Math.round(t * fps); }
+    function extractMarkers(markers, offsetTime){
         var markerData = [];
         for (var i = 1; i <= markers.numKeys; i++) {
             var time = markers.keyTime(i);
             var markerValue = markers.keyValue(i);
-            var frame = toFrame(time) - offsetFrame;
-            var lengthFrames = toFrame(markerValue.duration);
+            var adjustedTime = time - offsetTime;
+            var duration = markerValue.duration;
             var comment = markerValue.comment ? markerValue.comment.replace(/[\r\n]+/g, '\n') : "";
             
             var markerInfo = {
-                frame: frame,
+                time: Number(adjustedTime.toFixed(6)),
                 comment: comment,
-                length: lengthFrames
+                duration: Number(duration.toFixed(6))
             };
             
             markerData.push(markerInfo);
@@ -1551,86 +1513,20 @@ function trackMatteTypeToString(t){
 
 
 
-    // キーフレームベースの抽出関数（フレームベース）
-    function extractKeyframeBasedProperty(prop, offset, fps, decimalPlaces, customProcessor) {
+    // 時間ベースのキーフレーム抽出関数（統一版）
+    function extractKeyframeProperty(prop, offsetTime, fps, decimalPlaces, customProcessor) {
         try {
             if (!prop) {
-                debugLog("extractKeyframeBasedProperty", "prop is null", null, "verbose");
+                debugLog("extractKeyframeProperty", "prop is null", null, "verbose");
                 return null;
             }
             
-            debugLog("extractKeyframeBasedProperty", "Processing property: " + (prop.matchName || prop.name || "unnamed"), null, "verbose");
-            
-
-            function toFrame(t){ return Math.round(t * fps); }
+            debugLog("extractKeyframeProperty", "Processing property: " + (prop.matchName || prop.name || "unnamed"), null, "verbose");
 
             var nk = (typeof prop.numKeys === 'number') ? prop.numKeys : 0;
 
             if (nk === 0) {
-                // No animation - only return initial value info
-                debugLog("extractKeyframeBasedProperty", "No animation detected, returning initial value only", null, "verbose");
-                return null;
-            }
-
-            // Extract keyframe data
-            var keyframes = [];
-            
-            for (var i = 1; i <= nk; i++) {
-                try {
-                    var keyTime = prop.keyTime(i);
-                    var keyFrame = toFrame(keyTime) - offset;
-                    
-                    var keyValue = extractValue(prop, keyTime, decimalPlaces, customProcessor, fps);
-                    
-                    // キーフレーム情報を構築
-                    var keyframeInfo = {
-                        frame: keyFrame,
-                        value: keyValue
-                    };
-                    
-                    // 補間情報を追加
-                    var interpolation = extractKeyframeInterpolation(prop, i);
-                    if (interpolation) {
-                        keyframeInfo.interpolation = interpolation;
-                    }
-                    
-                    // 空間タンジェント情報を追加（該当する場合）
-                    var spatialTangents = extractSpatialTangents(prop, i, decimalPlaces);
-                    if (spatialTangents) {
-                        keyframeInfo.spatialTangents = spatialTangents;
-                    }
-                    
-                    keyframes.push(keyframeInfo);
-                    
-                } catch (e) {
-                    debugLog("extractKeyframeBasedProperty", "Error extracting keyframe " + i + ": " + e.toString(), null, "warning");
-                }
-            }
-            
-            debugLog("extractKeyframeBasedProperty", "Keyframe extraction completed successfully", {
-                keyframeCount: keyframes.length
-            });
-            return keyframes;
-        } catch (e) {
-            debugLog("extractKeyframeBasedProperty", "Error in keyframe extraction: " + e.toString(), null, "error");
-            return null;
-        }
-    }
-    
-    // 時間ベースのキーフレーム抽出関数（新規）
-    function extractTimeBasedKeyframeProperty(prop, offsetTime, fps, decimalPlaces, customProcessor) {
-        try {
-            if (!prop) {
-                debugLog("extractTimeBasedKeyframeProperty", "prop is null", null, "verbose");
-                return null;
-            }
-            
-            debugLog("extractTimeBasedKeyframeProperty", "Processing property with time-based export: " + (prop.matchName || prop.name || "unnamed"), null, "verbose");
-
-            var nk = (typeof prop.numKeys === 'number') ? prop.numKeys : 0;
-
-            if (nk === 0) {
-                debugLog("extractTimeBasedKeyframeProperty", "No animation detected, returning initial value only", null, "verbose");
+                debugLog("extractKeyframeProperty", "No animation detected, returning initial value only", null, "verbose");
                 return null;
             }
 
@@ -1668,17 +1564,17 @@ function trackMatteTypeToString(t){
                     keyframes.push(keyframeInfo);
                     
                 } catch (e) {
-                    debugLog("extractTimeBasedKeyframeProperty", "Error extracting keyframe " + i + ": " + e.toString(), null, "warning");
+                    debugLog("extractKeyframeProperty", "Error extracting keyframe " + i + ": " + e.toString(), null, "warning");
                 }
             }
             
-            debugLog("extractTimeBasedKeyframeProperty", "Time-based keyframe extraction completed successfully", {
+            debugLog("extractKeyframeProperty", "Keyframe extraction completed successfully", {
                 keyframeCount: keyframes.length,
                 fps: fps
             });
             return keyframes;
         } catch (e) {
-            debugLog("extractTimeBasedKeyframeProperty", "Error in time-based keyframe extraction: " + e.toString(), null, "error");
+            debugLog("extractKeyframeProperty", "Error in keyframe extraction: " + e.toString(), null, "error");
             return null;
         }
     }
@@ -1749,7 +1645,7 @@ function trackMatteTypeToString(t){
         }
     }
 
-    function extractPropertyValue(prop, options, layer, offset, config) {
+    function extractPropertyValue(prop, options, layer, offsetTime, config) {
         var fps = layer.containingComp.frameRate;
         function toTime(f) { return f / fps; }
         function toFrame(t){ return Math.round(t * fps); }
@@ -1771,6 +1667,7 @@ function trackMatteTypeToString(t){
             var nk = (typeof prop.numKeys === 'number') ? prop.numKeys : 0;
             
             if (hasExpression) {
+                var offset = toFrame(offsetTime);
                 var layerInPoint = toFrame(layer.inPoint);
                 var layerOutPoint = toFrame(layer.outPoint);
                 var duration = layerOutPoint - layerInPoint;
@@ -1791,27 +1688,23 @@ function trackMatteTypeToString(t){
                 var duration = end - start;
                 var shouldBake = options.useFullFrameAnimation || hasExpression;
                 if (shouldBake) {
+                    var offset = toFrame(offsetTime);
                     result = extractAnimatedProperty(prop, offset, duration, fps, DEC, customProcessor);
                 } else {
-                    // Choose extraction method based on export mode
-                    if (currentExportMode === EXPORT_MODE.TIME_BASED) {
-                        var offsetTime = layer.startTime;
-                        result = extractTimeBasedKeyframeProperty(prop, offsetTime, fps, DEC, customProcessor);
-                    } else {
-                        result = extractKeyframeBasedProperty(prop, offset, fps, DEC, customProcessor);
-                    }
+                    // Always use time-based extraction (time-only export mode)
+                    result = extractKeyframeProperty(prop, offsetTime, fps, DEC, customProcessor);
                 }
             } else {
                 return null;
             }
         } else {
-            result = extractValue(prop, toTime(offset), DEC, customProcessor, fps);
+            result = extractValue(prop, offsetTime, DEC, customProcessor, fps);
         }
         return result;
     }
     
     // ===== 統一処理関数 =====
-    function extractPropertiesRecursive(property, options, layer, offset) {
+    function extractPropertiesRecursive(property, options, layer, offsetTime) {
         try {
             if (!property) {
                 debugLog("extractPropertiesRecursive", "property is null", null, "verbose");
@@ -1841,7 +1734,7 @@ function trackMatteTypeToString(t){
             var propType = property.propertyType;
             switch(propType) {
                 case PropertyType.PROPERTY:
-                    result = extractPropertyValue(property, options, layer, offset, config);
+                    result = extractPropertyValue(property, options, layer, offsetTime, config);
                     break;
                 case PropertyType.INDEXED_GROUP:
                     result = [];
@@ -1849,7 +1742,7 @@ function trackMatteTypeToString(t){
                     
                     for (var i = 1; i <= property.numProperties; i++) {
                         var childProp = property.property(i);
-                        var child = extractPropertiesRecursive(childProp, options, layer, offset);
+                        var child = extractPropertiesRecursive(childProp, options, layer, offsetTime);
                         
                         if (preserveIndexes) {
                             // インデックスを維持（nullも配列に追加）
@@ -1881,7 +1774,7 @@ function trackMatteTypeToString(t){
                     result = {};
                     for (var i = 1; i <= property.numProperties; i++) {
                         var childProp = property.property(i);
-                        var child = extractPropertiesRecursive(childProp, options, layer, offset);
+                        var child = extractPropertiesRecursive(childProp, options, layer, offsetTime);
                         if (child) {
                             if(child instanceof Array) {
                                 // WARNING: たぶん正しくない。NAMED_GROUPをキーフレームで展開する場合の処理はどう書く？
@@ -1988,28 +1881,24 @@ function trackMatteTypeToString(t){
         function toFrame(t, round){ return round ? Math.round(t * fps) : t * fps; }
 
         var compInfo = {};
-        compInfo["duration"]      = toFrame(comp.duration, true);
+        compInfo["version"]       = "2.0";
+        compInfo["exportMode"]    = "time";
+        compInfo["duration"]      = comp.duration;
         compInfo["fps"]           = fps;
         compInfo["width"]         = comp.width;
         compInfo["height"]        = comp.height;
-        var startFrame = toFrame(comp.workAreaStart, true);
-        compInfo["startFrame"]    = startFrame;
-        compInfo["endFrame"]      = toFrame((comp.workAreaStart + comp.workAreaDuration), true);
+        compInfo["startTime"]     = comp.workAreaStart;
+        compInfo["endTime"]       = comp.workAreaStart + comp.workAreaDuration;
         compInfo["layers"]        = [];
         
-        // Add export mode metadata for time-based exports
-        if (currentExportMode === EXPORT_MODE.TIME_BASED) {
-            compInfo["exportMode"] = "time";
-            debugLog("extractPropertiesForAllLayers", "Using time-based export mode", {
-                fps: fps
-            }, "notice");
-        } else {
-            compInfo["exportMode"] = "frame";
-        }
+        debugLog("extractPropertiesForAllLayers", "Using time-based export (v2.0)", {
+            fps: fps,
+            duration: comp.duration
+        }, "notice");
         
         // コンポジションマーカーを追加
         if (comp.markerProperty.numKeys > 0) {
-            compInfo["markers"] = extractMarkers(comp.markerProperty, fps, startFrame);
+            compInfo["markers"] = extractMarkers(comp.markerProperty, comp.workAreaStart);
         }
 
         debugLog("extractPropertiesForAllLayers", "Total layers to process: " + comp.numLayers);
@@ -2039,8 +1928,7 @@ function trackMatteTypeToString(t){
                 layerInfo.uniqueName = layerNameForFile;
                 layerInfo.file = getRelativePath(outputFolder, layerFolder) + "/" + layerInfo.uniqueName + ".json";
                 layerInfo.visible = layer.enabled;
-                var offset = toFrame(layer.startTime, true);
-                layerInfo.offset = offset;
+                layerInfo.startTime = layer.startTime;
 
                 if (layer.parent) {
                     layerInfo.parent = layerUniqueName(layer.parent);
@@ -2077,8 +1965,8 @@ function trackMatteTypeToString(t){
                 resultData["blendingMode"] = blendMode || "NORMAL";
                 
                 var timing = safelyProcessLayerProperty(layer, "timing", function() {
-                    var inPoint = toFrame(layer.inPoint, true) - offset;
-                    var outPoint = toFrame(layer.outPoint, true) - offset;
+                    var inPoint = Number((layer.inPoint - layer.startTime).toFixed(6));
+                    var outPoint = Number((layer.outPoint - layer.startTime).toFixed(6));
                     var stretch = layer.stretch;  // Time Stretch/Reverse value
                     debugLog("LayerProcessing", "Layer timing - in: " + inPoint + ", out: " + outPoint + ", stretch: " + stretch);
                     return {"in": inPoint, "out": outPoint, "stretch": stretch};
@@ -2189,7 +2077,7 @@ function trackMatteTypeToString(t){
                 safelyProcessLayerProperty(layer, "markers", function() {
                     if (layer.marker && layer.marker.numKeys > 0) {
                         debugLog("LayerProcessing", "Processing markers for layer: " + layer.name + " (marker count: " + layer.marker.numKeys + ")");
-                        resultData["markers"] = extractMarkers(layer.marker, fps, offset);
+                        resultData["markers"] = extractMarkers(layer.marker, layer.startTime);
                         debugLog("LayerProcessing", "Successfully processed markers for layer: " + layer.name);
                     } else {
                         debugLog("LayerProcessing", "Layer has no markers: " + layer.name);
@@ -2201,7 +2089,7 @@ function trackMatteTypeToString(t){
                 debugLog("LayerProcessing", "Processing properties (non-keyframe)...");
                 safelyProcessLayerProperty(layer, "properties", function() {
                     options.keyframes = false;
-                    var properties = extractPropertiesRecursive(layer, options, layer, offset);
+                    var properties = extractPropertiesRecursive(layer, options, layer, layer.startTime);
                     if(properties) {
                         debugLog("LayerProcessing", "Processing properties for layer: " + layer.name);
                         for (var key in properties) {
@@ -2220,7 +2108,7 @@ function trackMatteTypeToString(t){
                 debugLog("LayerProcessing", "Processing keyframes...");
                 safelyProcessLayerProperty(layer, "keyframes", function() {
                     options.keyframes = true;
-                    var keyframes = extractPropertiesRecursive(layer, options, layer, offset);
+                    var keyframes = extractPropertiesRecursive(layer, options, layer, layer.startTime);
                     if(keyframes) {
                         debugLog("LayerProcessing", "Processing keyframes for layer: " + layer.name);
                         resultData["keyframes"] = keyframes;
