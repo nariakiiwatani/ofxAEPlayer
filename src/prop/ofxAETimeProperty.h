@@ -82,9 +82,9 @@ public:
 		setBaseValue(parse(base));
 		keyframes_time_.clear();
 		
-		// Try time-based format first
+		// Try time-based format first (grouped format: {"keyframes_time": {"1.0": [...]}, "fps": 30})
 		if(keyframes.contains("keyframes_time")) {
-			// New time-based format
+			// New time-based grouped format
 			if(keyframes.contains("fps")) {
 				fps_ = keyframes["fps"].get<double>();
 			}
@@ -99,17 +99,27 @@ public:
 				}
 			}
 		}
-		// Fallback to frame-based format
-		else if(keyframes.is_array()) {
-			// Array format with frame/value pairs
+		// Time-based array format: [{time: 1.0, value: ...}, {time: 2.0, value: ...}]
+		else if(keyframes.is_array() && !keyframes.empty() && keyframes[0].contains("time")) {
+			// New array format from time-based exporter
+			for(int i = 0; i < keyframes.size(); ++i) {
+				const auto &kf = keyframes[i];
+				double time = kf["time"].get<double>();
+				addKeyframeTime(time, parseKeyframeValue(kf));
+			}
+		}
+		// Frame-based array format: [{frame: 30, value: ...}, {frame: 60, value: ...}]
+		else if(keyframes.is_array() && !keyframes.empty()) {
+			// Legacy array format with frame/value pairs
 			for(int i = 0; i < keyframes.size(); ++i) {
 				auto kf_pair = parseKeyframe(keyframes[i]);
 				double time = frameToTime(static_cast<float>(kf_pair.first));
 				keyframes_time_.insert({time, kf_pair.second});
 			}
 		}
+		// Frame-based object format: {"30": [values], "60": [values]}
 		else if(keyframes.is_object() && !keyframes.empty()) {
-			// Object format: {"frame": [values]}
+			// Legacy object format: {"frame": [values]}
 			for(auto it = keyframes.begin(); it != keyframes.end(); ++it) {
 				auto &value = it.value();
 				int start = ofToInt(it.key());
