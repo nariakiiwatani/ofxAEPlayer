@@ -7,10 +7,10 @@ namespace ofx { namespace ae {
 MaskAtomProp::MaskAtomProp()
 {
 	registerProperty<PathProp>("/shape");
-	registerProperty<VecProp<2>>("/feather");
-	registerProperty<PercentProp>("/opacity");
-	registerProperty<FloatProp>("/offset");
-	registerProperty<BoolProp>("/inverted");
+	registerProperty<VecTimeProp<2>>("/feather");
+	registerProperty<PercentTimeProp>("/opacity");
+	registerProperty<FloatTimeProp>("/offset");
+	registerProperty<BoolTimeProp>("/inverted");
 	registerProperty<MaskModeProp>("/mode");
 
 	registerExtractor<MaskAtomData>([this](MaskAtomData &atom) -> bool {
@@ -22,25 +22,25 @@ MaskAtomProp::MaskAtomProp()
 			success = false;
 		}
 		
-		if(!getProperty<VecProp<2>>("/feather")->tryExtract(atom.feather)) {
+		if(!getProperty<VecTimeProp<2>>("/feather")->tryExtract(atom.feather)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract mask feather, using default";
 			atom.feather = glm::vec2(0.0f, 0.0f);
 			success = false;
 		}
 		
-		if(!getProperty<FloatProp>("/opacity")->tryExtract(atom.opacity)) {
+		if(!getProperty<FloatTimeProp>("/opacity")->tryExtract(atom.opacity)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract mask opacity, using default";
 			atom.opacity = 100.0f;
 			success = false;
 		}
 		
-		if(!getProperty<FloatProp>("/offset")->tryExtract(atom.offset)) {
+		if(!getProperty<FloatTimeProp>("/offset")->tryExtract(atom.offset)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract mask offset, using default";
 			atom.offset = 0.0f;
 			success = false;
 		}
 		
-		if(!getProperty<BoolProp>("/inverted")->tryExtract(atom.inverted)) {
+		if(!getProperty<BoolTimeProp>("/inverted")->tryExtract(atom.inverted)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract mask inverted, using default";
 			atom.inverted = false;
 			success = false;
@@ -58,7 +58,7 @@ MaskAtomProp::MaskAtomProp()
 
 void MaskAtomProp::accept(Visitor &visitor)
 {
-	PropertyGroup::accept(visitor);
+	TimePropertyGroup::accept(visitor);
 }
 
 MaskProp::MaskProp()
@@ -101,7 +101,7 @@ void MaskProp::setup(const ofJson &base, const ofJson &keyframes)
 		const auto &atomBase = base[i];
 		
 		if(atomBase.is_null()) {
-			addProperty<PropertyBase>();
+			addProperty<TimePropertyBase>();
 			continue;
 		}
 		ofJson atomKeyframes = ofJson::object();
@@ -135,17 +135,17 @@ void MaskProp::setupMaskAtom(const ofJson &atomBase, const ofJson &atomKeyframes
 		bool invertedBase = atom.contains("inverted") ? atom["inverted"].get<bool>() : false;
 		std::string modeBase = atom.contains("mode") ? atom["mode"].get<std::string>() : "ADD";
 		
-		maskAtom->getProperty<VecProp<2>>("/feather")->setup(featherBase, ofJson{});
-		maskAtom->getProperty<FloatProp>("/opacity")->setup(opacityBase, ofJson{});
-		maskAtom->getProperty<FloatProp>("/offset")->setup(offsetBase, ofJson{});
-		maskAtom->getProperty<BoolProp>("/inverted")->setup(invertedBase, ofJson{});
+		maskAtom->getProperty<VecTimeProp<2>>("/feather")->setup(featherBase, ofJson{});
+		maskAtom->getProperty<FloatTimeProp>("/opacity")->setup(opacityBase, ofJson{});
+		maskAtom->getProperty<FloatTimeProp>("/offset")->setup(offsetBase, ofJson{});
+		maskAtom->getProperty<BoolTimeProp>("/inverted")->setup(invertedBase, ofJson{});
 		maskAtom->getProperty<MaskModeProp>("/mode")->setup(modeBase, ofJson{});
 	}
 }
 
 void MaskProp::accept(Visitor &visitor)
 {
-	PropertyArray::accept(visitor);
+	TimePropertyArray::accept(visitor);
 }
 
 }} // namespace ofx::ae

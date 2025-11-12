@@ -131,7 +131,7 @@ void ShapeProp::setup(const ofJson &base, const ofJson &keyframes)
 	}
 }
 
-PropertyBase* ShapeProp::addPropertyForType(std::string type)
+TimePropertyBase* ShapeProp::addPropertyForType(std::string type)
 {
 	if(type == "ellipse") return addProperty<EllipseProp>();
 	if(type == "rectangle") return addProperty<RectangleProp>();

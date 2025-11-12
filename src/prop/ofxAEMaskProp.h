@@ -8,16 +8,16 @@
 #include "../data/Enums.h"
 #include "../data/PathData.h"
 #include "../data/MaskData.h"
-#include "ofxAEProperty.h"
+#include "ofxAETimeProperty.h"
 #include "ofxAEShapeProp.h"
 
 namespace ofx { namespace ae {
 
 class Visitor;
 
-class MaskModeProp : public Property<MaskMode> {
+class MaskModeProp : public TimeProperty<MaskMode> {
 public:
-	MaskModeProp() : Property<MaskMode>() {}
+	MaskModeProp() : TimeProperty<MaskMode>() {}
 
 	MaskMode parse(const ofJson &json) const override {
 		if(json.is_string()) {
@@ -32,7 +32,7 @@ public:
 };
 
 
-class MaskAtomProp : public PropertyGroup
+class MaskAtomProp : public TimePropertyGroup
 {
 public:
 	MaskAtomProp();
@@ -40,7 +40,7 @@ public:
 	void accept(Visitor &visitor) override;
 };
 
-class MaskProp : public PropertyArray
+class MaskProp : public TimePropertyArray
 {
 public:
 	MaskProp();
