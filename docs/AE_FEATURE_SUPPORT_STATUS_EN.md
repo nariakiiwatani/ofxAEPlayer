@@ -249,6 +249,8 @@ This document outlines which After Effects features are reproduced when a compos
 
 **Note**: All After Effects effects are unsupported. If you need to use effects, pre-render them as video or image sequences.
 
+**Automatic Pre-rendering Feature**: The `ExportComposition.jsx` export tool automatically detects effects, creates precompositions, and pre-renders them as PNG image sequences. This eliminates the need for manual pre-rendering.
+
 ---
 
 ## 7. Layer Styles
