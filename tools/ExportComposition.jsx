@@ -2007,26 +2007,6 @@ function trackMatteTypeToString(t){
         }
     }
     
-    function hasTextAnimators(layer) {
-        try {
-            if (!layer || !layer.property) {
-                return false;
-            }
-            var textProps = layer.property("ADBE Text Properties");
-            if (!textProps) {
-                return false;
-            }
-            var animators = textProps.property("ADBE Text Animators");
-            if (!animators) {
-                return false;
-            }
-            return animators.numProperties > 0;
-        } catch (e) {
-            debugLog("hasTextAnimators", "Error checking text animators: " + e.toString(), null, "warning");
-            return false;
-        }
-    }
-    
     function getBakingEffectInfo(layer) {
         try {
             var effectInfo = [];
@@ -2072,6 +2052,34 @@ function trackMatteTypeToString(t){
         return true;
     }
     
+    function calculateFileHash(file) {
+        try {
+            // ファイルが存在し、サイズが0より大きいことを確認
+            var maxRetries = 100;
+            var retryCount = 0;
+            while (retryCount < maxRetries && (!file.exists || file.length === 0)) {
+                $.sleep(10);
+                retryCount++;
+            }
+            file.encoding = "BINARY";
+            file.open("r");
+            var content = file.read();
+            file.close();
+            
+            // 簡易ハッシュ（CRC32相当）
+            var hash = 0;
+            for (var i = 0; i < content.length; i++) {
+                var ch = content.charCodeAt(i);
+                hash = ((hash << 5) - hash) + ch;
+                hash = hash & hash; // 32bit整数に変換
+            }
+            return hash.toString(16);
+        } catch (e) {
+            debugLog("calculateFileHash", "Error calculating hash: " + e.toString(), null, "error");
+            return null;
+        }
+    }
+
     function renderPrecompAsSequence(precomp, outputFolder, baseName, options) {
         try {
             var fps = precomp.frameRate;
@@ -2091,16 +2099,40 @@ function trackMatteTypeToString(t){
             }
             
             precomp.resolutionFactor = [1, 1];
+
+            var fileList = [];
+
             for (var frame = 0; frame < frameCount; frame++) {
                 var time = frame / fps;
                 var paddedFrame = ("0000" + frame).slice(-4);
-                var outputFile = new File(sequenceFolder.fsName + "/" + baseName + "_" + paddedFrame + ".png");
+                var fileName = baseName + "_" + paddedFrame + ".png";
+                var outputFile = new File(sequenceFolder.fsName + "/" + fileName);
                 
                 precomp.saveFrameToPng(time, outputFile);
-                
+                fileList.push([fileName, outputFile]);
                 debugLog("renderPrecompAsSequence", "Rendered frame " + frame + " of " + frameCount, null, "verbose");
             }
-            
+
+            var uniqueFileList = [];
+            var uniqueFrames = {};
+            var frameMapping = [];
+            for (var file_index = 0; file_index < fileList.length; file_index++) {
+                var fileName = fileList[file_index][0];
+                var file = fileList[file_index][1];
+                var hash = calculateFileHash(file);
+                
+                if (uniqueFrames[hash] !== undefined) {
+                    file.remove();
+                    frameMapping.push(uniqueFrames[hash]);
+                } else {
+                    var actualFrame = uniqueFileList.length;
+                    uniqueFileList.push(hash);
+                    uniqueFrames[hash] = actualFrame;
+                    frameMapping.push(actualFrame);
+                }
+                debugLog("renderPrecompAsSequence", "Rendered frame " + frame + " of " + frameCount, null, "verbose");
+            }
+
             debugLog("renderPrecompAsSequence", "PNG sequence rendering completed", {
                 frameCount: frameCount,
                 outputFolder: sequenceFolder.fsName
@@ -2109,24 +2141,13 @@ function trackMatteTypeToString(t){
             return {
                 frameCount: frameCount,
                 fps: fps,
-                directory: sequenceFolder
+                directory: sequenceFolder,
+                fileList: uniqueFileList,
+                frameMapping: frameMapping
             };
         } catch (e) {
             debugLog("renderPrecompAsSequence", "Error rendering PNG sequence: " + e.toString(), null, "error");
             throw e;
-        }
-    }
-    
-    function createSequenceMetadata(renderResult, assetFolder) {
-        try {
-            var metadata = {
-                fps: renderResult.fps,
-                directory: "./" + decodeURI(renderResult.directory.name)
-            };
-            return metadata;
-        } catch (e) {
-            debugLog("createSequenceMetadata", "Error creating metadata: " + e.toString(), null, "error");
-            return null;
         }
     }
     
@@ -2200,7 +2221,15 @@ function trackMatteTypeToString(t){
             var baseName = layerName.fsSanitized() + "_baked";
             var renderResult = renderPrecompAsSequence(precomp, assetFolder, baseName, options);
             
-            var metadata = createSequenceMetadata(renderResult, assetFolder);
+            var metadata = {
+                fps: renderResult.fps,
+                directory: "./" + decodeURI(renderResult.directory.name),
+                frames: {
+                    list: renderResult.fileList,
+                    indices: renderResult.frameMapping
+                }
+            };
+
             return {
                 precomp: precomp,
                 baseName: baseName,
