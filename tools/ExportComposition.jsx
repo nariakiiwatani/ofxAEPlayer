@@ -28,6 +28,8 @@ var PROPERTY_MAPPING_CONFIG = {
     },
     "ADBE Vector Layer": {
     },
+    "ADBE Text Layer": {
+    },
     // Transform系
     "ADBE Transform Group": {
         wrapInObject: "transform"
@@ -409,6 +411,20 @@ function maskModeToString(mode) {
     map[MaskMode.DIFFERENCE] = "DIFFERENCE";
     return map.hasOwnProperty(mode) ? map[mode] : "ADD";
 }
+
+function keyframeInterpolationTypeToString(type) {
+    var map = {};
+    map[KeyframeInterpolationType.LINEAR] = "LINEAR";
+    map[KeyframeInterpolationType.BEZIER] = "BEZIER";
+    map[KeyframeInterpolationType.HOLD] = "HOLD";
+    return map.hasOwnProperty(type) ? map[type] : "LINEAR";
+}
+
+    // var KEYFRAME_INTERPOLATION_TYPES = {
+    //     6612: "LINEAR",        // KeyframeInterpolationType.LINEAR
+    //     6613: "BEZIER",        // KeyframeInterpolationType.BEZIER
+    //     6614: "HOLD"           // KeyframeInterpolationType.HOLD
+    // };
 
 // ===== COMMON UTILITY FUNCTIONS =====
 
@@ -914,7 +930,6 @@ function trackMatteTypeToString(t){
         debugButton.onClick = function(){
             if (debugPanel) {
                 debugPanel.visible = !debugPanel.visible;
-                DEBUG_ENABLED = debugPanel.visible;
                 myPanel.layout.layout(true);
             }
         };
@@ -1053,13 +1068,6 @@ function trackMatteTypeToString(t){
 
     // ===== VALUE PROCESSING SYSTEM =====
     
-    // キーフレーム補間タイプ定数
-    var KEYFRAME_INTERPOLATION_TYPES = {
-        6612: "LINEAR",        // KeyframeInterpolationType.LINEAR
-        6613: "BEZIER",        // KeyframeInterpolationType.BEZIER
-        6614: "HOLD"           // KeyframeInterpolationType.HOLD
-    };
-    
     // プロパティの有効状態を判定
     function isPropertyEnabled(config) {
         return (config.ignored !== undefined) ? !config.ignored : true;
@@ -1080,8 +1088,8 @@ function trackMatteTypeToString(t){
             try {
                 var inType = prop.keyInInterpolationType(keyIndex);
                 var outType = prop.keyOutInterpolationType(keyIndex);
-                interpolation.inType = KEYFRAME_INTERPOLATION_TYPES[inType] || "LINEAR";
-                interpolation.outType = KEYFRAME_INTERPOLATION_TYPES[outType] || "LINEAR";
+                interpolation.inType = keyframeInterpolationTypeToString(inType);
+                interpolation.outType = keyframeInterpolationTypeToString(outType);
             } catch (e) {
                 debugLog("extractKeyframeInterpolation", "Error getting interpolation type: " + e.toString(), null, "warning");
             }
@@ -1216,7 +1224,6 @@ function trackMatteTypeToString(t){
     }
     
     // デバッグシステム
-    var DEBUG_ENABLED = false;
     var DEBUG_LOGS = [];
     var DEBUG_PANEL = null;
     var DEBUG_LIST = null;
@@ -1892,13 +1899,6 @@ function trackMatteTypeToString(t){
      */
     function buildRequiredLayersSet(comp) {
         var requiredLayers = {};
-        var layerById = {};
-        
-        // まず全レイヤーをIDでインデックス化
-        for (var i = 1; i <= comp.numLayers; i++) {
-            var layer = comp.layer(i);
-            layerById[layer.id] = layer;
-        }
         
         /**
          * レイヤーとその依存関係を再帰的に追加
@@ -2003,6 +2003,26 @@ function trackMatteTypeToString(t){
             return false;
         } catch (e) {
             debugLog("hasEffectsThatRequireBaking", "Error checking layer effects: " + e.toString(), null, "warning");
+            return false;
+        }
+    }
+    
+    function hasTextAnimators(layer) {
+        try {
+            if (!layer || !layer.property) {
+                return false;
+            }
+            var textProps = layer.property("ADBE Text Properties");
+            if (!textProps) {
+                return false;
+            }
+            var animators = textProps.property("ADBE Text Animators");
+            if (!animators) {
+                return false;
+            }
+            return animators.numProperties > 0;
+        } catch (e) {
+            debugLog("hasTextAnimators", "Error checking text animators: " + e.toString(), null, "warning");
             return false;
         }
     }
@@ -2123,6 +2143,17 @@ function trackMatteTypeToString(t){
                 effects: effectInfo
             }, "notice");
             
+            // Store layer duration BEFORE precompose (layer reference becomes invalid after)
+            var layerInPoint = layer.inPoint;
+            var layerOutPoint = layer.outPoint;
+            var layerDuration = layerOutPoint - layerInPoint;
+            
+            debugLog("precomposeAndRenderLayer", "Layer timing before precompose", {
+                inPoint: layerInPoint,
+                outPoint: layerOutPoint,
+                duration: layerDuration
+            }, "verbose");
+            
             var precompName = "Baked_" + layerName + "_" + new Date().getTime();
             var precompLayerIndices = [layerIndex];
             
@@ -2131,6 +2162,33 @@ function trackMatteTypeToString(t){
                 precompName,
                 true  // moveAllAttributes = true (エフェクトとトランスフォームを全て移動)
             );
+
+            for (var i = 1; i <= precomp.numLayers; i++) {
+                precomp.layer(i).startTime = -layerInPoint;
+            }
+            // Adjust precomp duration to match the layer's duration
+            precomp.duration = layerDuration;
+                        
+            debugLog("precomposeAndRenderLayer", "Set precomp work area", {
+                workAreaStart: precomp.workAreaStart,
+                workAreaDuration: precomp.workAreaDuration
+            }, "verbose");
+            
+            debugLog("precomposeAndRenderLayer", "Adjusted precomp duration to match layer", {
+                precompDuration: precomp.duration,
+                layerDuration: layerDuration
+            }, "verbose");
+            
+            // Get the new precomp layer reference and adjust its timing
+            var newLayer = comp.layer(layerIndex);
+            newLayer.startTime = layerInPoint;
+            newLayer.inPoint = layerInPoint;
+            newLayer.outPoint = layerOutPoint;
+            
+            debugLog("precomposeAndRenderLayer", "Adjusted precomp layer timing", {
+                layerStartTime: newLayer.startTime,
+                originalInPoint: layerInPoint
+            }, "verbose");
             
             markAsBakedPrecomp(precomp);
             
@@ -2196,7 +2254,6 @@ function trackMatteTypeToString(t){
         if (!layerFolder.exists) layerFolder.create();
 
         var fps = comp.frameRate;
-        function toFrame(t, round){ return round ? Math.round(t * fps) : t * fps; }
 
         var compInfo = {};
         compInfo["version"]       = "2.0";
@@ -2257,32 +2314,36 @@ function trackMatteTypeToString(t){
                     continue;
                 }
 
-                var effectBaked = null;
+                var bakedAsSequence = null;
                 try {
-                    if (hasEffectsThatRequireBaking(layer)) {
-                        debugLog("LayerProcessing", "Layer has effects that require baking", {
-                            layerName: layer.name,
-                            effectInfo: getBakingEffectInfo(layer)
+                    // Check if this is a text layer
+                    function isTextLayer(layer) {
+                        return layer.matchName === "ADBE Text Layer";
+                    }
+                    
+                    // Check for text layer baking first (before effect baking)
+                    if (isTextLayer(layer) || hasEffectsThatRequireBaking(layer)) {
+                        debugLog("LayerProcessing", "Layer requires sequence baking", {
+                            layerName: layer.name
                         }, "notice");
                         
                         try {
-                            effectBaked = precomposeAndRenderLayer(layer, comp, assetFolder, options);
+                            bakedAsSequence = precomposeAndRenderLayer(layer, comp, assetFolder, options);
                             layer = comp.layer(i);
                             
-                            debugLog("LayerProcessing", "Layer successfully pre-rendered as sequence with replaced layer properties", {
+                            debugLog("LayerProcessing", "Layer successfully pre-rendered as sequence", {
                                 layerName: layer.name,
-                                source: effectBaked.baseName
+                                source: bakedAsSequence.baseName
                             }, "notice");
                                                         
                         } catch (bakingError) {
-                            debugLog("LayerProcessing", "Error during effect baking: " + bakingError.toString(), {
+                            debugLog("LayerProcessing", "Error during layer baking: " + bakingError.toString(), {
                                 layerName: layer.name
                             }, "error");
-                            // Continue with normal processing if baking fails
                         }
                     }
                 } catch (effectCheckError) {
-                    debugLog("LayerProcessing", "Error checking for effects: " + effectCheckError.toString(), {
+                    debugLog("LayerProcessing", "Error checking for effects or text layer: " + effectCheckError.toString(), {
                         layerName: layer.name
                     }, "warning");
                 }
@@ -2359,8 +2420,8 @@ function trackMatteTypeToString(t){
                 }) || "unknown";
                 
                 try {
-                    if(effectBaked) {
-                        var sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + effectBaked.baseName + ".json";
+                    if(bakedAsSequence) {
+                        var sourcePath = getRelativePath(layerFolder, assetFolder) + "/" + bakedAsSequence.baseName + ".json";
                         resultData["source"] = sourcePath;
                         sourceType = "sequence";
                         resultData["sourceType"] = sourceType;
@@ -2448,141 +2509,154 @@ function trackMatteTypeToString(t){
                 } catch (sourceError) {
                     debugLog("LayerProcessing", "ERROR: Failed to process source for layer " + layer.name + ": " + sourceError.toString());
                 }
-
-                switch(sourceType) {
-                    case "composition":
-                        // ネストされたコンポジションは常に処理する（新仕様）
-                        try {
-                            // Check if layer.source exists and is a valid composition
-                            if (layer && layer.source && layer.source instanceof CompItem) {
-                                var nestedOptions = {
-                                    outputFolderPath: outputFolderPath,
-                                    useSharedAssets: options.useSharedAssets,
-                                    sharedAssetsPath: options.sharedAssetsPath,
-                                    decimalPlaces: DEC,
-                                    useFullFrameAnimation: options.useFullFrameAnimation
-                                };
-                                extractPropertiesForAllLayers(layer.source, nestedOptions);
-                            } else {
-                                debugLog("extractPropertiesForAllLayers", "Invalid or null composition source for nested composition processing", {
-                                    layerName: layer ? layer.name : "unknown",
-                                    sourceType: sourceType,
-                                    hasSource: !!(layer && layer.source)
-                                }, "warning");
-                            }
-                        } catch (e) {
-                            debugLog("extractPropertiesForAllLayers", "Error processing nested composition: " + e.toString(), {
-                                layerName: layer ? layer.name : "unknown",
-                                error: e.message
-                            }, "error");
-                        }
-                        break;
-                    case "solid":
-                        var solidInfo = {
-                            name: layer.source.name,
-                            width: layer.source.width,
-                            height: layer.source.height,
-                            color: layer.source.mainSource.color
-                        };
-                        try {
-                            var solidFile = new File(assetFolder.fsName + "/" + layer.source.name + ".json");
-                            solidFile.encoding = "UTF-8";
-                            solidFile.open("w");
-                            solidFile.write(JSON.stringify(solidInfo, null, 4));
-                            solidFile.close();
-                        } catch(e) {
-                            alert("ソリッド情報の保存中にエラーが発生しました: " + e.message);
-                        }
-                        break;
-                    case "still":
-                    case "video":
-                    case "audio":
-                        var fileName = decodeURI(layer.source.mainSource.file.name);
-                        var fileNameLower = fileName.toLowerCase();
+                if(bakedAsSequence) {
+                    try {                        
+                        var metadataFile = new File(assetFolder.fsName + "/" + bakedAsSequence.baseName + ".json");
+                        metadataFile.encoding = "UTF-8";
+                        metadataFile.open("w");
+                        metadataFile.write(JSON.stringify(bakedAsSequence.metadata, null, 4));
+                        metadataFile.close();
                         
-                        // Check if it's a PSD or AI file
-                        if (fileNameLower.match(/\.(psd|ai)$/)) {
+                        debugLog("SequenceExport", "Created sequence metadata JSON: " + metadataFile.fsName, "notice");
+                    } catch(e) {
+                        debugLog("SequenceExport", "Error creating sequence metadata: " + e.toString(), null, "error");
+                        alert("シーケンスメタデータの作成中にエラー: " + e.message);
+                    }
+                }
+                else {
+                    switch(sourceType) {
+                        case "composition":
+                            // ネストされたコンポジションは常に処理する（新仕様）
                             try {
-                                debugLog("FileCopy", "Processing PSD/AI file using saveFrameToPng: " + fileName, null, "notice");
-                                
-                                // Get the original filename without extension for the folder name
-                                var baseName = fileName.replace(/\.[^.]+$/, "");
-                                
-                                // Create folder structure: [asset export folder]/[original filename]/
-                                var exportFolder = new Folder(assetFolder.fsName + "/" + baseName);
-                                if (!exportFolder.exists) {
-                                    exportFolder.create();
+                                // Check if layer.source exists and is a valid composition
+                                if (layer && layer.source && layer.source instanceof CompItem) {
+                                    var nestedOptions = {
+                                        outputFolderPath: outputFolderPath,
+                                        useSharedAssets: options.useSharedAssets,
+                                        sharedAssetsPath: options.sharedAssetsPath,
+                                        decimalPlaces: DEC,
+                                        useFullFrameAnimation: options.useFullFrameAnimation
+                                    };
+                                    extractPropertiesForAllLayers(layer.source, nestedOptions);
+                                } else {
+                                    debugLog("extractPropertiesForAllLayers", "Invalid or null composition source for nested composition processing", {
+                                        layerName: layer ? layer.name : "unknown",
+                                        sourceType: sourceType,
+                                        hasSource: !!(layer && layer.source)
+                                    }, "warning");
                                 }
-                                
-                                // Get the footage item name (before slash if present)
-                                var footageItemName = layer.source.name;
-                                var slashIndex = footageItemName.indexOf('/');
-                                if (slashIndex !== -1) {
-                                    footageItemName = footageItemName.substring(0, slashIndex);
-                                }
-                                
-                                // Create output filename as PNG
-                                var outputFileName = footageItemName + ".png";
-                                var outputFile = new File(exportFolder.fsName + "/" + outputFileName);
-                                
-                                // Check if PNG already exists and source hasn't been modified
-                                var shouldExport = true;
-                                if (outputFile.exists) {
-                                    var sourceModified = layer.source.mainSource.file.modified;
-                                    var outputModified = outputFile.modified;
-                                    shouldExport = sourceModified > outputModified;
-                                    if (!shouldExport) {
-                                        debugLog("FileCopy", "PSD/AI PNG already up to date, skipping: " + outputFileName, null, "verbose");
-                                    }
-                                }
-                                
-                                if (shouldExport) {
-                                    // Create temporary composition from PSD/AI footage
-                                    var tempCompName = "TempComp_" + layer.source.name + "_" + new Date().getTime();
-                                    var newComp = app.project.items.addComp(
-                                        tempCompName,
-                                        layer.source.width,
-                                        layer.source.height,
-                                        layer.source.pixelAspect,
-                                        1/comp.frameRate, // Single frame duration
-                                        comp.frameRate
-                                    );
-                                    
-                                    // Add footage to composition
-                                    var newLayer = newComp.layers.add(layer.source);
-                                    
-                                    // Set composition time to frame 0
-                                    newComp.time = 0;
-                                    newComp.resolutionFactor = [1, 1];
-                                    // Export using saveFrameToPng with proper parameters
-                                    newComp.saveFrameToPng(0, outputFile);
-                                    
-                                    // Clean up temporary composition
-                                    newComp.remove();
-                                    
-                                    debugLog("FileCopy", "PSD/AI exported as PNG: " + outputFileName, null, "notice");
-                                }
-                                
-                                // Update the source path to point to the exported PNG file
-                                var relativePath = getRelativePath(layerFolder, new Folder(exportFolder.fsName)) + "/" + outputFileName;
-                                resultData["source"] = relativePath;
-                                
-                                debugLog("FileCopy", "Successfully processed PSD/AI file as PNG: " + outputFile.fsName, null, "notice");
-                                
+                            } catch (e) {
+                                debugLog("extractPropertiesForAllLayers", "Error processing nested composition: " + e.toString(), {
+                                    layerName: layer ? layer.name : "unknown",
+                                    error: e.message
+                                }, "error");
+                            }
+                            break;
+                        case "solid":
+                            var solidInfo = {
+                                name: layer.source.name,
+                                width: layer.source.width,
+                                height: layer.source.height,
+                                color: layer.source.mainSource.color
+                            };
+                            try {
+                                var solidFile = new File(assetFolder.fsName + "/" + layer.source.name + ".json");
+                                solidFile.encoding = "UTF-8";
+                                solidFile.open("w");
+                                solidFile.write(JSON.stringify(solidInfo, null, 4));
+                                solidFile.close();
                             } catch(e) {
-                                debugLog("FileCopy", "Error processing PSD/AI file with saveFrameToPng: " + e.message, null, "error");
-                                alert("PSD/AIファイルのPNG変換中にエラー: " + e.message);
+                                alert("ソリッド情報の保存中にエラーが発生しました: " + e.message);
                             }
-                        } else {
-                            // Regular file handling for non-PSD/AI files
-                            var destFile = new File(assetFolder.fsName + "/" + fileName);
-                            if (!copyFileWithDateCheck(layer.source.mainSource.file, destFile, fileName, {layerName: layer.name})) {
-                                alert("ファイルのコピー中にエラー: " + fileName);
+                            break;
+                        case "still":
+                        case "video":
+                        case "audio":
+                            var fileName = decodeURI(layer.source.mainSource.file.name);
+                            var fileNameLower = fileName.toLowerCase();
+                            
+                            // Check if it's a PSD or AI file
+                            if (fileNameLower.match(/\.(psd|ai)$/)) {
+                                try {
+                                    debugLog("FileCopy", "Processing PSD/AI file using saveFrameToPng: " + fileName, null, "notice");
+                                    
+                                    // Get the original filename without extension for the folder name
+                                    var baseName = fileName.replace(/\.[^.]+$/, "");
+                                    
+                                    // Create folder structure: [asset export folder]/[original filename]/
+                                    var exportFolder = new Folder(assetFolder.fsName + "/" + baseName);
+                                    if (!exportFolder.exists) {
+                                        exportFolder.create();
+                                    }
+                                    
+                                    // Get the footage item name (before slash if present)
+                                    var footageItemName = layer.source.name;
+                                    var slashIndex = footageItemName.indexOf('/');
+                                    if (slashIndex !== -1) {
+                                        footageItemName = footageItemName.substring(0, slashIndex);
+                                    }
+                                    
+                                    // Create output filename as PNG
+                                    var outputFileName = footageItemName + ".png";
+                                    var outputFile = new File(exportFolder.fsName + "/" + outputFileName);
+                                    
+                                    // Check if PNG already exists and source hasn't been modified
+                                    var shouldExport = true;
+                                    if (outputFile.exists) {
+                                        var sourceModified = layer.source.mainSource.file.modified;
+                                        var outputModified = outputFile.modified;
+                                        shouldExport = sourceModified > outputModified;
+                                        if (!shouldExport) {
+                                            debugLog("FileCopy", "PSD/AI PNG already up to date, skipping: " + outputFileName, null, "verbose");
+                                        }
+                                    }
+                                    
+                                    if (shouldExport) {
+                                        // Create temporary composition from PSD/AI footage
+                                        var tempCompName = "TempComp_" + layer.source.name + "_" + new Date().getTime();
+                                        var newComp = app.project.items.addComp(
+                                            tempCompName,
+                                            layer.source.width,
+                                            layer.source.height,
+                                            layer.source.pixelAspect,
+                                            1/comp.frameRate, // Single frame duration
+                                            comp.frameRate
+                                        );
+                                        
+                                        // Add footage to composition
+                                        var newLayer = newComp.layers.add(layer.source);
+                                        
+                                        // Set composition time to frame 0
+                                        newComp.time = 0;
+                                        newComp.resolutionFactor = [1, 1];
+                                        // Export using saveFrameToPng with proper parameters
+                                        newComp.saveFrameToPng(0, outputFile);
+                                        
+                                        // Clean up temporary composition
+                                        newComp.remove();
+                                        
+                                        debugLog("FileCopy", "PSD/AI exported as PNG: " + outputFileName, null, "notice");
+                                    }
+                                    
+                                    // Update the source path to point to the exported PNG file
+                                    var relativePath = getRelativePath(layerFolder, new Folder(exportFolder.fsName)) + "/" + outputFileName;
+                                    resultData["source"] = relativePath;
+                                    
+                                    debugLog("FileCopy", "Successfully processed PSD/AI file as PNG: " + outputFile.fsName, null, "notice");
+                                    
+                                } catch(e) {
+                                    debugLog("FileCopy", "Error processing PSD/AI file with saveFrameToPng: " + e.message, null, "error");
+                                    alert("PSD/AIファイルのPNG変換中にエラー: " + e.message);
+                                }
+                            } else {
+                                // Regular file handling for non-PSD/AI files
+                                var destFile = new File(assetFolder.fsName + "/" + fileName);
+                                if (!copyFileWithDateCheck(layer.source.mainSource.file, destFile, fileName, {layerName: layer.name})) {
+                                    alert("ファイルのコピー中にエラー: " + fileName);
+                                }
                             }
-                        }
-                        break;
-                    case "sequence":
-                        if(!effectBaked) {
+                            break;
+                        case "sequence":
                             var extMatch = (""+decodeURI(layer.source.mainSource.file.name)).match(/(\.[^.]+)$/);
                             var ext = extMatch ? extMatch[1].toLowerCase() : "";
                             var sequenceFolder = new Folder(assetFolder.fsName + "/" + layer.source.name);
@@ -2597,40 +2671,27 @@ function trackMatteTypeToString(t){
                                     alert("ファイルのコピー中にエラー: " + sequenceFile.name);
                                 }
                             }
-                        }
-                        
-                        // Create metadata JSON file with fps and directory information
-                        try {
-                            var sequenceMetadata = {
-                                fps: comp.frameRate,
-                                directory: "./"
-                            };
-                            var filename = "";
-                            if(effectBaked) {
-                                sequenceMetadata = effectBaked.metadata;
-                                filename = assetFolder.fsName + "/" + effectBaked.baseName + ".json";
-
-                            }
-                            else {
-                                sequenceMetadata.fps = getFootageFrameRate(layer.source) || comp.frameRate;
-                                sequenceMetadata.directory = "./" + layer.source.name;
-                                filename = assetFolder.fsName + "/" + layer.source.name + ".json";
-                            }
                             
-                            var metadataFile = new File(filename);
-                            metadataFile.encoding = "UTF-8";
-                            metadataFile.open("w");
-                            metadataFile.write(JSON.stringify(sequenceMetadata, null, 4));
-                            metadataFile.close();
-                            
-                            debugLog("SequenceExport", "Created sequence metadata JSON: " + filename, "notice");
-                        } catch(e) {
-                            debugLog("SequenceExport", "Error creating sequence metadata: " + e.toString(), null, "error");
-                            alert("シーケンスメタデータの作成中にエラー: " + e.message);
-                        }
-                        break;
-                    default:
-                        break;
+                            try {
+                                var sequenceMetadata = {
+                                    fps: getFootageFrameRate(layer.source) || comp.frameRate,
+                                    directory: "./" + layer.source.name
+                                };
+                                var metadataFile = new File(assetFolder.fsName + "/" + layer.source.name + ".json");
+                                metadataFile.encoding = "UTF-8";
+                                metadataFile.open("w");
+                                metadataFile.write(JSON.stringify(sequenceMetadata, null, 4));
+                                metadataFile.close();
+                                
+                                debugLog("SequenceExport", "Created sequence metadata JSON: " + metadataFile.fsName, "notice");
+                            } catch(e) {
+                                debugLog("SequenceExport", "Error creating sequence metadata: " + e.toString(), null, "error");
+                                alert("シーケンスメタデータの作成中にエラー: " + e.message);
+                            }
+                            break;
+                        default:
+                            break;
+                    }
                 }
                 
                 // Process markers
@@ -2719,41 +2780,5 @@ function trackMatteTypeToString(t){
         }
     }
 
-    // Test function for verifying refactored code (can be removed in production)
-    function testRefactoredFunctions() {
-        try {
-            // Test createModeMapping function
-            var testMap = createModeMapping([
-                {key: 1, value: "TEST1"},
-                {key: 2, value: "TEST2"}
-            ], "DEFAULT");
-            
-            if (testMap(1) !== "TEST1" || testMap(999) !== "DEFAULT") {
-                debugLog("Test", "createModeMapping test failed", null, "error");
-                return false;
-            }
-            
-            // Test blend mode functions
-            if (typeof blendingModeToString !== 'function' || typeof vectorBlendModeToString !== 'function') {
-                debugLog("Test", "Blend mode functions missing", null, "error");
-                return false;
-            }
-            
-            // Test utility functions
-            if (typeof copyFileWithDateCheck !== 'function' || typeof safelyProcessLayerProperty !== 'function') {
-                debugLog("Test", "Utility functions missing", null, "error");
-                return false;
-            }
-            
-            debugLog("Test", "All refactored functions available and basic tests passed", null, "notice");
-            return true;
-        } catch (e) {
-            debugLog("Test", "Error in refactored function tests: " + e.toString(), null, "error");
-            return false;
-        }
-    }
-    
-    // Initialize and test
-    testRefactoredFunctions();
     createUI(me);
 })(this);

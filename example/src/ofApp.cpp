@@ -12,7 +12,7 @@ void ofApp::setup()
 
 	auto ae_player = std::make_shared<ofxAEPlayer>();
 	player_.setPlayer(ae_player);
-	if(player_.load("interaction-test.json")) {
+	if(player_.load("09_oohamu_main.json")) {
 		ofLogNotice("ofApp") << "Composition loaded successfully";
 		auto &&comp = ae_player->getComposition();
 		info_ = comp.getInfo();
