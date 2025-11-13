@@ -20,6 +20,7 @@ struct EllipseData : public ShapeDataBase {
 	glm::vec2 size{0,0};
 	glm::vec2 position{0,0};
 	WindingDirection direction{WindingDirection::DEFAULT};
+	bool visible{true};
 };
 
 struct RectangleData : public ShapeDataBase {
@@ -28,6 +29,7 @@ struct RectangleData : public ShapeDataBase {
 	glm::vec2 position{0,0};
 	float roundness{0};
 	WindingDirection direction{WindingDirection::DEFAULT};
+	bool visible{true};
 };
 
 struct PolygonData : public ShapeDataBase {
@@ -41,6 +43,7 @@ struct PolygonData : public ShapeDataBase {
 	float outerRadius{100};
 	float innerRoundness{0};
 	float outerRoundness{0};
+	bool visible{true};
 };
 
 struct PathData : public ShapeDataBase {
@@ -50,6 +53,7 @@ struct PathData : public ShapeDataBase {
 	std::vector<glm::vec2> outTangents{};
 	bool closed{true};
 	WindingDirection direction{WindingDirection::DEFAULT};
+	bool visible{true};
 
 	PathData operator+(const PathData& other) const;
 	PathData operator-(const PathData& other) const;
@@ -64,6 +68,7 @@ struct FillData : public ShapeDataBase {
 	FillRule rule{FillRule::NON_ZERO};
 	BlendMode blendMode{BlendMode::NORMAL};
 	int compositeOrder{1};
+	bool visible{true};
 };
 
 struct StrokeData : public ShapeDataBase {
@@ -76,6 +81,7 @@ struct StrokeData : public ShapeDataBase {
 	float miterLimit{4};
 	BlendMode blendMode{BlendMode::NORMAL};
 	int compositeOrder{1};
+	bool visible{true};
 };
 
 struct GroupData : public ShapeDataBase {
@@ -83,5 +89,6 @@ struct GroupData : public ShapeDataBase {
 	std::vector<std::unique_ptr<ShapeDataBase>> data{};
 	BlendMode blendMode{BlendMode::NORMAL};
 	TransformData transform;
+	bool visible{true};
 };
 }}

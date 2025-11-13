@@ -77,6 +77,7 @@ public:
 		registerProperty<VecProp<2>>("/size");
 		registerProperty<VecProp<2>>("/position");
 		registerProperty<WindingDirectionProp>("/direction");
+		registerProperty<BoolProp>("/visible");
 
 		registerExtractor<EllipseData>([this](EllipseData &e) -> bool {
 			bool success = true;
@@ -99,6 +100,10 @@ public:
 				success = false;
 			}
 			
+			if(!getProperty<BoolProp>("/visible")->tryExtract(e.visible)) {
+				e.visible = true;
+			}
+			
 			return success;
 		});
 	}
@@ -112,6 +117,7 @@ public:
 		registerProperty<VecProp<2>>("/position");
 		registerProperty<FloatProp>("/roundness");
 		registerProperty<WindingDirectionProp>("/direction");
+		registerProperty<BoolProp>("/visible");
 
 		registerExtractor<RectangleData>([this](RectangleData& r) -> bool {
 			bool success = true;
@@ -140,6 +146,10 @@ public:
 				success = false;
 			}
 			
+			if(!getProperty<BoolProp>("/visible")->tryExtract(r.visible)) {
+				r.visible = true;
+			}
+			
 			return success;
 		});
 	}
@@ -158,6 +168,7 @@ public:
 		registerProperty<FloatProp>("/outerRadius");
 		registerProperty<FloatProp>("/innerRoundness");
 		registerProperty<FloatProp>("/outerRoundness");
+		registerProperty<BoolProp>("/visible");
 		
 		registerExtractor<PolygonData>([this](PolygonData &p) -> bool {
 			bool success = true;
@@ -216,6 +227,10 @@ public:
 				success = false;
 			}
 			
+			if(!getProperty<BoolProp>("/visible")->tryExtract(p.visible)) {
+				p.visible = true;
+			}
+			
 			return success;
 		});
 	}
@@ -230,6 +245,7 @@ public:
 		registerProperty<FillRuleProp>("/rule");
 		registerProperty<BlendModeProp>("/blendMode");
 		registerProperty<IntProp>("/compositeOrder");
+		registerProperty<BoolProp>("/visible");
 		
 		registerExtractor<FillData>([this](FillData &f) -> bool {
 			bool success = true;
@@ -264,6 +280,10 @@ public:
 				success = false;
 			}
 			
+			if(!getProperty<BoolProp>("/visible")->tryExtract(f.visible)) {
+				f.visible = true;
+			}
+			
 			return success;
 		});
 	}
@@ -281,6 +301,7 @@ public:
 		registerProperty<FloatProp>("/miterLimit");
 		registerProperty<BlendModeProp>("/blendMode");
 		registerProperty<IntProp>("/compositeOrder");
+		registerProperty<BoolProp>("/visible");
 		
 		registerExtractor<StrokeData>([this](StrokeData &s) -> bool {
 			bool success = true;
@@ -331,6 +352,10 @@ public:
 				ofLogWarning("PropertyExtraction") << "Failed to extract stroke compositeOrder, using default";
 				s.compositeOrder = 1;
 				success = false;
+			}
+			
+			if(!getProperty<BoolProp>("/visible")->tryExtract(s.visible)) {
+				s.visible = true;
 			}
 			
 			return success;

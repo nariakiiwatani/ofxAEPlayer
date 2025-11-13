@@ -39,6 +39,10 @@ PathData PathProp::parse(const ofJson &json) const
 		pathData.direction = windingDirectionFromString(json["direction"]);
 	}
 	
+	if(json.contains("visible")) {
+		pathData.visible = json["visible"];
+	}
+	
 	return pathData;
 }
 
@@ -148,6 +152,7 @@ GroupProp::GroupProp()
 	registerProperty<BlendModeProp>("/blendMode");
 	registerProperty<TransformProp>("/transform");
 	registerProperty<ShapeProp>("/shape");
+	registerProperty<BoolProp>("/visible");
 
 	registerExtractor<GroupData>([this](GroupData &g) -> bool {
 		bool success = true;
@@ -168,6 +173,10 @@ GroupProp::GroupProp()
 			ofLogWarning("PropertyExtraction") << "Failed to extract group transform data, using empty";
 			g.transform = TransformData();
 			success = false;
+		}
+
+		if(!getProperty<BoolProp>("/visible")->tryExtract(g.visible)) {
+			g.visible = true;
 		}
 
 		return success;

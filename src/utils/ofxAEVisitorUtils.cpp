@@ -12,6 +12,7 @@ PathExtractionVisitor::PathExtractionVisitor()
 PathExtractionVisitor::PathExtractionVisitor(const GroupData &group)
 : PathExtractionVisitor()
 {
+	if(!group.visible) return;
 	renderer_.transform = group.transform.toOf();
 	renderer_.opacity = group.transform.opacity;
 	renderer_.blend_mode = group.blendMode;
@@ -19,6 +20,7 @@ PathExtractionVisitor::PathExtractionVisitor(const GroupData &group)
 }
 
 void PathExtractionVisitor::visit(const EllipseData &data) {
+	if(!data.visible) return;
 	path_.append(utils::ShapePathGenerator::createPath(data));
 	auto bb = utils::ShapePathGenerator::getBoundingBox(data);
 	if(bb) {
@@ -29,6 +31,7 @@ void PathExtractionVisitor::visit(const EllipseData &data) {
 }
 
 void PathExtractionVisitor::visit(const RectangleData &data) {
+	if(!data.visible) return;
 	path_.append(utils::ShapePathGenerator::createPath(data));
 	auto bb = utils::ShapePathGenerator::getBoundingBox(data);
 	if(bb) {
@@ -39,6 +42,7 @@ void PathExtractionVisitor::visit(const RectangleData &data) {
 }
 
 void PathExtractionVisitor::visit(const PolygonData &data) {
+	if(!data.visible) return;
 	path_.append(utils::ShapePathGenerator::createPath(data));
 	auto bb = utils::ShapePathGenerator::getBoundingBox(data);
 	if(bb) {
@@ -49,6 +53,7 @@ void PathExtractionVisitor::visit(const PolygonData &data) {
 }
 
 void PathExtractionVisitor::visit(const PathData &data) {
+	if(!data.visible) return;
 	path_.append(utils::ShapePathGenerator::createPath(data));
 	auto bb = utils::ShapePathGenerator::getBoundingBox(data);
 	if(bb) {
@@ -59,6 +64,7 @@ void PathExtractionVisitor::visit(const PathData &data) {
 }
 
 void PathExtractionVisitor::visit(const FillData &data) {
+	if(!data.visible) return;
 	ofPath p = path_;
 
 	p.setStrokeWidth(0);
@@ -81,6 +87,7 @@ void PathExtractionVisitor::visit(const FillData &data) {
 }
 
 void PathExtractionVisitor::visit(const StrokeData &data) {
+	if(!data.visible) return;
 	ofPath p = path_;
 
 	p.setFilled(false);
@@ -101,6 +108,7 @@ void PathExtractionVisitor::visit(const StrokeData &data) {
 }
 
 void PathExtractionVisitor::visit(const GroupData &group) {
+	if(!group.visible) return;
 	PathExtractionVisitor visitor(group);
 	auto item = std::make_shared<RenderGroupItem>(visitor.getRenderer());
 	auto bb = item->getBB();

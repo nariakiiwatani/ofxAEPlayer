@@ -538,6 +538,12 @@ function trackMatteTypeToString(t){
                 return "composition";
             }
             
+            // Check for null layer before solid layer
+            // Null layers are identified by the nullLayer property
+            if (layer.nullLayer) {
+                return "null";
+            }
+            
             if (layer.source.mainSource instanceof SolidSource) {
                 return "solid";
             }
@@ -1819,6 +1825,25 @@ function trackMatteTypeToString(t){
                 debugLog("extractPropertiesRecursive", "No result extracted for property: " + property.matchName, null, "verbose");
                 return null;
             }
+            
+            // Add visibility state for shape elements and property groups
+            // Check if the property has an enabled property (shape elements have this)
+            if (property.enabled !== undefined && result !== null) {
+                // Add visibility information to the result
+                if (result instanceof Array) {
+                    // For keyframe arrays, add visible to each keyframe's value
+                    result = result.map(function(item) {
+                        if (item !== null && item.value !== null && typeof item.value === 'object') {
+                            item.value.visible = property.enabled;
+                        }
+                        return item;
+                    });
+                } else if (typeof result === 'object') {
+                    // For object results (static values or property groups), add visible property
+                    result.visible = property.enabled;
+                }
+            }
+            
             if (config.merge) {
                 for (var key in config.merge) {
                     if (config.merge.hasOwnProperty(key)) {
