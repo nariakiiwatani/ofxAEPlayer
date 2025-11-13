@@ -2094,6 +2094,10 @@ function trackMatteTypeToString(t){
                 });
                 resultData["blendingMode"] = blendMode || "NORMAL";
                 
+                safelyProcessLayerProperty(layer, "adjustment", function() {
+                    resultData["adjustment"] = layer.adjustmentLayer;
+                });
+
                 var timing = safelyProcessLayerProperty(layer, "timing", function() {
                     var inPoint = Number((layer.inPoint - layer.startTime).toFixed(6));
                     var outPoint = Number((layer.outPoint - layer.startTime).toFixed(6));

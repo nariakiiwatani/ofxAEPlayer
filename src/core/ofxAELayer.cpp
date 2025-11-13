@@ -149,11 +149,11 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 	std::string blendingMode = "NORMAL";
 	EXTRACT(blendingMode);
 	blend_mode_ = blendModeFromString(blendingMode);
-	
+
+	json::extract(json, "adjustment", is_adjustment_layer_);
+
 	float stretch = 100.0f;
-	if(json.contains("stretch")) {
-		stretch = json["stretch"].get<float>();
-	}
+	EXTRACT(stretch);
 	stretch_ = stretch / 100.0f;
 	
 	if(json.contains("transform")) {

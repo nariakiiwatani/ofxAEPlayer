@@ -136,7 +136,7 @@ void Composition::draw(float x, float y, float w, float h) const
 	ofScale(w / info_.width, h / info_.height);
 	
 	for(auto it = layers_.rbegin(); it != layers_.rend(); ++it) {
-		if(!(*it)->isVisible()) {
+		if(!(*it)->isVisible() || (*it)->isAdjustmentLayer()) {
 			continue;
 		}
 		(*it)->draw();
