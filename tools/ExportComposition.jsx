@@ -2126,7 +2126,7 @@ function trackMatteTypeToString(t){
                     frameMapping.push(uniqueFrames[hash]);
                 } else {
                     var actualFrame = uniqueFileList.length;
-                    uniqueFileList.push(hash);
+                    uniqueFileList.push(fileName);
                     uniqueFrames[hash] = actualFrame;
                     frameMapping.push(actualFrame);
                 }
@@ -2168,6 +2168,7 @@ function trackMatteTypeToString(t){
             var layerInPoint = layer.inPoint;
             var layerOutPoint = layer.outPoint;
             var layerDuration = layerOutPoint - layerInPoint;
+            var uniqueName = layerUniqueName(layer);
             
             debugLog("precomposeAndRenderLayer", "Layer timing before precompose", {
                 inPoint: layerInPoint,
@@ -2218,7 +2219,7 @@ function trackMatteTypeToString(t){
                 precompId: precomp.id
             }, "notice");
             
-            var baseName = layerName.fsSanitized() + "_baked";
+            var baseName = uniqueName;
             var renderResult = renderPrecompAsSequence(precomp, assetFolder, baseName, options);
             
             var metadata = {
