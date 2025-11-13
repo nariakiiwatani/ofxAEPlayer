@@ -222,11 +222,12 @@ This document outlines which After Effects features are reproduced when a compos
 
 **Important**: Expressions are evaluated during export and converted to keyframes. They are not calculated dynamically during playback.
 
-### 4.3 Time Remapping
+### 4.3 Layer Time
 
-| Feature | Support Status |
-|---------|---------------|
-| Time Remapping | ✅ |
+| Feature | Support Status | Notes |
+|---------|---------------|-------|
+| Time Remapping | ✅ | |
+| Time Stretching | ✅ | including Time-Reverse Layer|
 
 ---
 
