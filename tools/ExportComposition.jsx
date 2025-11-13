@@ -1875,6 +1875,75 @@ function trackMatteTypeToString(t){
         }
     }
     
+    // ===== LAYER FILTERING SYSTEM =====
+    
+    /**
+     * レイヤー依存関係を解決し、必要なレイヤーのセットを構築する
+     * @param {CompItem} comp - コンポジション
+     * @return {Object} レイヤーIDをキーとした必要なレイヤーの辞書
+     */
+    function buildRequiredLayersSet(comp) {
+        var requiredLayers = {};
+        var layerById = {};
+        
+        // まず全レイヤーをIDでインデックス化
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var layer = comp.layer(i);
+            layerById[layer.id] = layer;
+        }
+        
+        /**
+         * レイヤーとその依存関係を再帰的に追加
+         * @param {Layer} layer - 追加するレイヤー
+         */
+        function addLayerWithDependencies(layer) {
+            if (!layer || requiredLayers[layer.id]) {
+                return; // 既に処理済み
+            }
+            
+            // このレイヤーを必要なセットに追加
+            requiredLayers[layer.id] = true;
+            debugLog("LayerFiltering", "Added layer to required set: " + layer.name + " (ID: " + layer.id + ")", null, "verbose");
+            
+            // 親レイヤーへの依存を解決
+            if (layer.parent) {
+                debugLog("LayerFiltering", "Layer " + layer.name + " depends on parent: " + layer.parent.name, null, "verbose");
+                addLayerWithDependencies(layer.parent);
+            }
+            
+            // トラックマットへの依存を解決
+            if (layer.trackMatteLayer) {
+                debugLog("LayerFiltering", "Layer " + layer.name + " depends on track matte: " + layer.trackMatteLayer.name, null, "verbose");
+                addLayerWithDependencies(layer.trackMatteLayer);
+            }
+        }
+        
+        // 可視レイヤーから開始して依存関係を構築
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var layer = comp.layer(i);
+            if (layer.enabled) {
+                debugLog("LayerFiltering", "Processing visible layer: " + layer.name + " (ID: " + layer.id + ")", null, "verbose");
+                addLayerWithDependencies(layer);
+            }
+        }
+        
+        return requiredLayers;
+    }
+    
+    /**
+     * レイヤーが処理対象かどうかを判定
+     * @param {Layer} layer - 判定するレイヤー
+     * @param {Object} requiredLayers - 必要なレイヤーのセット
+     * @return {boolean} 処理対象の場合はtrue
+     */
+    function shouldProcessLayer(layer, requiredLayers) {
+        var isRequired = requiredLayers[layer.id] === true;
+        if (!isRequired) {
+            debugLog("LayerFiltering", "Skipping layer (not required): " + layer.name + " (ID: " + layer.id + ")", null, "notice");
+        }
+        return isRequired;
+    }
+    
     // ===== main extractor =====
     // グローバル変数：処理済みコンポジション追跡用
     var processedCompositions = {};
@@ -1947,6 +2016,17 @@ function trackMatteTypeToString(t){
 
         debugLog("extractPropertiesForAllLayers", "Total layers to process: " + comp.numLayers);
         
+        // レイヤーフィルタリング: 必要なレイヤーのセットを構築
+        debugLog("extractPropertiesForAllLayers", "Building required layers set...", null, "notice");
+        var requiredLayers = buildRequiredLayersSet(comp);
+        var requiredLayerCount = 0;
+        for (var layerId in requiredLayers) {
+            if (requiredLayers.hasOwnProperty(layerId)) {
+                requiredLayerCount++;
+            }
+        }
+        debugLog("extractPropertiesForAllLayers", "Total layers in composition: " + comp.numLayers + ", Required layers: " + requiredLayerCount, null, "notice");
+        
         for (var i=1;i<=comp.numLayers;i++){
             try {
                 debugLog("LayerProcessing", "=== Starting layer " + i + " of " + comp.numLayers + " ===");
@@ -1963,6 +2043,12 @@ function trackMatteTypeToString(t){
                 // Check if layer is null or undefined
                 if (!layer) {
                     debugLog("LayerProcessing", "ERROR: Layer at index " + i + " is null or undefined");
+                    continue;
+                }
+                
+                // レイヤーフィルタリング: 必要なレイヤーかどうかをチェック
+                if (!shouldProcessLayer(layer, requiredLayers)) {
+                    debugLog("LayerProcessing", "Skipping layer (not in required set): " + layer.name);
                     continue;
                 }
 
