@@ -69,6 +69,7 @@ public:
 	BlendMode getBlendMode() const { return blend_mode_; }
 
 	bool isActiveAtTime(double time) const;
+	bool isActive() const { return isActiveAtTime(current_time_); }
 
 	void setTrackMatte(std::shared_ptr<Layer> src, TrackMatteType type) {
 		track_matte_layer_ = src;
