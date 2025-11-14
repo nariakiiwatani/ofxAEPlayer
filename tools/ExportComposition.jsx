@@ -859,6 +859,31 @@ var CRC32_TABLE = makeCrc32Table();
         useFullFrameAnimationCheck.value = false;
         useFullFrameAnimationCheck.alignment = "left";
 
+        // 5. Processing option group
+        var processingGroup = myPanel.grp.add("group");
+        processingGroup.orientation = "column";
+        processingGroup.alignment = "fill";
+
+        var processNestedCompsCheck = processingGroup.add("checkbox", undefined, "ネストされたコンポジションを処理");
+        processNestedCompsCheck.name = "processNestedCompsCheck";
+        processNestedCompsCheck.value = true;
+        processNestedCompsCheck.alignment = "left";
+
+        var bakeEffectLayersCheck = processingGroup.add("checkbox", undefined, "エフェクト付きレイヤーをシーケンス書き出し");
+        bakeEffectLayersCheck.name = "bakeEffectLayersCheck";
+        bakeEffectLayersCheck.value = true;
+        bakeEffectLayersCheck.alignment = "left";
+
+        var bakeTextLayersCheck = processingGroup.add("checkbox", undefined, "テキストレイヤーをシーケンス書き出し");
+        bakeTextLayersCheck.name = "bakeTextLayersCheck";
+        bakeTextLayersCheck.value = true;
+        bakeTextLayersCheck.alignment = "left";
+
+        var deduplicateSequenceFramesCheck = processingGroup.add("checkbox", undefined, "シーケンスの同一画像を間引く");
+        deduplicateSequenceFramesCheck.name = "deduplicateSequenceFramesCheck";
+        deduplicateSequenceFramesCheck.value = true;
+        deduplicateSequenceFramesCheck.alignment = "left";
+
         // ボタングループ
         var buttonGroup = myPanel.grp.add("group");
         buttonGroup.orientation = "row";
@@ -930,7 +955,11 @@ var CRC32_TABLE = makeCrc32Table();
                     useSharedAssets: useSharedAssets,
                     sharedAssetsPath: sharedAssetsPath,
                     decimalPlaces: decPlaces,
-                    useFullFrameAnimation: useFullFrameAnimationCheck.value
+                    useFullFrameAnimation: useFullFrameAnimationCheck.value,
+                    processNestedComps: processNestedCompsCheck.value,
+                    bakeEffectLayers: bakeEffectLayersCheck.value,
+                    bakeTextLayers: bakeTextLayersCheck.value,
+                    deduplicateSequenceFrames: deduplicateSequenceFramesCheck.value
                 };
                 extractPropertiesForAllLayers(app.project.activeItem, options);
 
@@ -950,6 +979,7 @@ var CRC32_TABLE = makeCrc32Table();
                         1
                     );
                     app.endUndoGroup();
+                    debugLog("ExecuteSystem", "Undo group closed", null, "verbose");
                     app.executeCommand(16); // undo
                 }
             }
@@ -2393,9 +2423,14 @@ var CRC32_TABLE = makeCrc32Table();
                     }
                     
                     // Check for text layer baking first (before effect baking)
-                    if (isTextLayer(layer) || hasEffectsThatRequireBaking(layer)) {
+                    var shouldBakeAsText = isTextLayer(layer) && options.bakeTextLayers;
+                    var shouldBakeAsEffect = hasEffectsThatRequireBaking(layer) && options.bakeEffectLayers;
+                    
+                    if (shouldBakeAsText || shouldBakeAsEffect) {
                         debugLog("LayerProcessing", "Layer requires sequence baking", {
-                            layerName: layer.name
+                            layerName: layer.name,
+                            isTextLayer: isTextLayer(layer),
+                            hasEffects: hasEffectsThatRequireBaking(layer)
                         }, "notice");
                         
                         try {
@@ -2618,14 +2653,25 @@ var CRC32_TABLE = makeCrc32Table();
                             try {
                                 // Check if layer.source exists and is a valid composition
                                 if (layer && layer.source && layer.source instanceof CompItem) {
-                                    var nestedOptions = {
-                                        outputFolderPath: outputFolderPath,
-                                        useSharedAssets: options.useSharedAssets,
-                                        sharedAssetsPath: options.sharedAssetsPath,
-                                        decimalPlaces: DEC,
-                                        useFullFrameAnimation: options.useFullFrameAnimation
-                                    };
-                                    extractPropertiesForAllLayers(layer.source, nestedOptions);
+                                    if (options.processNestedComps) {
+                                        var nestedOptions = {
+                                            outputFolderPath: outputFolderPath,
+                                            useSharedAssets: options.useSharedAssets,
+                                            sharedAssetsPath: options.sharedAssetsPath,
+                                            decimalPlaces: DEC,
+                                            useFullFrameAnimation: options.useFullFrameAnimation,
+                                            processNestedComps: options.processNestedComps,
+                                            bakeEffectLayers: options.bakeEffectLayers,
+                                            bakeTextLayers: options.bakeTextLayers,
+                                            deduplicateSequenceFrames: options.deduplicateSequenceFrames
+                                        };
+                                        extractPropertiesForAllLayers(layer.source, nestedOptions);
+                                    } else {
+                                        debugLog("extractPropertiesForAllLayers", "Skipping nested composition processing (disabled by user)", {
+                                            layerName: layer ? layer.name : "unknown",
+                                            sourceType: sourceType
+                                        }, "notice");
+                                    }
                                 } else {
                                     debugLog("extractPropertiesForAllLayers", "Invalid or null composition source for nested composition processing", {
                                         layerName: layer ? layer.name : "unknown",
@@ -2763,15 +2809,17 @@ var CRC32_TABLE = makeCrc32Table();
                             }
                             
                             try {
-                                var metadata = makeSequenceMetadata(fileList, true);
                                 var sequenceMetadata = {
                                     fps: getFootageFrameRate(layer.source) || comp.frameRate,
-                                    directory: "./" + layer.source.name,
-                                    frames: {
+                                    directory: "./" + layer.source.name
+                                };
+                                if(options.deduplicateSequenceFrames) {
+                                    var metadata = makeSequenceMetadata(fileList, true);
+                                    sequenceMetadata.frame = {
                                         list: metadata.uniqueFileList,
                                         indices: metadata.frameMapping
-                                    }
-                                };
+                                    };
+                                }
 
                                 var metadataFile = new File(assetFolder.fsName + "/" + layer.source.name + ".json");
                                 metadataFile.encoding = "UTF-8";
