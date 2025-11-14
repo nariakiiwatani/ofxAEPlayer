@@ -902,7 +902,6 @@ var CRC32_TABLE = makeCrc32Table();
             try{
                 // 実行ボタンを押すたびにログをクリアし、処理済みコンポジション履歴もリセット
                 clearDebugLogs();
-                resetProcessedCompositions();
                 resetBakedPrecomps();
                 resetProcessedFootage();
                 
@@ -1976,14 +1975,6 @@ var CRC32_TABLE = makeCrc32Table();
     }
     
     // ===== main extractor =====
-    // グローバル変数：処理済みコンポジション追跡用
-    var processedCompositions = {};
-    
-    // 処理済みコンポジション履歴をリセット
-    function resetProcessedCompositions() {
-        processedCompositions = {};
-        debugLog("resetProcessedCompositions", "Processed compositions history cleared", null, "notice");
-    }
     
     // ===== EFFECT BAKING UTILITY FUNCTIONS =====
     
@@ -2058,28 +2049,6 @@ var CRC32_TABLE = makeCrc32Table();
         }
     }
     
-    function isBakedPrecomp(comp) {
-        if (!comp || !comp.id) {
-            return false;
-        }
-        return bakedPrecomps[comp.id] === true;
-    }
-    
-    function markAsBakedPrecomp(comp) {
-        if (comp && comp.id) {
-            bakedPrecomps[comp.id] = true;
-            debugLog("markAsBakedPrecomp", "Marked precomp as baked: " + comp.name, {compId: comp.id}, "notice");
-        }
-    }
-    
-    function shouldProcessComposition(comp) {
-        if (isBakedPrecomp(comp)) {
-            debugLog("shouldProcessComposition", "Skipping baked precomp: " + comp.name, {compId: comp.id}, "notice");
-            return false;
-        }
-        return true;
-    }
-    
     function calculateFileHash(file) {
         try {
             file.encoding = "BINARY";
@@ -2129,6 +2098,10 @@ var CRC32_TABLE = makeCrc32Table();
                 for (i = 0; i < 4; i++) {
                     type += String.fromCharCode(readByte());
                 }
+                // IEND で終了
+                if (type === "IEND") {
+                    break;
+                }
 
                 // data 部分をスキップ
                 file.seek(length, 1);
@@ -2140,10 +2113,6 @@ var CRC32_TABLE = makeCrc32Table();
                     hash = (hash >>> 8) ^ CRC32_TABLE[idx];
                 }
 
-                // IEND で終了
-                if (type === "IEND") {
-                    break;
-                }
             }
             file.close();
             
@@ -2295,14 +2264,7 @@ var CRC32_TABLE = makeCrc32Table();
             newLayer.startTime = layerInPoint;
             newLayer.inPoint = layerInPoint;
             newLayer.outPoint = layerOutPoint;
-            
-            debugLog("precomposeAndRenderLayer", "Adjusted precomp layer timing", {
-                layerStartTime: newLayer.startTime,
-                originalInPoint: layerInPoint
-            }, "verbose");
-            
-            markAsBakedPrecomp(precomp);
-            
+
             debugLog("precomposeAndRenderLayer", "Precomp created successfully", {
                 precompName: precompName,
                 precompId: precomp.id
@@ -2333,24 +2295,7 @@ var CRC32_TABLE = makeCrc32Table();
     }
     
     function extractPropertiesForAllLayers(comp, options){
-        // 無限ループ対策: ベイク済みプリコンポはスキップ
-        if (!shouldProcessComposition(comp)) {
-            return;
-        }
-        // コンポジションの一意識別子を生成（名前 + ID）
-        var compIdentifier = comp.name + "_" + comp.id;
-        
-        // 既に処理済みかチェック
-        if (processedCompositions[compIdentifier]) {
-            debugLog("extractPropertiesForAllLayers", "Composition already processed, skipping: " + comp.name, {
-                compId: comp.id,
-                compName: comp.name
-            }, "notice");
-            return;
-        }
-        
-        // 処理開始をマーク
-        processedCompositions[compIdentifier] = true;
+
         debugLog("extractPropertiesForAllLayers", "Starting composition processing: " + comp.name, {
             compId: comp.id,
             compName: comp.name
@@ -2449,7 +2394,6 @@ var CRC32_TABLE = makeCrc32Table();
                         try {
                             bakedAsSequence = precomposeAndRenderLayer(layer, comp, assetFolder, options);
                             layer = comp.layer(i);
-                            
                             debugLog("LayerProcessing", "Layer successfully pre-rendered as sequence", {
                                 layerName: layer.name,
                                 source: bakedAsSequence.baseName
@@ -2544,6 +2488,7 @@ var CRC32_TABLE = makeCrc32Table();
                         resultData["source"] = sourcePath;
                         sourceType = "sequence";
                         resultData["sourceType"] = sourceType;
+                        debugLog("LayerProcessing", "Source type override: " + sourceType + " for baked layer: " + layer.name);
                     }
                     else if (layer.source) {
                         debugLog("LayerProcessing", "Layer has source, processing source for layer: " + layer.name);
@@ -2646,7 +2591,7 @@ var CRC32_TABLE = makeCrc32Table();
                     }
                 }
                 else {
-                    // Check for duplicate footage processing
+                    // Check for duplicate footage processing (exclude compositions)
                     var footageId = (layer.source && !layer.nullLayer) ? layer.source.id : null;
                     var alreadyProcessed = footageId ? processedFootageItems[footageId] : false;
                     
@@ -2663,7 +2608,6 @@ var CRC32_TABLE = makeCrc32Table();
                     if (!alreadyProcessed) {
                         switch(sourceType) {
                         case "composition":
-                            // ネストされたコンポジションは常に処理する（新仕様）
                             try {
                                 // Check if layer.source exists and is a valid composition
                                 if (layer && layer.source && layer.source instanceof CompItem) {
