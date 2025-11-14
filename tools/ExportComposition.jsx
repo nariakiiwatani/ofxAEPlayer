@@ -972,12 +972,9 @@ var CRC32_TABLE = makeCrc32Table();
             }finally{
                 if (undoOpen) {
                     // add meaningless operation to prevent undo group from being empty
-                    app.project.items.addComp(
-                        "__TEMP_UNDO_MARKER__", 
-                        1, 1, 1, 
-                        0.001, 
-                        1
-                    );
+                    var activeComp = app.project.activeItem;
+                    var originalCompName = activeComp.name;
+                    activeComp.name = originalCompName;
                     app.endUndoGroup();
                     debugLog("ExecuteSystem", "Undo group closed", null, "verbose");
                     app.executeCommand(16); // undo
