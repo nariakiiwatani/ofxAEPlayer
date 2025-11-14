@@ -437,6 +437,27 @@ function trackMatteTypeToString(t){
     map[TrackMatteType.LUMA_INVERTED]    = "LUMA_INVERTED";
     return map.hasOwnProperty(t) ? map[t] : "UNKNOWN";
 }
+
+// CRC32 テーブルを生成
+function makeCrc32Table() {
+    var table = [];
+    var poly = 0xEDB88320;
+    for (var i = 0; i < 256; i++) {
+        var c = i;
+        for (var j = 0; j < 8; j++) {
+            if (c & 1) {
+                c = poly ^ (c >>> 1);
+            } else {
+                c = c >>> 1;
+            }
+        }
+        table[i] = c >>> 0; // 符号なし32bitに
+    }
+    return table;
+}
+
+var CRC32_TABLE = makeCrc32Table();
+
 (function(me){
     // ===== UTILITY FUNCTIONS (moved inside IIFE for debugLog access) =====
     
@@ -2054,6 +2075,84 @@ function trackMatteTypeToString(t){
     
     function calculateFileHash(file) {
         try {
+            file.encoding = "BINARY";
+            file.open("r");
+                
+            var hash = file.length;
+            
+            // PNG形式検証
+            var signature = file.read(8);
+            if (signature.charCodeAt(0) !== 0x89 || 
+                signature.charCodeAt(1) !== 0x50 ||
+                signature.charCodeAt(2) !== 0x4E ||
+                signature.charCodeAt(3) !== 0x47) {
+                file.close();
+                debugLog("calculateFileHash", "Not a PNG file, using fallback hash", null, "warning");
+                return hash.toString(16); // Fallback
+            }
+
+            // 1バイト読み出して0–255の数値に変換
+            function readByte() {
+                if (file.eof) {
+                    throw new Error("Unexpected EOF");
+                }
+                var ch = file.readch();     // 1文字の文字列
+                if (ch === "") {
+                    throw new Error("Unexpected EOF (empty read)");
+                }
+                return ch.charCodeAt(0) & 0xFF;
+            }
+
+            // 4バイトをビッグエンディアンのUint32として読む
+            function readUint32BE() {
+                var b0 = readByte();
+                var b1 = readByte();
+                var b2 = readByte();
+                var b3 = readByte();
+                // >>>0 で符号なし32bitにそろえる
+                return (((b0 << 24) | (b1 << 16) | (b2 << 8) | b3) >>> 0);
+            }
+
+            while (!file.eof) {
+                // length (4バイト)
+                var length = readUint32BE();
+
+                // type (4バイト → ASCII)
+                var type = "";
+                for (i = 0; i < 4; i++) {
+                    type += String.fromCharCode(readByte());
+                }
+
+                // data 部分をスキップ
+                file.seek(length, 1);
+
+                // crc (4バイト)
+                for (var i = 0; i < 4; i++) {
+                    var ch = readByte();
+                    var idx = (hash ^ ch) & 0xFF;
+                    hash = (hash >>> 8) ^ CRC32_TABLE[idx];
+                }
+
+                // IEND で終了
+                if (type === "IEND") {
+                    break;
+                }
+            }
+            file.close();
+            
+            return hash.toString(16);
+        } catch (e) {
+            debugLog("calculateFileHash", "Error calculating hash: " + e.toString(), null, "error");
+            return null;
+        }
+    }
+
+    function makeSequenceMetadata(files, deleteDuplicates) {
+        var uniqueFileList = [];
+        var uniqueFrames = {};
+        var frameMapping = [];
+        for (var file_index = 0; file_index < files.length; file_index++) {
+            var file = files[file_index];
             // ファイルが存在し、サイズが0より大きいことを確認
             var maxRetries = 100;
             var retryCount = 0;
@@ -2061,23 +2160,25 @@ function trackMatteTypeToString(t){
                 $.sleep(10);
                 retryCount++;
             }
-            file.encoding = "BINARY";
-            file.open("r");
-            var content = file.read();
-            file.close();
+
+            var hash = calculateFileHash(file);
             
-            // 簡易ハッシュ（CRC32相当）
-            var hash = 0;
-            for (var i = 0; i < content.length; i++) {
-                var ch = content.charCodeAt(i);
-                hash = ((hash << 5) - hash) + ch;
-                hash = hash & hash; // 32bit整数に変換
+            if (uniqueFrames[hash] !== undefined) {
+                if (deleteDuplicates) {
+                    file.remove();
+                }
+                frameMapping.push(uniqueFrames[hash]);
+            } else {
+                var actualFrame = uniqueFileList.length;
+                uniqueFileList.push(decodeURI(file.name));
+                uniqueFrames[hash] = actualFrame;
+                frameMapping.push(actualFrame);
             }
-            return hash.toString(16);
-        } catch (e) {
-            debugLog("calculateFileHash", "Error calculating hash: " + e.toString(), null, "error");
-            return null;
         }
+        return {
+            uniqueFileList: uniqueFileList,
+            frameMapping: frameMapping
+        };
     }
 
     function renderPrecompAsSequence(precomp, outputFolder, baseName, options) {
@@ -2109,28 +2210,7 @@ function trackMatteTypeToString(t){
                 var outputFile = new File(sequenceFolder.fsName + "/" + fileName);
                 
                 precomp.saveFrameToPng(time, outputFile);
-                fileList.push([fileName, outputFile]);
-                debugLog("renderPrecompAsSequence", "Rendered frame " + frame + " of " + frameCount, null, "verbose");
-            }
-
-            var uniqueFileList = [];
-            var uniqueFrames = {};
-            var frameMapping = [];
-            for (var file_index = 0; file_index < fileList.length; file_index++) {
-                var fileName = fileList[file_index][0];
-                var file = fileList[file_index][1];
-                var hash = calculateFileHash(file);
-                
-                if (uniqueFrames[hash] !== undefined) {
-                    file.remove();
-                    frameMapping.push(uniqueFrames[hash]);
-                } else {
-                    var actualFrame = uniqueFileList.length;
-                    uniqueFileList.push(fileName);
-                    uniqueFrames[hash] = actualFrame;
-                    frameMapping.push(actualFrame);
-                }
-                debugLog("renderPrecompAsSequence", "Rendered frame " + frame + " of " + frameCount, null, "verbose");
+                fileList.push(outputFile);
             }
 
             debugLog("renderPrecompAsSequence", "PNG sequence rendering completed", {
@@ -2138,12 +2218,14 @@ function trackMatteTypeToString(t){
                 outputFolder: sequenceFolder.fsName
             }, "notice");
             
+            var sequenceMetadata = makeSequenceMetadata(fileList, true);
+
             return {
                 frameCount: frameCount,
                 fps: fps,
                 directory: sequenceFolder,
-                fileList: uniqueFileList,
-                frameMapping: frameMapping
+                fileList: sequenceMetadata.uniqueFileList,
+                frameMapping: sequenceMetadata.frameMapping
             };
         } catch (e) {
             debugLog("renderPrecompAsSequence", "Error rendering PNG sequence: " + e.toString(), null, "error");
@@ -2693,20 +2775,32 @@ function trackMatteTypeToString(t){
                             if (!sequenceFolder.exists) sequenceFolder.create();
                             var sequenceFiles = layer.source.mainSource.file.parent.getFiles(function(f){
                                 return f instanceof File && ((""+f.name).toLowerCase().indexOf(ext)>=0);
+                            }).sort(function(a, b){
+                                var A = a.name.toLowerCase();
+                                var B = b.name.toLowerCase();
+                                return (A < B) ? -1 : (A > B ? 1 : 0);
                             });
+                            var fileList = [];
                             for (var s=0; s<sequenceFiles.length; s++){
                                 var sequenceFile = sequenceFiles[s];
                                 var dest = new File(sequenceFolder.fsName + "/" + sequenceFile.name);
                                 if (!copyFileWithDateCheck(sequenceFile, dest, sequenceFile.name, {layerName: layer.name, sequenceIndex: s})) {
                                     alert("ファイルのコピー中にエラー: " + sequenceFile.name);
                                 }
+                                fileList.push(dest);
                             }
                             
                             try {
+                                var metadata = makeSequenceMetadata(fileList, true);
                                 var sequenceMetadata = {
                                     fps: getFootageFrameRate(layer.source) || comp.frameRate,
-                                    directory: "./" + layer.source.name
+                                    directory: "./" + layer.source.name,
+                                    frames: {
+                                        list: metadata.uniqueFileList,
+                                        indices: metadata.frameMapping
+                                    }
                                 };
+
                                 var metadataFile = new File(assetFolder.fsName + "/" + layer.source.name + ".json");
                                 metadataFile.encoding = "UTF-8";
                                 metadataFile.open("w");

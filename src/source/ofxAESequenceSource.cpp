@@ -30,7 +30,22 @@ bool SequenceSource::load(const std::filesystem::path &filepath)
 			
 			std::filesystem::path jsonParent = filepath.parent_path();
 			std::filesystem::path sequenceDir = jsonParent / relativeDir;
-			
+
+			if(json.contains("frames") &&
+			   json["frames"].contains("list") &&
+			   json["frames"].contains("indices")) {
+
+				auto fileList = json["frames"]["list"].get<std::vector<std::string>>();
+				auto indices = json["frames"]["indices"].get<std::vector<int>>();
+
+				pool_.reserve(indices.size());
+				for(const auto& index : indices) {
+					std::filesystem::path fullPath = sequenceDir / fileList[index];
+					pool_.push_back(AssetManager::getInstance().getTexture(fullPath));
+				}
+
+				return !pool_.empty();
+			}
 			return loadImagesFromDirectory(sequenceDir);
 			
 		} catch(const std::exception &e) {
