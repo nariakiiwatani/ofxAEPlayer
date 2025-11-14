@@ -942,6 +942,13 @@ var CRC32_TABLE = makeCrc32Table();
                 alert("エラーが発生しました: " + e.message);
             }finally{
                 if (undoOpen) {
+                    // add meaningless operation to prevent undo group from being empty
+                    app.project.items.addComp(
+                        "__TEMP_UNDO_MARKER__", 
+                        1, 1, 1, 
+                        0.001, 
+                        1
+                    );
                     app.endUndoGroup();
                     app.executeCommand(16); // undo
                 }
