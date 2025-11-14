@@ -5,6 +5,7 @@ $.evalFile(File(scriptFolder.fullName + "/json2.js"));
 // ===== EFFECT BAKING SYSTEM =====
 var EFFECT_BAKING_EXCLUSIONS = {};
 var bakedPrecomps = {};
+var processedFootageItems = {};
 
 // Object.keys polyfill for ExtendScript compatibility
 if (!Object.keys) {
@@ -903,6 +904,7 @@ var CRC32_TABLE = makeCrc32Table();
                 clearDebugLogs();
                 resetProcessedCompositions();
                 resetBakedPrecomps();
+                resetProcessedFootage();
                 
                 var outputFolderPath = outputPathText.text.trim();
                 var useSharedAssets = sharedAssetsCheck.value;
@@ -1990,6 +1992,11 @@ var CRC32_TABLE = makeCrc32Table();
         debugLog("resetBakedPrecomps", "Baked precomps history cleared", null, "notice");
     }
     
+    function resetProcessedFootage() {
+        processedFootageItems = {};
+        debugLog("resetProcessedFootage", "Processed footage history cleared", null, "notice");
+    }
+    
     function shouldBakeEffect(effect) {
         try {
             if (!effect || !effect.enabled) {
@@ -2597,19 +2604,22 @@ var CRC32_TABLE = makeCrc32Table();
                         // For non-PSD/AI files, set the source path here
                         // For PSD/AI files, the source path will be set during the file copy process below
                         if(sourcePath) {
+                            resultData["source"] = sourcePath;
                             try {
-                                // Only check for PSD/AI files if the source actually has a file
-                                if (sourceType === "still" || sourceType === "video" || sourceType === "audio" || sourceType === "sequence") {
-                                    var fileName = decodeURI(layer.source.mainSource.file.name);
-                                    var fileNameLower = fileName.toLowerCase();
-                                    if (!fileNameLower.match(/\.(psd|ai)$/)) {
-                                        resultData["source"] = sourcePath;
-                                        debugLog("LayerProcessing", "Set source path: " + sourcePath);
+                                if (sourceType === "still") {
+                                    var fileName = decodeURI(layer.source.mainSource.file.name).toLowerCase();
+                                    if (fileName.match(/\.(psd|ai)$/)) {
+                                        var baseName = fileName.replace(/\.[^.]+$/, "");
+                                        var exportFolderName = assetFolder.fsName + "/" + baseName;
+                                        var footageItemName = layer.source.name;
+                                        var slashIndex = footageItemName.indexOf('/');
+                                        if (slashIndex !== -1) {
+                                            footageItemName = footageItemName.substring(0, slashIndex);
+                                        }
+                                        var outputFileName = footageItemName + ".png";
+
+                                        resultData["source"] = getRelativePath(layerFolder, new Folder(exportFolderName)) + "/" + outputFileName;
                                     }
-                                } else {
-                                    // For compositions, solids, etc. - just set the source path directly
-                                    resultData["source"] = sourcePath;
-                                    debugLog("LayerProcessing", "Set source path for non-file source: " + sourcePath);
                                 }
                             } catch (sourcePathError) {
                                 debugLog("LayerProcessing", "ERROR: Failed to set source path: " + sourcePathError.toString());
@@ -2636,7 +2646,22 @@ var CRC32_TABLE = makeCrc32Table();
                     }
                 }
                 else {
-                    switch(sourceType) {
+                    // Check for duplicate footage processing
+                    var footageId = (layer.source && !layer.nullLayer) ? layer.source.id : null;
+                    var alreadyProcessed = footageId ? processedFootageItems[footageId] : false;
+                    
+                    if (alreadyProcessed) {
+                        debugLog("FootageProcessing", "Footage already processed, skipping file operations", {
+                            footageName: layer.source.name,
+                            footageId: footageId,
+                            sourceType: sourceType
+                        }, "notice");
+                    } else if (footageId) {
+                        processedFootageItems[footageId] = true;
+                    }
+                    
+                    if (!alreadyProcessed) {
+                        switch(sourceType) {
                         case "composition":
                             // ネストされたコンポジションは常に処理する（新仕様）
                             try {
@@ -2750,10 +2775,6 @@ var CRC32_TABLE = makeCrc32Table();
                                         debugLog("FileCopy", "PSD/AI exported as PNG: " + outputFileName, null, "notice");
                                     }
                                     
-                                    // Update the source path to point to the exported PNG file
-                                    var relativePath = getRelativePath(layerFolder, new Folder(exportFolder.fsName)) + "/" + outputFileName;
-                                    resultData["source"] = relativePath;
-                                    
                                     debugLog("FileCopy", "Successfully processed PSD/AI file as PNG: " + outputFile.fsName, null, "notice");
                                     
                                 } catch(e) {
@@ -2815,6 +2836,7 @@ var CRC32_TABLE = makeCrc32Table();
                             break;
                         default:
                             break;
+                        }
                     }
                 }
                 
