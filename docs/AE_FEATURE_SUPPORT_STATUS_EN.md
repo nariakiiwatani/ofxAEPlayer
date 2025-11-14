@@ -23,7 +23,7 @@ This document outlines which After Effects features are reproduced when a compos
 | Video | ⚠️ | Tends to have issues, not recommended |
 | Image Sequence | ✅ | |
 | Pre-composition | ✅ | |
-| Text | ❌ | |
+| Text | ⚠️ | Practically usable via automatic baking |
 | Camera | ❌ | |
 | Light | ❌ | |
 | Adjustment Layer | ❌ | |
@@ -244,13 +244,9 @@ This document outlines which After Effects features are reproduced when a compos
 
 ## 6. Effects
 
-| Feature | Support Status |
-|---------|---------------|
-| All Effects | ❌ |
-
-**Note**: All After Effects effects are unsupported. If you need to use effects, pre-render them as video or image sequences.
-
-**Automatic Pre-rendering Feature**: The `ExportComposition.jsx` export tool automatically detects effects, creates precompositions, and pre-renders them as PNG image sequences. This eliminates the need for manual pre-rendering.
+| Feature | Support Status | Notes |
+|---------|---------------|-------|
+| All Effects | ⚠️ | Practically usable via automatic baking |
 
 ---
 
@@ -270,8 +266,10 @@ This document outlines which After Effects features are reproduced when a compos
 |--------|---------------|-------|
 | PNG | ✅ | |
 | JPEG | ✅ | |
-| PSD | ✅ | Converted to PNG |
-| AI | ✅ | Converted to PNG |
+| PSD | ✅ | Automatically converted to PNG with timestamp-based differential updates |
+| AI | ✅ | Automatically converted to PNG with timestamp-based differential updates |
+
+**PSD/AI Automatic Conversion**: The export tool detects PSD and AI files, compares timestamps, and converts to PNG only when updates are needed. Layer-level conversion is also supported.
 
 ### 8.2 Video
 
@@ -281,3 +279,11 @@ This document outlines which After Effects features are reproduced when a compos
 | Image Sequence | ✅ | |
 
 ---
+
+**Automatic Baking Feature**: The `ExportComposition.jsx` export tool automatically detects text layers and effects, creates precompositions, and renders them as PNG image sequences. This provides:
+
+- Eliminates manual pre-rendering work
+- Accurate handling of layer in/out points
+- Direct export of compositions containing text and effects
+
+**Note**: Parameters are fixed at bake time and cannot be controlled in real-time during playback.
