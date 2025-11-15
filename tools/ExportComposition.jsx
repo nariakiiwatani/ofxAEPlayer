@@ -2412,6 +2412,14 @@ var CRC32_TABLE = makeCrc32Table();
                     continue;
                 }
 
+                var layerInfo = {};
+                layerInfo.name = layer.name;
+                var layerNameForFile = layerUniqueName(layer);
+                layerInfo.uniqueName = layerNameForFile;
+                layerInfo.file = getRelativePath(outputFolder, layerFolder) + "/" + layerInfo.uniqueName + ".json";
+                layerInfo.visible = layer.enabled;
+                layerInfo.startTime = layer.startTime;
+
                 var bakedAsSequence = null;
                 try {
                     // Check if this is a text layer
@@ -2450,14 +2458,6 @@ var CRC32_TABLE = makeCrc32Table();
                     }, "warning");
                 }
 
-                var layerInfo = {};
-                layerInfo.name = layer.name;
-                var layerNameForFile = layerUniqueName(layer);
-                layerInfo.uniqueName = layerNameForFile;
-                layerInfo.file = getRelativePath(outputFolder, layerFolder) + "/" + layerInfo.uniqueName + ".json";
-                layerInfo.visible = layer.enabled;
-                layerInfo.startTime = layer.startTime;
-
                 if (layer.parent) {
                     layerInfo.parent = layerUniqueName(comp.layer(layer.parent.index));
                 }
@@ -2470,13 +2470,7 @@ var CRC32_TABLE = makeCrc32Table();
                 compInfo["layers"].push(layerInfo);
 
                 var resultData = {};
-                
-                // Safely extract basic layer properties using common error handling
-                safelyProcessLayerProperty(layer, "name", function() {
-                    resultData["name"] = layer.name;
-                    debugLog("LayerProcessing", "Set result data name");
-                    return layer.name;
-                });
+                resultData["name"] = layerInfo.name;
                 
                 var layerType = safelyProcessLayerProperty(layer, "layerType", function() {
                     var type = layer.matchName || "Unknown";
