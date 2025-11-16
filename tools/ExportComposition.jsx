@@ -2806,7 +2806,7 @@ var CRC32_TABLE = makeCrc32Table();
                                 };
                                 if(options.deduplicateSequenceFrames) {
                                     var metadata = makeSequenceMetadata(fileList, true);
-                                    sequenceMetadata.frame = {
+                                    sequenceMetadata.frames = {
                                         list: metadata.uniqueFileList,
                                         indices: metadata.frameMapping
                                     };
