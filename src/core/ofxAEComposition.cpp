@@ -17,15 +17,16 @@ bool Composition::load(const std::filesystem::path &filepath)
 
 bool Composition::setup(const ofJson &json, const std::filesystem::path &base_dir)
 {
-#define EXTRACT_INFO2(k,n) json::extract(json, #k, info_.n)
-#define EXTRACT_INFO(n) EXTRACT_INFO2(n, n)
-	EXTRACT_INFO(duration);
-	EXTRACT_INFO2(endTime, end_time);
-	EXTRACT_INFO(fps);
-	EXTRACT_INFO(width);
-	EXTRACT_INFO(height);
-#undef EXTRACT_INFO2
-#undef EXTRACT_INFO
+	json::extract(json, "fps", info_.fps);
+	json::extract(json, "frameCount", info_.frame_count);
+	json::extract(json, "startFrame", info_.start_frame);
+	json::extract(json, "endFrame", info_.end_frame);
+	if(info_.end_frame == 0.0f) {
+		info_.end_frame = info_.frame_count;
+	}
+	
+	json::extract(json, "width", info_.width);
+	json::extract(json, "height", info_.height);
 
 	info_.layers.clear();
 	if(json.contains("layers") && json["layers"].is_array()) {
@@ -37,7 +38,7 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 			EXTRACT_LAYER2(uniqueName, unique_name);
 			EXTRACT_LAYER2(file, filepath);
 			EXTRACT_LAYER(parent);
-			EXTRACT_LAYER2(startTime, offset);
+			EXTRACT_LAYER2(startFrame, offset);
 			EXTRACT_LAYER(visible);
 #undef EXTRACT_LAYER2
 #undef EXTRACT_LAYER
@@ -52,10 +53,8 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 		}
 	}
 
-	if(json.contains("markers")) {
-		if(!Marker::parseMarkers(json["markers"], info_.markers)) {
-			ofLogWarning("ofxAEComposition") << "Failed to parse markers";
-		}
+	if(json.contains("markers") && json["markers"].is_array()) {
+		Marker::parseMarkers(json["markers"], info_.markers);
 	}
 
 	layers_.clear();
@@ -74,8 +73,12 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 			layers_.push_back(layer);
 			name_layers_map_.insert({info.name, layer});
 			unique_name_layers_map_.insert({info.unique_name, layer});
-			layer_offsets_.insert({layer, info.offset});
+			
+			Frame offset_frame = info.offset;
+			layer_offsets_.insert({layer, offset_frame});
 			layer->setVisible(info.visible);
+			
+			layer->setFps(info_.fps);
 		}
 		else {
 			ofLogError("ofxAEComposition") << "Failed to load layer: " << layer_file;
@@ -98,29 +101,45 @@ bool Composition::setup(const ofJson &json, const std::filesystem::path &base_di
 		}
 	}
 
-	current_time_ = -1.0;
-	setTime(0);
+	current_frame_ = -1.0f;
+	setFrame(0.0f);
 	return !layers_.empty();
 }
 
-bool Composition::setTime(double time)
+bool Composition::setFrame(Frame frame)
 {
-	if(util::isNearTime(current_time_, time)) {
+	if(util::isNearFrame(current_frame_, frame)) {
 		return false;
 	}
 	
 	bool ret = false;
-	auto offset = [this](std::shared_ptr<Layer> layer) {
+	auto getOffset = [this](std::shared_ptr<Layer> layer) -> Frame {
 		auto found = layer_offsets_.find(layer);
-		if(found == end(layer_offsets_)) return 0.0;
-		return static_cast<double>(found->second);
+		return (found != end(layer_offsets_)) ? found->second : 0.0f;
 	};
 	
 	for(auto& layer : layers_) {
-		ret |= layer->setTime(time - offset(layer));
+		Frame offset = getOffset(layer);
+		ret |= layer->setFrame(frame - offset);
 	}
-	current_time_ = time;
+	
+	current_frame_ = frame;
 	return ret;
+}
+
+bool Composition::setTime(double time)
+{
+	return setFrame(util::timeToFrame(time, info_.fps));
+}
+
+double Composition::getTime() const
+{
+	return util::frameToTime(current_frame_, info_.fps);
+}
+
+double Composition::getDuration() const
+{
+	return util::frameToTime(info_.frame_count, info_.fps);
 }
 void Composition::update()
 {

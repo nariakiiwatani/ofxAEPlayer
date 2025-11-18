@@ -12,13 +12,13 @@ bool SequenceSource::load(const std::filesystem::path &filepath)
 {
 	pool_.clear();
 	texture_.reset();
-	fps_ = 30.0;
+	frame_offset_ = 0.0f;
 	
 	if(filepath.extension() == ".json") {
 		ofJson json = ofLoadJson(filepath);
 		try {
-			if(json.contains("fps")) {
-				fps_ = json["fps"].get<double>();
+			if(json.contains("frameOffset")) {
+				frame_offset_ = json["frameOffset"].get<float>();
 			}
 			
 			if(!json.contains("directory")) {
@@ -81,18 +81,19 @@ bool SequenceSource::loadImagesFromDirectory(const std::filesystem::path &dirpat
 	return !pool_.empty();
 }
 
-bool SequenceSource::setTime(double time)
+bool SequenceSource::setFrame(Frame frame)
 {
-	if(util::isNearTime(current_time_, time)) {
+	if(util::isNearFrame(current_frame_, frame)) {
 		return false;
 	}
 	
-	int new_index = static_cast<int>(time * fps_);
+	current_frame_ = frame;
+	
+	int new_index = static_cast<int>(frame + frame_offset_);
 	new_index = std::clamp(new_index, 0, static_cast<int>(pool_.size()) - 1);
 	
 	bool changed = (new_index != current_index_);
 	current_index_ = new_index;
-	current_time_ = time;
 	
 	if(new_index >= 0 && static_cast<size_t>(new_index) < pool_.size()) {
 		texture_ = pool_[new_index];
@@ -111,12 +112,9 @@ void SequenceSource::draw(float x, float y, float w, float h) const
 	}
 }
 
-double SequenceSource::getDuration() const
+FrameCount SequenceSource::getDurationFrames() const
 {
-	if(pool_.empty() || fps_ <= 0.0) {
-		return 0.0;
-	}
-	return static_cast<double>(pool_.size()) / fps_;
+	return static_cast<FrameCount>(pool_.size());
 }
 
 void SequenceSource::accept(Visitor &visitor) {

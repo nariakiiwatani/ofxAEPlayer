@@ -19,10 +19,14 @@ public:
 	virtual void accept(Visitor &visitor);
 	virtual bool hasAnimation() const { return false; }
 	
+	virtual bool setFrame(Frame frame) { return false; }
+	virtual Frame getFrame() const { return 0.0f; }
+	
 	virtual bool setTime(double time) { return false; }
 	virtual double getTime() const { return 0.0; }
 	
 	virtual void setup(const ofJson &base, const ofJson &keyframes={}) {}
+	virtual void setFps(float fps) {}
 	
 	template<typename T>
 	bool tryExtract(T &out) const {
@@ -61,20 +65,33 @@ public:
 	void setup(const ofJson &base, const ofJson &keyframes) override {
 		setBaseValue(parse(base));
 		keyframes_.clear();
-		
-		if(keyframes.is_array() && !keyframes.empty() && keyframes[0].contains("time")) {
-			for(int i = 0; i < keyframes.size(); ++i) {
-				const auto &kf = keyframes[i];
-				double time = kf["time"].get<double>();
-				addKeyframe(time, parseKeyframeValue(kf));
+
+		if(!keyframes.empty()) {
+			if(keyframes.is_array()) {
+				for(int i = 0; i < keyframes.size(); ++i) {
+					const auto &kf = keyframes[i];
+					Frame frame = kf.value("frame", 0.0f);
+					addKeyframe(frame, parseKeyframeValue(kf));
+				}
+			}
+			else if(keyframes.is_object()) {
+				for(auto it = keyframes.begin(); it != keyframes.end(); ++it) {
+					int frame = ofToInt(it.key());
+					auto &&value = it.value();
+					if(value.is_array()) {
+						for(int i = 0; i < value.size(); ++i) {
+							addKeyframe(frame+i, parse(value[i]));
+						}
+					}
+				}
 			}
 		}
 	}
 	
 	void setBaseValue(const T &t) { base_ = t; }
 	
-	void addKeyframe(double time, const Keyframe::Data<T> &keyframe) {
-		keyframes_.insert({time, keyframe});
+	void addKeyframe(Frame frame, const Keyframe::Data<T> &keyframe) {
+		keyframes_.insert({frame, keyframe});
 	}
 	
 	virtual T parse(const ofJson &json) const = 0;
@@ -163,34 +180,49 @@ public:
 	const T& get() const { return cache_.has_value() ? *cache_ : base_; }
 	bool hasAnimation() const override { return !keyframes_.empty(); }
 	
-	bool setTime(double time) override {
+	// Frame-based API (primary implementation)
+	bool setFrame(Frame frame) override {
 		bool is_first = !cache_.has_value();
+		
 		if(keyframes_.empty()) {
 			cache_ = base_;
-			last_time_ = time;
+			current_frame_ = frame;
 			return is_first;
 		}
 		
-		auto pair = util::findTimeKeyframePair(keyframes_, time);
+		auto pair = util::findFrameKeyframePair(keyframes_, frame);
 		if(pair.keyframe_a == nullptr || pair.keyframe_b == nullptr) {
 			cache_ = base_;
-			last_time_ = time;
+			current_frame_ = frame;
 			return is_first;
 		}
 		
-		float dt = static_cast<float>(pair.time_b - pair.time_a);
+		// Convert frame delta to time for Bezier temporal easing
+		float dt = static_cast<float>((pair.frame_b - pair.frame_a) / fps_);
 		cache_ = interpolateKeyframe(*pair.keyframe_a, *pair.keyframe_b, dt, pair.ratio);
-		last_time_ = time;
+		current_frame_ = frame;
 		return true;
 	}
 	
-	double getTime() const override { return last_time_; }
+	Frame getFrame() const override { return current_frame_; }
+	
+	// Time-based API (legacy compatibility - delegates to frame-based)
+	bool setTime(double time) override {
+		return setFrame(util::timeToFrame(time, fps_));
+	}
+	
+	double getTime() const override {
+		return util::frameToTime(current_frame_, fps_);
+	}
+	
+	void setFps(float fps) override { fps_ = fps; }
 	
 private:
 	T base_;
 	std::optional<T> cache_;
-	std::map<double, Keyframe::Data<T>> keyframes_;
-	double last_time_ = -1.0;
+	std::map<Frame, Keyframe::Data<T>> keyframes_;
+	Frame current_frame_ = 0.0f;
+	float fps_ = 30.0f;
 };
 
 class PropertyGroup : public PropertyBase
@@ -234,16 +266,40 @@ public:
 		return false;
 	}
 	
-	bool setTime(double time) override {
+	bool setFrame(Frame frame) override {
 		bool ret = false;
 		for(auto &&[_,p] : props_) {
-			ret |= p->setTime(time);
+			ret |= p->setFrame(frame);
 		}
 		return ret;
+	}
+	
+	Frame getFrame() const override {
+		// Return first property's frame (all should be in sync)
+		for(auto &&[_,p] : props_) {
+			return p->getFrame();
+		}
+		return 0.0f;
+	}
+	
+	bool setTime(double time) override {
+		return setFrame(util::timeToFrame(time, fps_));
+	}
+	
+	double getTime() const override {
+		return util::frameToTime(getFrame(), fps_);
+	}
+	
+	void setFps(float fps) override {
+		fps_ = fps;
+		for(auto &&[_,p] : props_) {
+			p->setFps(fps);
+		}
 	}
 
 private:
 	std::map<std::string, std::unique_ptr<PropertyBase>> props_;
+	float fps_ = 30.0f;
 };
 
 class PropertyArray : public PropertyBase
@@ -285,18 +341,46 @@ public:
 		return false;
 	}
 	
-	bool setTime(double time) override {
+	bool setFrame(Frame frame) override {
 		bool changed = false;
 		for(auto &p : properties_) {
 			if(p) {
-				changed |= p->setTime(time);
+				changed |= p->setFrame(frame);
 			}
 		}
 		return changed;
 	}
 	
+	Frame getFrame() const override {
+		// Return first property's frame (all should be in sync)
+		for(const auto &p : properties_) {
+			if(p) {
+				return p->getFrame();
+			}
+		}
+		return 0.0f;
+	}
+	
+	bool setTime(double time) override {
+		return setFrame(util::timeToFrame(time, fps_));
+	}
+	
+	double getTime() const override {
+		return util::frameToTime(getFrame(), fps_);
+	}
+	
+	void setFps(float fps) override {
+		fps_ = fps;
+		for(auto &p : properties_) {
+			if(p) {
+				p->setFps(fps);
+			}
+		}
+	}
+	
 protected:
 	std::vector<std::unique_ptr<PropertyBase>> properties_;
+	float fps_ = 30.0f;
 };
 
 

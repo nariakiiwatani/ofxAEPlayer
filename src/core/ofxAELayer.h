@@ -8,6 +8,7 @@
 #include "ofGraphicsBaseTypes.h"
 #include "ofJson.h"
 
+#include "../utils/ofxAETimeUtils.h"
 #include "../prop/ofxAEKeyframe.h"
 #include "../source/ofxAELayerSource.h"
 #include "../data/MarkerData.h"
@@ -40,11 +41,21 @@ public:
 	bool setup(const ofJson &json, const std::filesystem::path &source_dir="");
 	void update() override;
 
+	// Frame-based API (primary)
+	bool setFrame(Frame frame);
+	void setFps(float fps);  // Propagate FPS to properties and source
+	Frame getFrame() const { return current_frame_; }
+	Frame getInFrame() const { return in_frame_; }
+	Frame getOutFrame() const { return out_frame_; }
+	bool isActiveAtFrame(Frame frame) const;
+
+	// Time-based API (legacy compatibility)
 	bool setTime(double time);
-	double getTime() const { return current_time_; }
-	double getInPoint() const { return in_time_; }
-	double getOutPoint() const { return out_time_; }
-	double getDuration() const { return out_time_ - in_time_; }
+	double getTime() const;
+	double getInTime() const;
+	double getOutTime() const;
+	bool isActiveAtTime(double time) const;
+	double getDuration() const { return (out_frame_ - in_frame_) / fps_; }
 	
 	using ofBaseDraws::draw;
 	void draw() const { draw(0,0); }
@@ -68,8 +79,7 @@ public:
 	void setBlendMode(BlendMode mode) { blend_mode_ = mode; }
 	BlendMode getBlendMode() const { return blend_mode_; }
 
-	bool isActiveAtTime(double time) const;
-	bool isActive() const { return isActiveAtTime(current_time_); }
+	bool isActive() const { return isActiveAtFrame(current_frame_); }
 
 	void setTrackMatte(std::shared_ptr<Layer> src, TrackMatteType type) {
 		track_matte_layer_ = src;
@@ -93,9 +103,10 @@ private:
 	std::unique_ptr<LayerSource> source_;
 
 	std::string name_;
-	double in_time_ = 0.0;
-	double out_time_ = 0.0;
-	double current_time_ = 0.0;
+	Frame in_frame_ = 0.0f;
+	Frame out_frame_ = 0.0f;
+	Frame current_frame_ = -1.0f;
+	float fps_ = 30.0f;
 
 	TransformProp transform_;
 	FloatProp time_remap_;

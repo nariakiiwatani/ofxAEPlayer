@@ -14,10 +14,9 @@ public:
 	void accept(Visitor &visitor) override;
 	bool load(const std::filesystem::path &filepath) override;
 	
-	// Time API
-	bool setTime(double time) override;
-	double getTime() const override { return current_time_; }
-	double getDuration() const override;
+	bool setFrame(Frame frame) override;
+	
+	FrameCount getDurationFrames() const override;
 	
 	void update() override;
 	void draw(float x, float y, float w, float h) const override;
@@ -29,7 +28,6 @@ public:
 private:
 	std::shared_ptr<ofVideoPlayer> player_;
 	std::filesystem::path filepath_;
-	double current_time_ = 0.0;
 };
 
 }} // namespace ofx::ae

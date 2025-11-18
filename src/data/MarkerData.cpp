@@ -15,46 +15,64 @@ bool Marker::parseMarkers(const ofJson &marker_data, std::vector<MarkerData> &re
 		return false;
 	}
 	
-	for (const auto &marker : marker_data) {
+	for(const auto &marker : marker_data) {
 		MarkerData data;
 		
-		if(!marker.contains("time") || !marker["time"].is_number()) {
-			ofLogError("ofxAEMarker") << "Marker missing or invalid time value";
+		// v3.0 JSON: frame-based only
+		if(!marker.contains("frame") || !marker["frame"].is_number()) {
+			ofLogError("ofxAEMarker") << "Marker missing or invalid frame value (v3.0 JSON required)";
 			continue;
 		}
-		data.time = marker["time"].get<double>();
-	
+		data.frame = marker["frame"].get<float>();
+		
+		// Name field
+		if(marker.contains("name") && marker["name"].is_string()) {
+			data.name = marker["name"].get<std::string>();
+		}
+		
+		// Comment field
 		if(marker.contains("comment") && marker["comment"].is_string()) {
 			data.comment = marker["comment"].get<std::string>();
 		}
 		
-		if(marker.contains("duration") && marker["duration"].is_number()) {
-			data.duration = marker["duration"].get<double>();
+		// Duration in frames
+		if(marker.contains("durationFrames") && marker["durationFrames"].is_number()) {
+			data.duration_frames = marker["durationFrames"].get<float>();
 		}
 		
 		result.push_back(data);
 	}
 	
+	// Sort by frame position
 	std::sort(result.begin(), result.end(), [](const MarkerData &a, const MarkerData &b) {
-		return a.time < b.time;
+		return a.frame < b.frame;
 	});
 	
 	return !result.empty();
 }
 
-std::vector<MarkerData> Marker::getMarkersInRange(const std::vector<MarkerData> &markers, double start_time, double end_time)
+// Frame-based range query (primary)
+std::vector<MarkerData> Marker::getMarkersInFrameRange(const std::vector<MarkerData> &markers, Frame start_frame, Frame end_frame)
 {
 	std::vector<MarkerData> result;
 	
 	for(const auto &marker : markers) {
-		double marker_end = marker.time + marker.duration;
-		if((marker.time >= start_time && marker.time <= end_time) ||
-			(marker.time <= start_time && marker_end >= start_time)) {
+		Frame marker_end = marker.frame + marker.duration_frames;
+		if((marker.frame >= start_frame && marker.frame <= end_frame) ||
+			(marker.frame <= start_frame && marker_end >= start_frame)) {
 			result.push_back(marker);
 		}
 	}
 	
 	return result;
+}
+
+// Legacy time-based range query (compatibility wrapper)
+std::vector<MarkerData> Marker::getMarkersInRange(const std::vector<MarkerData> &markers, double start_time, double end_time, float fps)
+{
+	Frame start_frame = util::timeToFrame(start_time, fps);
+	Frame end_frame = util::timeToFrame(end_time, fps);
+	return getMarkersInFrameRange(markers, start_frame, end_frame);
 }
 
 const MarkerData* Marker::findMarkerByComment(const std::vector<MarkerData> &markers, const std::string &comment)
@@ -67,14 +85,32 @@ const MarkerData* Marker::findMarkerByComment(const std::vector<MarkerData> &mar
 	return nullptr;
 }
 
-const MarkerData* Marker::findMarkerByTime(const std::vector<MarkerData> &markers, double time)
+const MarkerData* Marker::findMarkerByName(const std::vector<MarkerData> &markers, const std::string &name)
 {
 	for(const auto &marker : markers) {
-		if(time >= marker.time && time <= marker.time + marker.duration) {
+		if(marker.name == name) {
 			return &marker;
 		}
 	}
 	return nullptr;
+}
+
+// Frame-based marker lookup (primary)
+const MarkerData* Marker::findMarkerAtFrame(const std::vector<MarkerData> &markers, Frame frame)
+{
+	for(const auto &marker : markers) {
+		if(marker.containsFrame(frame)) {
+			return &marker;
+		}
+	}
+	return nullptr;
+}
+
+// Legacy time-based marker lookup (compatibility wrapper)
+const MarkerData* Marker::findMarkerByTime(const std::vector<MarkerData> &markers, double time, float fps)
+{
+	Frame frame = util::timeToFrame(time, fps);
+	return findMarkerAtFrame(markers, frame);
 }
 
 std::vector<const MarkerData*> Marker::findMarkersWithDuration(const std::vector<MarkerData> &markers)
@@ -82,7 +118,7 @@ std::vector<const MarkerData*> Marker::findMarkersWithDuration(const std::vector
 	std::vector<const MarkerData*> result;
 	
 	for(const auto &marker : markers) {
-		if(marker.duration > 0.0) {
+		if(marker.duration_frames > 0.0f) {
 			result.push_back(&marker);
 		}
 	}

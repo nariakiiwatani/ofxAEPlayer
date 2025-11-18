@@ -23,9 +23,9 @@ public:
 	}
 	void update() override {}
 	
-	bool setTime(double time) override { current_time_ = time; return false; }
-	double getTime() const override { return current_time_; }
-	double getDuration() const override { return std::numeric_limits<double>::max(); }
+	bool setFrame(Frame frame) override;
+	
+	FrameCount getDurationFrames() const override { return std::numeric_limits<FrameCount>::max(); }
 
 	void draw(float x, float y, float w, float h) const override {
 		RenderContext::push();
@@ -45,6 +45,5 @@ public:
 private:
 	glm::ivec2 size_;
 	ofFloatColor color_;
-	double current_time_ = 0.0;
 };
 }} // namespace ofx::ae

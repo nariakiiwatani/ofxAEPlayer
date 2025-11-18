@@ -16,9 +16,9 @@ public:
 	void accept(Visitor &visitor) override;
 	bool load(const std::filesystem::path &filepath) override;
 	
-	bool setTime(double time) override;
-	double getTime() const override;
-	double getDuration() const override;
+	bool setFrame(Frame frame) override;
+	
+	FrameCount getDurationFrames() const override;
 	
 	void update() override;
 	void draw(float x, float y, float w, float h) const override;

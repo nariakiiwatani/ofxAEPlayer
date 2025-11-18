@@ -16,11 +16,17 @@ class Composition : public ofBaseDraws, public ofBaseUpdates
 public:
 	void accept(Visitor &visitor);
 	struct Info {
-		double duration;
-		double end_time;
+		FrameCount frame_count;
 		float fps;
 		int width;
 		int height;
+		Frame start_frame;
+		Frame end_frame;
+		
+		double getDuration() const { return util::frameToTime(frame_count, fps); }
+		double getStartTime() const { return util::frameToTime(start_frame, fps); }
+		double getEndTime() const { return util::frameToTime(end_frame, fps); }
+		
 		struct LayerInfo {
 			std::string name, unique_name, filepath, parent;
 			float offset;
@@ -34,18 +40,22 @@ public:
 		std::vector<LayerInfo> layers;
 		std::vector<MarkerData> markers;
 
-		Info() : duration(0.0), fps(30.0f), width(0), height(0) {}
+		Info() : frame_count(0.0f), fps(30.0f), width(0), height(0), start_frame(0.0f), end_frame(0.0f) {}
 	};
 
 	bool load(const std::filesystem::path &filepath);
 	bool setup(const ofJson &json, const std::filesystem::path &base_dir);
 	
+	bool setFrame(Frame frame);
+	Frame getFrame() const { return current_frame_; }
+	FrameCount getFrameCount() const { return info_.frame_count; }
+	float getFps() const { return info_.fps; }
+	
 	bool setTime(double time);
-	double getTime() const { return current_time_; }
-	double getDuration() const { return info_.duration; }
-	double getFps() const { return info_.fps; }
-	int convertTimeToFrame(double time) const { return time*info_.fps; }
-	double convertFrameToTime(int frame) const { return frame/info_.fps; }
+	double getTime() const;
+	double getDuration() const;
+	Frame convertTimeToFrame(double time) const { return util::timeToFrame(time, info_.fps); }
+	double convertFrameToTime(int frame) const { return util::frameToTime(frame, info_.fps); }
 
 	void update() override;
 	using ofBaseDraws::draw;
@@ -62,9 +72,9 @@ private:
 	std::vector<std::shared_ptr<Layer>> layers_;
 	std::map<std::string, std::weak_ptr<Layer>> name_layers_map_;
 	std::map<std::string, std::weak_ptr<Layer>> unique_name_layers_map_;
-	std::map<std::weak_ptr<Layer>, double, std::owner_less<std::weak_ptr<Layer>>> layer_offsets_;
+	std::map<std::weak_ptr<Layer>, Frame, std::owner_less<std::weak_ptr<Layer>>> layer_offsets_;
 
-	double current_time_;
+	Frame current_frame_;
 };
 
 }}

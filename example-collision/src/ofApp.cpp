@@ -25,7 +25,7 @@ void ofApp::update()
 {
 	if(comp_) {
 		// Update timeline
-		if(++timeline_ >= comp_->getInfo().duration) {
+		if(++timeline_ >= comp_->getInfo().frame_count) {
 			timeline_ = 0;
 		}
 		if(comp_->setFrame(timeline_)) {

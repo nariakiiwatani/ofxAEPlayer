@@ -2,6 +2,7 @@
 
 #include "ofxAEAssetManager.h"
 #include "ofxAEVisitor.h"
+#include "../utils/ofxAETimeUtils.h"
 
 #include "ofxAEStillSource.h"
 
@@ -20,6 +21,16 @@ bool StillSource::load(const std::filesystem::path &filepath)
 		ofLogError("StillSource") << "Failed to load texture: " << filepath;
 		return false;
 	}
+}
+
+bool StillSource::setFrame(Frame frame)
+{
+	if(util::isNearFrame(current_frame_, frame)) {
+		return false;
+	}
+	
+	current_frame_ = frame;
+	return false;  // Still image never changes
 }
 
 void StillSource::draw(float x, float y, float w, float h) const

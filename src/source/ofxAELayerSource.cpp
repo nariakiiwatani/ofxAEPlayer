@@ -42,4 +42,19 @@ void LayerSource::accept(Visitor &visitor)
 	visitor.visit(*this);
 }
 
+bool LayerSource::setTime(double time)
+{
+	return setFrame(util::timeToFrame(time, fps_));
+}
+
+double LayerSource::getTime() const
+{
+	return util::frameToTime(current_frame_, fps_);
+}
+
+double LayerSource::getDuration() const
+{
+	return util::frameToTime(getDurationFrames(), fps_);
+}
+
 }} // namespace ofx::ae

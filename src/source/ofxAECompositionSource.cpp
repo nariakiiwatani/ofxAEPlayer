@@ -30,22 +30,27 @@ bool CompositionSource::load(const std::filesystem::path &filepath)
 	}
 }
 
-bool CompositionSource::setTime(double time)
+bool CompositionSource::setFrame(Frame frame)
 {
 	if(!composition_) return false;
-	return composition_->setTime(time);
+	
+	if(util::isNearFrame(current_frame_, frame)) {
+		return false;
+	}
+	
+	current_frame_ = frame;
+	
+	float nested_fps = composition_->getFps();
+	Frame nested_frame = (fps_ == nested_fps) ? frame :
+		(frame * nested_fps / fps_);
+	
+	return composition_->setFrame(nested_frame);
 }
 
-double CompositionSource::getTime() const
+FrameCount CompositionSource::getDurationFrames() const
 {
-	if(!composition_) return 0.0;
-	return composition_->getTime();
-}
-
-double CompositionSource::getDuration() const
-{
-	if(!composition_) return 0.0;
-	return composition_->getDuration();
+	if(!composition_) return 0.0f;
+	return composition_->getFrameCount();
 }
 
 void CompositionSource::update()

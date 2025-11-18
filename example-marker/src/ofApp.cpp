@@ -1,7 +1,5 @@
 #include "ofApp.h"
 
-#include "ofxAEMarkerUtils.h"
-
 //--------------------------------------------------------------
 void ofApp::setup(){
 	comp_.load("marker_test/comp.json");

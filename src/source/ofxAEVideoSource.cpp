@@ -23,27 +23,31 @@ bool VideoSource::load(const std::filesystem::path &filepath)
 	}
 }
 
-bool VideoSource::setTime(double time)
+bool VideoSource::setFrame(Frame frame)
 {
 	if(!player_) return false;
 	
-	if(util::isNearTime(current_time_, time)) {
+	if(util::isNearFrame(current_frame_, frame)) {
 		return false;
 	}
 	
-	double duration = getDuration();
+	current_frame_ = frame;
+	
+	double video_time = util::frameToTime(frame, fps_);
+	double duration = player_->getDuration();
+	
 	if(duration > 0.0) {
-		float normalized_position = static_cast<float>(time / duration);
+		float normalized_position = static_cast<float>(video_time / duration);
 		player_->setPosition(normalized_position);
 	}
 	
-	current_time_ = time;
 	return true;
 }
 
-double VideoSource::getDuration() const
+FrameCount VideoSource::getDurationFrames() const
 {
-	return player_ ? player_->getDuration() : 0.0;
+	if(!player_) return 0.0f;
+	return player_->getTotalNumFrames();
 }
 
 void VideoSource::update()

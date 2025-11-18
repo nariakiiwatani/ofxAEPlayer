@@ -16,7 +16,7 @@ void ofApp::setup()
 		ofLogNotice("ofApp") << "Composition loaded successfully";
 		auto &&comp = ae_player->getComposition();
 		info_ = comp.getInfo();
-		ofLogNotice("ofApp") << "Duration: " << info_.duration;
+		ofLogNotice("ofApp") << "Duration: " << info_.getDuration();
 		ofLogNotice("ofApp") << "Width: " << info_.width;
 		ofLogNotice("ofApp") << "Height: " << info_.height;
 
@@ -58,8 +58,8 @@ void ofApp::drawDebugInfo()
 {
     string info = "Debug Info:\n";
     info += "Playing: " + string(player_.isPlaying() ? "Yes" : "No") + "\n";
-	info += "time: " + ofToString(player_.getPosition()*info_.duration) + "s\n";
-    info += "Duration: " + ofToString(info_.duration, 2) + "s\n";
+	info += "time: " + ofToString(player_.getPosition()*info_.getDuration()) + "s\n";
+	   info += "Duration: " + ofToString(info_.getDuration(), 2) + "s\n";
     info += "FPS: " + ofToString(ofGetFrameRate(), 1) + "\n";
 	info += "Layers: " + ofToString(info_.layers.size()) + "\n";
 

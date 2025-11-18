@@ -5,6 +5,7 @@
 #include "ofRectangle.h"
 #include "ofxAERenderContext.h"
 #include "../data/Enums.h"
+#include "../utils/ofxAETimeUtils.h"
 #include <string>
 #include <memory>
 
@@ -24,9 +25,16 @@ public:
 
 	virtual void update() override {}
 	
-	virtual bool setTime(double time) { return false; }
-	virtual double getTime() const { return 0.0; }
-	virtual double getDuration() const { return 0.0; }
+	virtual bool setFrame(Frame frame) = 0;
+	virtual Frame getFrame() const { return current_frame_; }
+
+	virtual bool setTime(double time);
+	virtual double getTime() const;
+	
+	virtual FrameCount getDurationFrames() const { return 0.0f; }
+	virtual double getDuration() const;
+	
+	virtual void setFps(float fps) { fps_ = fps; }
 
 	using ofBaseDraws::draw;
 	virtual void draw(float x, float y, float w, float h) const override {}
@@ -42,5 +50,8 @@ public:
 	 return createSourceOfType(sourceTypeFromString(type));
  }
 
+protected:
+	Frame current_frame_ = 0.0f;
+	float fps_ = 30.0f;
 };
 }} // namespace ofx::ae

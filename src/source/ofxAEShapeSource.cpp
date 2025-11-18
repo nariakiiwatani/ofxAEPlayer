@@ -38,19 +38,15 @@ void ShapeSource::update()
 	}
 }
 
-bool ShapeSource::setTime(double time)
+bool ShapeSource::setFrame(Frame frame)
 {
-	if(util::isNearTime(current_time_, time)) {
+	if(util::isNearFrame(current_frame_, frame)) {
 		return false;
 	}
 	
-	bool changed = false;
-	if(shape_props_.setTime(time)) {
-		changed = true;
-	}
+	current_frame_ = frame;
 	
-	current_time_ = time;
-	return changed;
+	return shape_props_.setFrame(frame);
 }
 
 bool ShapeSource::tryExtract(ShapeData &dst) const

@@ -9,6 +9,7 @@
 #include "../prop/ofxAEKeyframe.h"
 #include "ofxAEVisitor.h"
 #include "../libs/JsonFuncs.h"
+#include "../utils/ofxAETimeUtils.h"
 
 namespace ofx { namespace ae {
 
@@ -114,9 +115,9 @@ Layer::Layer()
 : TransformNode()
 , source_(nullptr)
 , name_("")
-, in_time_(0.0)
-, out_time_(0.0)
-, current_time_(-1.0)
+, in_frame_(0.0f)
+, out_frame_(0.0f)
+, current_frame_(-1.0f)
 , blend_mode_(BlendMode::NORMAL)
 {
 }
@@ -143,8 +144,8 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 #define EXTRACT_(n) json::extract(json, #n, n##_)
 	EXTRACT_(name);
 	
-	json::extract(json, "in", in_time_);
-	json::extract(json, "out", out_time_);
+	in_frame_ = json.value("inFrame", 0.0f);
+	out_frame_ = json.value("outFrame", 0.0f);
 
 	std::string blendingMode = "NORMAL";
 	EXTRACT(blendingMode);
@@ -155,7 +156,7 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 	float stretch = 100.0f;
 	EXTRACT(stretch);
 	stretch_ = stretch / 100.0f;
-	
+
 	if(json.contains("transform")) {
 		auto&& kf = json.value("/keyframes/transform"_json_pointer, ofJson{});
 		transform_.setup(json["transform"], kf);
@@ -180,7 +181,7 @@ bool Layer::setup(const ofJson &json, const std::filesystem::path &base_dir)
 		ofLogVerbose("Layer") << "No source resolved for layer: " << name_;
 	}
 
-	current_time_ = -1.0;
+	current_frame_ = -1.0f;
 	return true;
 #undef EXTRACT_
 #undef EXTRACT
@@ -195,23 +196,35 @@ void Layer::update()
 	}
 }
 
-bool Layer::isActiveAtTime(double time) const
+void Layer::setFps(float fps)
 {
-	return in_time_ <= out_time_ ? in_time_ <= time && time < out_time_
-	: out_time_ < time && time < in_time_;
+	fps_ = fps;
+	
+	transform_.setFps(fps);
+	time_remap_.setFps(fps);
+	mask_.setFps(fps);
+	
+	if(source_) {
+		source_->setFps(fps);
+	}
 }
 
-
-bool Layer::setTime(double time)
+bool Layer::isActiveAtFrame(Frame frame) const
 {
-	if(util::isNearTime(current_time_, time)) {
+	return in_frame_ <= out_frame_ ? in_frame_ <= frame && frame < out_frame_
+	: out_frame_ < frame && frame < in_frame_;
+}
+
+bool Layer::setFrame(Frame frame)
+{
+	if(util::isNearFrame(current_frame_, frame)) {
 		return false;
 	}
 
 	bool ret = false;
 	bool need_mask_update = false;
 	
-	if(transform_.setTime(time)) {
+	if(transform_.setFrame(frame)) {
 		TransformData t;
 		if(!transform_.tryExtract(t)) {
 			ofLogWarning("PropertyExtraction") << "Failed to extract TransformData, using defaults";
@@ -224,25 +237,21 @@ bool Layer::setTime(double time)
 		ret |= true;
 	}
 
-	if(isActiveAtTime(time) || isTrackMatte()) {
-		if(mask_.setTime(time)) {
+	if(isActiveAtFrame(frame) || isTrackMatte()) {
+		if(mask_.setFrame(frame)) {
 			mask_collection_.setupFromMaskProp(mask_);
 			ret |= true;
 			need_mask_update |= true;
 		}
 
 		if(source_) {
-			double source_time = time;
+			Frame source_frame = frame / stretch_;
 			
-			if(stretch_ != 1.0f) {
-				source_time = time / stretch_;
+			if(time_remap_.setFrame(frame)) {
+				source_frame = time_remap_.get();
 			}
 			
-			if(time_remap_.setTime(time)) {
-				source_time = time_remap_.get();
-			}
-			
-			if(source_->setTime(source_time)) {
+			if(source_->setFrame(source_frame)) {
 				ret |= true;
 				need_mask_update |= !mask_collection_.empty();
 			}
@@ -251,13 +260,39 @@ bool Layer::setTime(double time)
 	if(need_mask_update || isTrackMatte() || hasTrackMatte()) {
 		updateLayerFBO();
 	}
-	current_time_ = time;
+	current_frame_ = frame;
 	return ret;
+}
+
+bool Layer::setTime(double time)
+{
+	return setFrame(util::timeToFrame(time, fps_));
+}
+
+double Layer::getTime() const
+{
+	return util::frameToTime(current_frame_, fps_);
+}
+
+double Layer::getInTime() const
+{
+	return util::frameToTime(in_frame_, fps_);
+}
+
+double Layer::getOutTime() const
+{
+	return util::frameToTime(out_frame_, fps_);
+}
+
+bool Layer::isActiveAtTime(double time) const
+{
+	return isActiveAtFrame(util::timeToFrame(time, fps_));
 }
 
 void Layer::draw(float x, float y, float w, float h) const
 {
-	if(!isActiveAtTime(current_time_)) return;
+	if(current_frame_ < 0.0f) return; // Not initialized
+	if(!isActiveAtFrame(current_frame_)) return;
 
 	TransformNode::pushMatrix();
 	RenderContext::push();

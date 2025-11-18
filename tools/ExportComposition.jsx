@@ -294,7 +294,8 @@ var PROPERTY_MAPPING_CONFIG = {
     "ADBE Marker": { ignored: true },
     "ADBE Effect Parade": { ignored: true },
     "ADBE Time Remapping": {
-        wrapInObject: "timeRemap"
+        wrapInObject: "timeRemap",
+        customProcessor: "timeRemapToFrames"
     },
     "ADBE MTrackers": { ignored: true },
     "ADBE Vector Materials Group": { ignored: true },
@@ -399,6 +400,13 @@ function fillRuleToString(rule) {
     map[1] = "NON_ZERO";
     map[2] = "EVEN_ODD";
     return map.hasOwnProperty(rule) ? map[rule] : "NON_ZERO";
+}
+
+function timeRemapToFrames(value, fps) {
+    if (typeof value === 'number') {
+        return Math.round(value * fps);
+    }
+    return value;
 }
 
 function maskModeToString(mode) {
@@ -1236,6 +1244,8 @@ var CRC32_TABLE = makeCrc32Table();
                         return windingDirectionToString(value);
                     case "fillRule":
                         return fillRuleToString(value);
+                    case "timeRemapToFrames":
+                        return timeRemapToFrames(value, fps);
                     default:
                         break;
                 }

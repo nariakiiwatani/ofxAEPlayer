@@ -31,7 +31,7 @@ private:
 		MarkerPlayer(){}
 		MarkerPlayer(ofx::ae::MarkerData m) {
 			start = m.frame;
-			length = m.length;
+			length = m.duration_frames;
 			auto commands = ofSplitString(m.comment, "\n");
 			name = commands[0];
 			repeat = ONCE;
