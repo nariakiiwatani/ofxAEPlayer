@@ -941,11 +941,12 @@ var CRC32_TABLE = makeCrc32Table();
                 if (app.project.activeItem==null || !(app.project.activeItem instanceof CompItem)){ alert("コンポジションを選択してください。"); return; }
 
 
-                debugLog("ExecuteSystem", "Starting property extraction process (time-based export)", {
+                debugLog("ExecuteSystem", "Starting property extraction process (frame-based export)", {
                     outputFolder: outputFolderPath,
                     useSharedAssets: useSharedAssets,
                     sharedAssetsPath: sharedAssetsPath,
-                    decimalPlaces: decPlaces
+                    decimalPlaces: decPlaces,
+                    exportMode: "frame"
                 }, "notice");
 
                 app.beginUndoGroup("プロパティ抽出"); undoOpen=true;
@@ -1525,8 +1526,17 @@ var CRC32_TABLE = makeCrc32Table();
         if (valuesArray.length>0) dataObj[String(startFrame)] = valuesArray.slice();
     }
 
+    // ===== Frame conversion utilities =====
+    function timeToFrame(time, fps) {
+        return time * fps;  // Returns float frame number
+    }
+    
+    function formatFrame(frame, decimalPlaces) {
+        return parseFloat(Number(frame).toFixed(decimalPlaces || 4));
+    }
+    
     // ===== marker extractors =====
-    function extractMarkers(markers, offsetTime){
+    function extractMarkers(markers, offsetTime, fps, decimalPlaces){
         var markerData = [];
         for (var i = 1; i <= markers.numKeys; i++) {
             var time = markers.keyTime(i);
@@ -1536,9 +1546,9 @@ var CRC32_TABLE = makeCrc32Table();
             var comment = markerValue.comment ? markerValue.comment.replace(/[\r\n]+/g, '\n') : "";
             
             var markerInfo = {
-                time: Number(adjustedTime.toFixed(6)),
+                frame: formatFrame(timeToFrame(adjustedTime, fps), decimalPlaces),
                 comment: comment,
-                duration: Number(duration.toFixed(6))
+                durationFrames: formatFrame(timeToFrame(duration, fps), decimalPlaces)
             };
             
             markerData.push(markerInfo);
@@ -1609,7 +1619,7 @@ var CRC32_TABLE = makeCrc32Table();
 
 
 
-    // 時間ベースのキーフレーム抽出関数（統一版）
+    // フレームベースのキーフレーム抽出関数（統一版）
     function extractKeyframeProperty(prop, offsetTime, fps, decimalPlaces, customProcessor) {
         try {
             if (!prop) {
@@ -1626,7 +1636,7 @@ var CRC32_TABLE = makeCrc32Table();
                 return null;
             }
 
-            // Extract keyframe data with time keys
+            // Extract keyframe data with frame keys
             var keyframes = [];
             
             for (var i = 1; i <= nk; i++) {
@@ -1634,14 +1644,14 @@ var CRC32_TABLE = makeCrc32Table();
                     var keyTime = prop.keyTime(i);
                     var adjustedTime = keyTime - offsetTime;
                     
-                    // Format time with 6 decimal places for precision (microseconds)
-                    var timeKey = Number(adjustedTime.toFixed(6));
+                    // Convert time to frame number (float)
+                    var frameKey = formatFrame(timeToFrame(adjustedTime, fps), decimalPlaces);
                     
                     var keyValue = extractValue(prop, keyTime, decimalPlaces, customProcessor, fps);
                     
                     // キーフレーム情報を構築
                     var keyframeInfo = {
-                        time: timeKey,
+                        frame: frameKey,
                         value: keyValue
                     };
                     
@@ -2354,24 +2364,24 @@ var CRC32_TABLE = makeCrc32Table();
         var fps = comp.frameRate;
 
         var compInfo = {};
-        compInfo["version"]       = "2.0";
-        compInfo["exportMode"]    = "time";
-        compInfo["duration"]      = comp.duration;
+        compInfo["version"]       = "3.0";
+        compInfo["exportMode"]    = "frame";
+        compInfo["frameCount"]    = formatFrame(timeToFrame(comp.duration, fps), DEC);
         compInfo["fps"]           = fps;
         compInfo["width"]         = comp.width;
         compInfo["height"]        = comp.height;
-        compInfo["startTime"]     = comp.workAreaStart;
-        compInfo["endTime"]       = comp.workAreaStart + comp.workAreaDuration;
+        compInfo["startFrame"]    = formatFrame(timeToFrame(comp.workAreaStart, fps), DEC);
+        compInfo["endFrame"]      = formatFrame(timeToFrame(comp.workAreaStart + comp.workAreaDuration, fps), DEC);
         compInfo["layers"]        = [];
         
-        debugLog("extractPropertiesForAllLayers", "Using time-based export (v2.0)", {
+        debugLog("extractPropertiesForAllLayers", "Using frame-based export (v3.0)", {
             fps: fps,
-            duration: comp.duration
+            frameCount: formatFrame(timeToFrame(comp.duration, fps), DEC)
         }, "notice");
         
         // コンポジションマーカーを追加
         if (comp.markerProperty.numKeys > 0) {
-            compInfo["markers"] = extractMarkers(comp.markerProperty, comp.workAreaStart);
+            compInfo["markers"] = extractMarkers(comp.markerProperty, comp.workAreaStart, fps, DEC);
         }
 
         debugLog("extractPropertiesForAllLayers", "Total layers to process: " + comp.numLayers);
@@ -2418,7 +2428,7 @@ var CRC32_TABLE = makeCrc32Table();
                 layerInfo.uniqueName = layerNameForFile;
                 layerInfo.file = getRelativePath(outputFolder, layerFolder) + "/" + layerInfo.uniqueName + ".json";
                 layerInfo.visible = layer.enabled;
-                layerInfo.startTime = layer.startTime;
+                layerInfo.startFrame = formatFrame(timeToFrame(layer.startTime, fps), DEC);
 
                 var bakedAsSequence = null;
                 try {
@@ -2491,19 +2501,19 @@ var CRC32_TABLE = makeCrc32Table();
                 });
 
                 var timing = safelyProcessLayerProperty(layer, "timing", function() {
-                    var inPoint = Number((layer.inPoint - layer.startTime).toFixed(6));
-                    var outPoint = Number((layer.outPoint - layer.startTime).toFixed(6));
+                    var inFrame = formatFrame(timeToFrame(layer.inPoint - layer.startTime, fps), DEC);
+                    var outFrame = formatFrame(timeToFrame(layer.outPoint - layer.startTime, fps), DEC);
                     var stretch = layer.stretch;  // Time Stretch/Reverse value
-                    debugLog("LayerProcessing", "Layer timing - in: " + inPoint + ", out: " + outPoint + ", stretch: " + stretch);
-                    return {"in": inPoint, "out": outPoint, "stretch": stretch};
+                    debugLog("LayerProcessing", "Layer timing - inFrame: " + inFrame + ", outFrame: " + outFrame + ", stretch: " + stretch);
+                    return {"inFrame": inFrame, "outFrame": outFrame, "stretch": stretch};
                 });
                 if (timing) {
-                    resultData["in"] = timing.in;
-                    resultData["out"] = timing.out;
+                    resultData["inFrame"] = timing.inFrame;
+                    resultData["outFrame"] = timing.outFrame;
                     resultData["stretch"] = timing.stretch;
                 } else {
-                    resultData["in"] = 0;
-                    resultData["out"] = 0;
+                    resultData["inFrame"] = 0;
+                    resultData["outFrame"] = 0;
                     resultData["stretch"] = 100.0;  // Default value
                 }
 
@@ -2835,7 +2845,7 @@ var CRC32_TABLE = makeCrc32Table();
                 safelyProcessLayerProperty(layer, "markers", function() {
                     if (layer.marker && layer.marker.numKeys > 0) {
                         debugLog("LayerProcessing", "Processing markers for layer: " + layer.name + " (marker count: " + layer.marker.numKeys + ")");
-                        resultData["markers"] = extractMarkers(layer.marker, layer.startTime);
+                        resultData["markers"] = extractMarkers(layer.marker, layer.startTime, fps, DEC);
                         debugLog("LayerProcessing", "Successfully processed markers for layer: " + layer.name);
                     } else {
                         debugLog("LayerProcessing", "Layer has no markers: " + layer.name);
