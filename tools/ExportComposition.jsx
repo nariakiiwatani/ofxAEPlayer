@@ -1719,34 +1719,56 @@ var CRC32_TABLE = makeCrc32Table();
             var prevValue = null;
             var groupStartFrame = null;
             var groupValues = [];
+            var isChanging = false;
             
             for (var frame = 0; frame <= duration; frame++) {
-                var time = toTime(frame + offset);
+                // offset is the absolute start frame, frame iterates 0..duration
+                var absoluteFrame = offset + frame;
+                var time = toTime(absoluteFrame);
                 var extractedValue = extractValue(prop, time, decimalPlaces, customProcessor, fps);
                                 
                 var hasChanged = (prevValue === null) || !valuesAreEqual(extractedValue, prevValue);
                 
                 if (hasChanged) {
-                    if (groupStartFrame === null) {
-                        groupStartFrame = frame;
-                        groupValues = [];
-                    } else if (frame !== groupStartFrame + groupValues.length) {
-                        saveGroup(animationData, groupStartFrame, groupValues);
-                        groupStartFrame = frame;
-                        groupValues = [];
+                    // Value is changing
+                    if (isChanging) {
+                        // Continue the changing group
+                        groupValues.push(extractedValue);
+                    } else {
+                        // Start a new changing group (end static group first if exists)
+                        if (groupStartFrame !== null) {
+                            saveGroup(animationData, groupStartFrame, groupValues);
+                        }
+                        groupStartFrame = absoluteFrame;
+                        groupValues = [extractedValue];
+                        isChanging = true;
                     }
-                    groupValues.push(extractedValue);
                 } else {
-                    if (groupStartFrame !== null) {
-                        saveGroup(animationData, groupStartFrame, groupValues);
-                        groupStartFrame = null;
-                        groupValues = [];
+                    // Value is static (not changing)
+                    if (isChanging) {
+                        // End the changing group
+                        if (groupStartFrame !== null) {
+                            saveGroup(animationData, groupStartFrame, groupValues);
+                        }
+                        groupStartFrame = absoluteFrame;
+                        groupValues = [extractedValue];
+                        isChanging = false;
+                    } else {
+                        // Continue static group
+                        if (groupStartFrame !== null) {
+                            groupValues.push(extractedValue);
+                        } else {
+                            // First frame
+                            groupStartFrame = absoluteFrame;
+                            groupValues = [extractedValue];
+                        }
                     }
                 }
                 
                 prevValue = extractedValue;
             }
             
+            // Save final group
             if (groupStartFrame !== null) {
                 saveGroup(animationData, groupStartFrame, groupValues);
             }
@@ -1804,8 +1826,8 @@ var CRC32_TABLE = makeCrc32Table();
                 var duration = end - start;
                 var shouldBake = options.useFullFrameAnimation || hasExpression;
                 if (shouldBake) {
-                    var offset = toFrame(offsetTime);
-                    result = extractAnimatedProperty(prop, offset, duration, fps, DEC, customProcessor);
+                    // Use start frame as offset (first keyframe frame number)
+                    result = extractAnimatedProperty(prop, start, duration, fps, DEC, customProcessor);
                 } else {
                     // Always use time-based extraction (time-only export mode)
                     result = extractKeyframeProperty(prop, offsetTime, fps, DEC, customProcessor);
@@ -1930,8 +1952,25 @@ var CRC32_TABLE = makeCrc32Table();
                         return item;
                     });
                 } else if (typeof result === 'object') {
-                    // For object results (static values or property groups), add visible property
-                    result.visible = property.enabled;
+                    // Check if this is a full-frame animation object (has numeric string keys)
+                    var isAnimationData = false;
+                    var keys = Object.keys(result);
+                    if (keys.length > 0) {
+                        // If all keys are numeric strings, it's animation data
+                        var allNumeric = true;
+                        for (var i = 0; i < keys.length; i++) {
+                            if (!/^\d+$/.test(keys[i])) {
+                                allNumeric = false;
+                                break;
+                            }
+                        }
+                        isAnimationData = allNumeric;
+                    }
+                    
+                    // Only add visible property to non-animation-data objects
+                    if (!isAnimationData) {
+                        result.visible = property.enabled;
+                    }
                 }
             }
             
