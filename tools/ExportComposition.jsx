@@ -429,12 +429,6 @@ function keyframeInterpolationTypeToString(type) {
     return map.hasOwnProperty(type) ? map[type] : "LINEAR";
 }
 
-    // var KEYFRAME_INTERPOLATION_TYPES = {
-    //     6612: "LINEAR",        // KeyframeInterpolationType.LINEAR
-    //     6613: "BEZIER",        // KeyframeInterpolationType.BEZIER
-    //     6614: "HOLD"           // KeyframeInterpolationType.HOLD
-    // };
-
 // ===== COMMON UTILITY FUNCTIONS =====
 
 function trackMatteTypeToString(t){
@@ -1160,23 +1154,33 @@ var CRC32_TABLE = makeCrc32Table();
             }
             
             // 時間イージング情報を取得
-            try {
-                var inEase = prop.keyInTemporalEase(keyIndex);
-                var outEase = prop.keyOutTemporalEase(keyIndex);
-                if (inEase && outEase) {
+            // CRITICAL: Export temporal easing for ALL multi-keyframe animations
+            // AE uses temporal easing to control velocity even for LINEAR spatial interpolation
+            // This applies to both spatial properties (position, anchor) and scalar properties (rotation, opacity)
+            var shouldExportTemporalEase = (inType === KeyframeInterpolationType.BEZIER ||
+                                           outType === KeyframeInterpolationType.BEZIER ||
+                                           prop.numKeys > 1);  // Always export for multi-keyframe animations
+            
+            if (shouldExportTemporalEase) {
+                try {
+                    var inEase = prop.keyInTemporalEase(keyIndex);
+                    var outEase = prop.keyOutTemporalEase(keyIndex);
+                    
+                    // Always create temporalEase object when shouldExportTemporalEase is true
+                    // Use default values when AE API returns null (common for first/last keyframes)
                     interpolation.temporalEase = {
                         inEase: {
-                            speed: inEase[0] ? inEase[0].speed : 0,
-                            influence: inEase[0] ? inEase[0].influence : 0
+                            speed: (inEase && inEase[0]) ? inEase[0].speed : 0,
+                            influence: (inEase && inEase[0]) ? inEase[0].influence : 16.666666667
                         },
                         outEase: {
-                            speed: outEase[0] ? outEase[0].speed : 0,
-                            influence: outEase[0] ? outEase[0].influence : 0
+                            speed: (outEase && outEase[0]) ? outEase[0].speed : 0,
+                            influence: (outEase && outEase[0]) ? outEase[0].influence : 16.666666667
                         }
                     };
+                } catch (e) {
+                    debugLog("extractKeyframeInterpolation", "Error getting temporal ease: " + e.toString(), null, "warning");
                 }
-            } catch (e) {
-                debugLog("extractKeyframeInterpolation", "Error getting temporal ease: " + e.toString(), null, "warning");
             }
             
             // ロービングとコンティニュアス
@@ -1205,6 +1209,9 @@ var CRC32_TABLE = makeCrc32Table();
                     var inTangent = prop.keyInSpatialTangent(keyIndex);
                     var outTangent = prop.keyOutSpatialTangent(keyIndex);
                     
+                    // Use tangent values directly from After Effects API
+                    // [0, 0] tangents are intentional and indicate linear spatial interpolation
+                    // (no initial/final velocity at keyframe)
                     if (inTangent && outTangent) {
                         tangents = {
                             inTangent: [

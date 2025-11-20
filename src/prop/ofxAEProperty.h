@@ -180,7 +180,6 @@ public:
 	const T& get() const { return cache_.has_value() ? *cache_ : base_; }
 	bool hasAnimation() const override { return !keyframes_.empty(); }
 	
-	// Frame-based API (primary implementation)
 	bool setFrame(Frame frame) override {
 		bool is_first = !cache_.has_value();
 		
@@ -196,8 +195,12 @@ public:
 			current_frame_ = frame;
 			return is_first;
 		}
-		
-		// Convert frame delta to time for Bezier temporal easing
+		if(pair.frame_a == pair.frame_b) {
+			cache_ = pair.keyframe_a->value;
+			current_frame_ = pair.frame_a;
+			return is_first;
+		}
+
 		float dt = static_cast<float>((pair.frame_b - pair.frame_a) / fps_);
 		cache_ = interpolateKeyframe(*pair.keyframe_a, *pair.keyframe_b, dt, pair.ratio);
 		current_frame_ = frame;
@@ -206,7 +209,6 @@ public:
 	
 	Frame getFrame() const override { return current_frame_; }
 	
-	// Time-based API (legacy compatibility - delegates to frame-based)
 	bool setTime(double time) override {
 		return setFrame(util::timeToFrame(time, fps_));
 	}

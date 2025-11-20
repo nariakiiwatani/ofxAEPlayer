@@ -12,7 +12,7 @@ void ofApp::setup()
 
 	auto ae_player = std::make_shared<ofxAEPlayer>();
 	player_.setPlayer(ae_player);
-	if(player_.load("09_oohamu_main.json")) {
+	if(player_.load("sea_transition_v01.json")) {
 		ofLogNotice("ofApp") << "Composition loaded successfully";
 		auto &&comp = ae_player->getComposition();
 		info_ = comp.getInfo();
@@ -34,7 +34,10 @@ void ofApp::update()
 //--------------------------------------------------------------
 void ofApp::draw()
 {
+	ofPushMatrix();
+	ofScale(0.5f, 0.5f);
 	player_.draw(0,0);
+	ofPopMatrix();
     if(show_debug_info_) {
 		drawControls();
         drawDebugInfo();

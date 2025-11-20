@@ -12,6 +12,13 @@ namespace ofx { namespace ae {
 
 namespace interpolation {
 
+namespace {
+	constexpr int ARC_LENGTH_SEGMENTS = 100;
+	constexpr int ARC_LENGTH_BINARY_SEARCH_SEGMENTS = 50;
+	constexpr int MAX_BINARY_SEARCH_ITERATIONS = 20;
+	constexpr float ARC_LENGTH_TOLERANCE = 0.001f;
+}
+
 template<typename T>
 T linear(const T& value_a, const T& value_b, float ratio) {
 	return value_a + (value_b - value_a) * ratio;
@@ -56,24 +63,149 @@ inline ofFloatColor normalize(const ofFloatColor &a) {
 
 template<typename T>
 inline T bezier(const T& value_a, const T& value_b,
-		 const Keyframe::TemporalEase& ease_out_a,
-		 const Keyframe::TemporalEase& ease_in_b,
-		 float dt, float ratio)
+	 const Keyframe::TemporalEase& ease_out_a,
+	 const Keyframe::TemporalEase& ease_in_b,
+	 float dt, float ratio)
+{
+	if (ratio<=0.f) return value_a;
+	if (ratio>=1.f) return value_b;
+	if (dt <= 0.f) return value_a;
+
+	// Temporal Bezier curve control points
+	// Time axis (x): normalized to [0, 1]
+	const float p1x = ease_out_a.influence;
+	const float p2x = 1.f - ease_in_b.influence;
+
+	// Value axis (y): actual values with speed-based tangents
+	const T p0y = value_a;
+	const T p3y = value_b;
+	// speed: value/sec, dt: duration in seconds, influence: percentage
+	const T p1y = value_a + normalize(value_b - value_a) * ease_out_a.speed * dt * ease_out_a.influence;
+	const T p2y = value_b - normalize(value_b - value_a) * ease_in_b.speed * dt * ease_in_b.influence;
+
+	// Solve for temporal parameter s corresponding to input ratio
+	const float s = solveForX(ratio, p1x, p2x);
+
+	// Cubic Bezier interpolation in value space
+	const float u = 1.f - s;
+	const T y = p0y*u*u*u + p1y*3*u*u*s + p2y*3*u*s*s + p3y*s*s*s;
+	return y;
+}
+
+// Helper: Cubic Bezier evaluation
+template<typename T>
+inline T evaluateBezier(const T& p0, const T& p1, const T& p2, const T& p3, float t) {
+	const float u = 1.f - t;
+	return p0*u*u*u + p1*3*u*u*t + p2*3*u*t*t + p3*t*t*t;
+}
+
+template<typename T>
+inline float calculateArcLength(const T& p0, const T& p1, const T& p2, const T& p3) {
+	float totalLength = 0.f;
+	T prevPoint = p0;
+	
+	for (int i = 1; i <= ARC_LENGTH_SEGMENTS; ++i) {
+		const float t = static_cast<float>(i) / static_cast<float>(ARC_LENGTH_SEGMENTS);
+		const T currentPoint = evaluateBezier(p0, p1, p2, p3, t);
+		totalLength += glm::length(currentPoint - prevPoint);
+		prevPoint = currentPoint;
+	}
+	
+	return totalLength;
+}
+
+template<typename T>
+inline float findParameterForArcLength(const T& p0, const T& p1, const T& p2, const T& p3,
+                                       float targetLength, float totalLength) {
+	if (targetLength <= 0.f) return 0.f;
+	if (targetLength >= totalLength) return 1.f;
+	
+	float t_low = 0.f;
+	float t_high = 1.f;
+	
+	for (int iter = 0; iter < MAX_BINARY_SEARCH_ITERATIONS; ++iter) {
+		const float t_mid = (t_low + t_high) * 0.5f;
+		
+		float currentLength = 0.f;
+		T prevPoint = p0;
+		
+		for (int i = 1; i <= ARC_LENGTH_BINARY_SEARCH_SEGMENTS; ++i) {
+			const float t = t_mid * static_cast<float>(i) / static_cast<float>(ARC_LENGTH_BINARY_SEARCH_SEGMENTS);
+			const T currentPoint = evaluateBezier(p0, p1, p2, p3, t);
+			currentLength += glm::length(currentPoint - prevPoint);
+			prevPoint = currentPoint;
+		}
+		
+		if (std::fabs(currentLength - targetLength) < ARC_LENGTH_TOLERANCE) {
+			return t_mid;
+		}
+		
+		if (currentLength < targetLength) {
+			t_low = t_mid;
+		}
+		else {
+			t_high = t_mid;
+		}
+	}
+	
+	return (t_low + t_high) * 0.5f;
+}
+
+// Spatial Bezier with arc-length parameterization (for LINEAR interpolation type)
+// LINEAR in After Effects means constant velocity along the curved path
+template<typename T>
+inline T spatialBezierLinearTime(const T& value_a, const T& value_b,
+		  const T& out_tangent_a, const T& in_tangent_b,
+		  float ratio)
 {
 	if (ratio<=0.f) return value_a;
 	if (ratio>=1.f) return value_b;
 
+	// Spatial tangents from After Effects define Bezier control points
+	const T p0 = value_a;
+	const T p1 = value_a + out_tangent_a;
+	const T p2 = value_b + in_tangent_b;
+	const T p3 = value_b;
+
+	// Calculate total arc length of the curve
+	const float totalArcLength = calculateArcLength(p0, p1, p2, p3);
+	
+	// Target arc length based on ratio (constant velocity)
+	const float targetLength = ratio * totalArcLength;
+	
+	// Find Bezier parameter t that corresponds to targetLength
+	const float t = findParameterForArcLength(p0, p1, p2, p3, targetLength, totalArcLength);
+	
+	// Evaluate Bezier at parameter t
+	return evaluateBezier(p0, p1, p2, p3, t);
+}
+
+// Spatial Bezier with temporal easing (for BEZIER interpolation type)
+template<typename T>
+inline T bezierWithSpatialTangents(const T& value_a, const T& value_b,
+		   const T& out_tangent_a, const T& in_tangent_b,
+		   const Keyframe::TemporalEase& ease_out_a,
+		   const Keyframe::TemporalEase& ease_in_b,
+		   float dt, float ratio)
+{
+	if (ratio<=0.f) return value_a;
+	if (ratio>=1.f) return value_b;
+	if (dt <= 0.f) return value_a;
+
+	// Time axis control points (normalized [0, 1])
 	const float p1x = ease_out_a.influence;
 	const float p2x = 1.f - ease_in_b.influence;
 
-	const T norm = normalize(value_b - value_a);
-	const T p1y = value_a + norm*(ease_out_a.speed * dt * ease_out_a.influence);
-	const T p2y = value_b - norm*(ease_in_b.speed * dt * ease_in_b.influence);
+	// Solve for temporal parameter s
+	const float s = solveForX(ratio, p1x, p2x);
 
-	const float t = solveForX(ratio, p1x, p2x);
+	// Spatial tangents from After Effects define Bezier control points
+	const T p1 = value_a + out_tangent_a;
+	const T p2 = value_b + in_tangent_b;
 
-	const float u = 1.f - t;
-	const T y = value_a*u*u*u + p1y*3*u*u*t + p2y*3*u*t*t + value_b*t*t*t;
+	// Cubic Bezier interpolation in space using temporal parameter s
+	const float u = 1.f - s;
+	const T y = value_a*u*u*u + p1*3*u*u*s + p2*3*u*s*s + value_b*s*s*s;
 	return y;
 }
 
@@ -111,10 +243,24 @@ inline PathData bezier<PathData>(const PathData& va, const PathData& vb,
 	ret.direction = vb.direction;
 	return ret;
 }
+// Helper to check if spatial tangents are available and valid
+template<typename T>
+bool hasSpatialTangents(const Keyframe::Data<T>& kf, int dimension) {
+	return false;
+}
+
+template<int N, typename T>
+bool hasSpatialTangents(const Keyframe::Data<glm::vec<N,T>>& kf, int dimension) {
+	const auto& st_out = kf.spatial_tangents.out_tangent;
+	const auto& st_in = kf.spatial_tangents.in_tangent;
+	// Spatial tangents are 2D (X, Y only) in After Effects
+	return st_out.size() >= 2 && st_in.size() >= 2;
+}
+
 template<typename T>
 T calculate(const Keyframe::Data<T>& keyframe_a,
-			const Keyframe::Data<T>& keyframe_b,
-			float dt, float ratio) {
+		const Keyframe::Data<T>& keyframe_b,
+		float dt, float ratio) {
 	Keyframe::InterpolationType interp_type = keyframe_a.interpolation.out_type;
 	
 	switch (interp_type) {
@@ -126,8 +272,65 @@ T calculate(const Keyframe::Data<T>& keyframe_a,
 			
 		case Keyframe::BEZIER:
 			return bezier(keyframe_a.value, keyframe_b.value,
-						 keyframe_a.interpolation.out_ease,
-						 keyframe_b.interpolation.in_ease, dt, ratio);
+					 keyframe_a.interpolation.out_ease,
+					 keyframe_b.interpolation.in_ease, dt, ratio);
+
+		default:
+			return linear(keyframe_a.value, keyframe_b.value, ratio);
+	}
+}
+
+// Specialization for vec3 to use spatial tangents when available
+template<int N, typename T>
+glm::vec<N,T> calculate(const Keyframe::Data<glm::vec<N,T>>& keyframe_a,
+			   const Keyframe::Data<glm::vec<N,T>>& keyframe_b,
+			   float dt, float ratio) {
+	// Check if spatial tangents are available first (independent of interpolation type)
+	if(hasSpatialTangents(keyframe_a, N) && hasSpatialTangents(keyframe_b, N)) {
+		// Spatial tangents exist - use spatial bezier interpolation
+		glm::vec<N,T> out_tangent{};
+		glm::vec<N,T> in_tangent{};
+		
+		// Copy only X and Y from spatial tangents (Z remains 0)
+		for(int i = 0; i < std::min(N, 2) && i < keyframe_a.spatial_tangents.out_tangent.size(); ++i) {
+			out_tangent[i] = static_cast<T>(keyframe_a.spatial_tangents.out_tangent[i]);
+		}
+		for(int i = 0; i < std::min(N, 2) && i < keyframe_b.spatial_tangents.in_tangent.size(); ++i) {
+			in_tangent[i] = static_cast<T>(keyframe_b.spatial_tangents.in_tangent[i]);
+		}
+		
+		// Check interpolation type to determine temporal progression
+		Keyframe::InterpolationType interp_type = keyframe_a.interpolation.out_type;
+		
+		if(interp_type == Keyframe::LINEAR) {
+			// LINEAR: spatial Bezier with linear time progression
+			return spatialBezierLinearTime(keyframe_a.value, keyframe_b.value,
+						       out_tangent, in_tangent, ratio);
+		} else {
+			// BEZIER: spatial Bezier with temporal easing
+			return bezierWithSpatialTangents(keyframe_a.value, keyframe_b.value,
+							   out_tangent, in_tangent,
+							   keyframe_a.interpolation.out_ease,
+							   keyframe_b.interpolation.in_ease,
+							   dt, ratio);
+		}
+	}
+	
+	// No spatial tangents - use temporal interpolation type
+	Keyframe::InterpolationType interp_type = keyframe_a.interpolation.out_type;
+	
+	switch (interp_type) {
+		case Keyframe::LINEAR:
+			return linear(keyframe_a.value, keyframe_b.value, ratio);
+			
+		case Keyframe::HOLD:
+			return hold(keyframe_a.value, keyframe_b.value, ratio);
+			
+		case Keyframe::BEZIER:
+			// Temporal easing only (no spatial tangents)
+			return bezier(keyframe_a.value, keyframe_b.value,
+					 keyframe_a.interpolation.out_ease,
+					 keyframe_b.interpolation.in_ease, dt, ratio);
 
 		default:
 			return linear(keyframe_a.value, keyframe_b.value, ratio);
