@@ -41,15 +41,13 @@ public:
 	bool setup(const ofJson &json, const std::filesystem::path &source_dir="");
 	void update() override;
 
-	// Frame-based API (primary)
 	bool setFrame(Frame frame);
-	void setFps(float fps);  // Propagate FPS to properties and source
+	void setFps(float fps);
 	Frame getFrame() const { return current_frame_; }
 	Frame getInFrame() const { return in_frame_; }
 	Frame getOutFrame() const { return out_frame_; }
 	bool isActiveAtFrame(Frame frame) const;
 
-	// Time-based API (legacy compatibility)
 	bool setTime(double time);
 	double getTime() const;
 	double getInTime() const;

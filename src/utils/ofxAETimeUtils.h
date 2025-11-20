@@ -6,7 +6,6 @@
 
 namespace ofx { namespace ae {
 
-// Frame types - use float for sub-frame precision
 using Frame = float;
 using FrameCount = float;
 
@@ -14,21 +13,17 @@ using FrameCount = float;
 
 namespace ofx { namespace ae { namespace util {
 
-// Frame-based constants
 constexpr float FRAME_EPSILON = 1e-4f;
 
-// Frame comparison
 inline bool isNearFrame(Frame a, Frame b) {
 	return std::abs(a - b) < FRAME_EPSILON;
 }
 
-// Legacy time comparison (for backward compatibility)
 inline bool isNearTime(double a, double b) {
 	constexpr double TIME_EPSILON = 1e-6;
 	return std::abs(a - b) < TIME_EPSILON;
 }
 
-// Frame/Time conversion utilities
 inline Frame timeToFrame(double time, float fps) {
 	return static_cast<Frame>(time * fps);
 }
@@ -37,7 +32,6 @@ inline double frameToTime(Frame frame, float fps) {
 	return static_cast<double>(frame) / fps;
 }
 
-// Keyframe pair structure
 template<typename T>
 struct FrameKeyframePair {
 	const Keyframe::Data<T>* keyframe_a = nullptr;
@@ -47,7 +41,6 @@ struct FrameKeyframePair {
 	Frame frame_b = 0.0f;
 };
 
-// Legacy time-based keyframe pair (for backward compatibility)
 template<typename T>
 struct TimeKeyframePair {
 	const Keyframe::Data<T>* keyframe_a = nullptr;
@@ -115,8 +108,6 @@ FrameKeyframePair<T> findFrameKeyframePair(const std::map<Frame, Keyframe::Data<
 	return result;
 }
 
-// Legacy compatibility wrapper: time-based keyframe finding
-// Converts time-based map to frame-based temporarily (will be removed in later phase)
 template<typename T>
 TimeKeyframePair<T> findTimeKeyframePair(const std::map<double, Keyframe::Data<T>>& keyframes, double time) {
 	TimeKeyframePair<T> result;

@@ -18,24 +18,13 @@ bool Marker::parseMarkers(const ofJson &marker_data, std::vector<MarkerData> &re
 	for(const auto &marker : marker_data) {
 		MarkerData data;
 		
-		// v3.0 JSON: frame-based only
-		if(!marker.contains("frame") || !marker["frame"].is_number()) {
-			ofLogError("ofxAEMarker") << "Marker missing or invalid frame value (v3.0 JSON required)";
-			continue;
-		}
 		data.frame = marker["frame"].get<float>();
-		
-		// Name field
 		if(marker.contains("name") && marker["name"].is_string()) {
 			data.name = marker["name"].get<std::string>();
 		}
-		
-		// Comment field
 		if(marker.contains("comment") && marker["comment"].is_string()) {
 			data.comment = marker["comment"].get<std::string>();
 		}
-		
-		// Duration in frames
 		if(marker.contains("durationFrames") && marker["durationFrames"].is_number()) {
 			data.duration_frames = marker["durationFrames"].get<float>();
 		}
@@ -51,7 +40,6 @@ bool Marker::parseMarkers(const ofJson &marker_data, std::vector<MarkerData> &re
 	return !result.empty();
 }
 
-// Frame-based range query (primary)
 std::vector<MarkerData> Marker::getMarkersInFrameRange(const std::vector<MarkerData> &markers, Frame start_frame, Frame end_frame)
 {
 	std::vector<MarkerData> result;
@@ -67,7 +55,6 @@ std::vector<MarkerData> Marker::getMarkersInFrameRange(const std::vector<MarkerD
 	return result;
 }
 
-// Legacy time-based range query (compatibility wrapper)
 std::vector<MarkerData> Marker::getMarkersInRange(const std::vector<MarkerData> &markers, double start_time, double end_time, float fps)
 {
 	Frame start_frame = util::timeToFrame(start_time, fps);
@@ -95,7 +82,6 @@ const MarkerData* Marker::findMarkerByName(const std::vector<MarkerData> &marker
 	return nullptr;
 }
 
-// Frame-based marker lookup (primary)
 const MarkerData* Marker::findMarkerAtFrame(const std::vector<MarkerData> &markers, Frame frame)
 {
 	for(const auto &marker : markers) {
@@ -106,7 +92,6 @@ const MarkerData* Marker::findMarkerAtFrame(const std::vector<MarkerData> &marke
 	return nullptr;
 }
 
-// Legacy time-based marker lookup (compatibility wrapper)
 const MarkerData* Marker::findMarkerByTime(const std::vector<MarkerData> &markers, double time, float fps)
 {
 	Frame frame = util::timeToFrame(time, fps);
